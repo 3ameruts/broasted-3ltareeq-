@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Relative base so the build works from any folder or host path.
+// Root base: the site is served from the domain root, including the /admin page.
 export default defineConfig({
-  base: './',
+  base: '/',
   plugins: [react()],
 });

@@ -69,7 +69,7 @@ function AdminShell({ children }: { children: ReactNode }) {
           <img src={content.brand.logo} alt="" width={86} height={50} />
           <strong>لوحة التحكم</strong>
         </div>
-        <a className="abtn" href="#">شوف الموقع</a>
+        <a className="abtn" href="/">شوف الموقع</a>
       </header>
       <div className="admin__body">{children}</div>
     </div>
@@ -160,7 +160,7 @@ function Editor({ email }: { email: string }) {
           </div>
         </div>
         <div className="admin__actions">
-          <a className="abtn" href="#">شوف الموقع</a>
+          <a className="abtn" href="/">شوف الموقع</a>
           <button className="abtn abtn--primary" onClick={save} disabled={!dirty || saving}>احفظ وانشر</button>
         </div>
       </header>
