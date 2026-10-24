@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Lalezar; src: url(assets/lalezar.ttf); }
+  @font-face { font-family: Readex; src: url(assets/readex-700.ttf); font-weight: 700; }
+  :root { --red: #e0263a; --red-deep: #b21017; --yellow: #fcb712; --asphalt: #363336; }
+  html, body { margin: 0; background: var(--red); }
+  #stage { position: relative; width: 1080px; height: 1350px; overflow: hidden; background:
+    radial-gradient(120% 80% at 70% 20%, #ef3b4d 0%, var(--red) 55%, #c91a2c 100%); font-family: Lalezar; }
+  .checker { position: absolute; left: 0; right: 0; height: 44px;
+    background: repeating-conic-gradient(var(--red-deep) 0 25%, #fff 0 50%) 0 0 / 44px 44px; }
+  #road { position: absolute; inset: 0; }
+  #band { fill: none; stroke: var(--asphalt); stroke-width: 210; stroke-linecap: round; }
+  #edge { fill: none; stroke: #fff; stroke-width: 226; stroke-linecap: round; opacity: .9; }
+  #dash { fill: none; stroke: var(--yellow); stroke-width: 12; stroke-dasharray: 54 66; stroke-linecap: round; }
+  #logo { position: absolute; left: 50%; top: 50%; width: 760px; filter: drop-shadow(0 18px 0 rgb(0 0 0 / .22)); }
+  .rays { position: absolute; left: 50%; top: 50%; width: 1100px; height: 1100px; translate: -50% -50%; }
+  .rays line { stroke: var(--yellow); stroke-width: 16; stroke-linecap: round; }
+  #slogan { position: absolute; left: 0; right: 0; top: 330px; display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .w { display: block; font-size: 220px; line-height: 1.02; color: var(--yellow);
+    text-shadow: 6px 6px 0 var(--asphalt), -6px 6px 0 var(--asphalt), 6px -6px 0 var(--asphalt), -6px -6px 0 var(--asphalt),
+      0 8px 0 var(--asphalt), 0 -8px 0 var(--asphalt), 8px 0 0 var(--asphalt), -8px 0 0 var(--asphalt), 0 22px 0 var(--red-deep); }
+  .w.white { color: #fff; }
+  .w.small { font-size: 150px; }
+  .sticker { position: absolute; width: 330px; height: 330px; border-radius: 50%; background: #fff; overflow: hidden;
+    box-shadow: 0 0 0 10px #fff, 0 0 0 18px var(--asphalt), 0 26px 0 18px rgb(0 0 0 / .18); }
+  .sticker img { width: 100%; height: 100%; object-fit: cover; scale: 1.18; }
+  .tag { position: absolute; padding: 6px 26px 10px; border-radius: 999px; background: var(--yellow); color: var(--asphalt);
+    font-family: Readex; font-weight: 700; font-size: 46px; box-shadow: 0 0 0 6px var(--asphalt); white-space: nowrap; direction: rtl; }
+  #cta { position: absolute; left: 50%; top: 610px; translate: -50% 0; display: flex; align-items: center; gap: 22px;
+    background: var(--asphalt); color: #fff; border-radius: 999px; padding: 18px 46px 22px; box-shadow: 0 0 0 8px #fff; white-space: nowrap; }
+  #cta b { font-size: 76px; color: var(--yellow); font-weight: 400; }
+  #cta span { font-family: Readex; font-size: 64px; direction: ltr; }
+  #cta svg { width: 70px; height: 70px; color: var(--yellow); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="road" viewBox="0 0 1080 1350">
+    <path id="edge" d="M-160 1180 C 160 900, 380 1300, 640 1010 S 980 640, 1260 760" />
+    <path id="band" d="M-160 1180 C 160 900, 380 1300, 640 1010 S 980 640, 1260 760" />
+    <path id="dash" d="M-160 1180 C 160 900, 380 1300, 640 1010 S 980 640, 1260 760" />
+  </svg>
+  <div class="checker" style="top:0"></div>
+  <div class="checker" style="bottom:0"></div>
+
+  <svg class="rays" viewBox="-550 -550 1100 1100" id="rays">
+    <g id="rayg"></g>
+  </svg>
+  <img id="logo" src="assets/logo.webp" alt="">
+
+  <div id="slogan">
+    <span class="w" id="w1">معلش..</span>
+    <span class="w" id="w2">جاجنا</span>
+    <span class="w white" id="w3">فريش</span>
+  </div>
+
+  <div class="sticker" id="s1" style="left:70px; top:780px"><img src="assets/item-1.webp" alt=""></div>
+  <div class="sticker" id="s2" style="left:375px; top:900px"><img src="assets/item-6.webp" alt=""></div>
+  <div class="sticker" id="s3" style="left:680px; top:760px"><img src="assets/item-3.webp" alt=""></div>
+  <div class="tag" id="t1" style="left:110px; top:1080px">2.75 د.أ</div>
+  <div class="tag" id="t2" style="left:420px; top:1205px">2.75 د.أ</div>
+  <div class="tag" id="t3" style="left:720px; top:1060px">2.75 د.أ</div>
+
+  <div id="cta">
+    <svg viewBox="0 0 24 24"><path fill="currentColor" d="M5.2 3.5h3.1l1.6 4.2-2.1 1.4a11.5 11.5 0 0 0 7.1 7.1l1.4-2.1 4.2 1.6v3.1a2 2 0 0 1-2.2 2A17.4 17.4 0 0 1 3.2 5.7a2 2 0 0 1 2-2.2Z"/></svg>
+    <b>اتصل واطلب</b><span>0792892666</span>
+  </div>
+</div>
+<script src="assets/gsap.min.js"></script>
+<script>
+  const D = 9; // seconds, loops seamlessly
+  const g = document.getElementById('rayg');
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2, r1 = 360, r2 = 470;
+    g.insertAdjacentHTML('beforeend', `<line x1="${Math.cos(a)*r1}" y1="${Math.sin(a)*r1}" x2="${Math.cos(a)*r2}" y2="${Math.sin(a)*r2}"/>`);
+  }
+  const tl = gsap.timeline({ paused: true });
+  // road dashes travel the whole loop; 120 = one dash period, so start and end frames match
+  tl.fromTo('#dash', { strokeDashoffset: 0 }, { strokeDashoffset: -120 * 6, ease: 'none', duration: D }, 0);
+
+  gsap.set(['#slogan .w', '.sticker', '.tag', '#cta', '#rays'], { autoAlpha: 0 });
+  gsap.set('#logo', { yPercent: -50, xPercent: -50, x: 0, y: -900, rotate: -8, scale: 0.9 });
+
+  // 1. logo drops onto the road
+  tl.to('#logo', { y: 0, rotate: 0, duration: 0.9, ease: 'bounce.out' }, 0.2)
+    .fromTo('#rays', { autoAlpha: 1, scale: 0.6, rotate: 0 }, { scale: 1.15, rotate: 20, autoAlpha: 0, duration: 0.9, ease: 'power2.out', immediateRender: false }, 0.95)
+    .to('#logo', { scale: 1.06, duration: 0.25, yoyo: true, repeat: 1, ease: 'power1.inOut' }, 1.2)
+  // 2. logo makes room, slogan pops
+    .to('#logo', { y: -470, scale: 0.52, duration: 0.6, ease: 'power3.inOut' }, 2.3)
+    .fromTo('#w1', { autoAlpha: 1, scale: 0, rotate: -12 }, { scale: 1, rotate: -4, duration: 0.55, ease: 'back.out(2.4)' }, 2.65)
+    .fromTo('#w2', { autoAlpha: 1, scale: 0, rotate: 10 }, { scale: 1, rotate: 3, duration: 0.55, ease: 'back.out(2.4)' }, 2.9)
+    .fromTo('#w3', { autoAlpha: 1, scale: 0, rotate: -10 }, { scale: 1.08, rotate: -3, duration: 0.6, ease: 'back.out(2.6)' }, 3.15)
+  // 3. slogan lifts, sandwiches roll in along the road
+    .to('#slogan', { y: -120, scale: 0.62, duration: 0.6, ease: 'power3.inOut' }, 4.0)
+    .fromTo('#s1', { autoAlpha: 1, x: -600, rotate: -360 }, { x: 0, rotate: -6, duration: 0.9, ease: 'back.out(1.3)' }, 4.2)
+    .fromTo('#s2', { autoAlpha: 1, y: 700, rotate: 200 }, { y: 0, rotate: 3, duration: 0.9, ease: 'back.out(1.3)' }, 4.4)
+    .fromTo('#s3', { autoAlpha: 1, x: 600, rotate: 360 }, { x: 0, rotate: 7, duration: 0.9, ease: 'back.out(1.3)' }, 4.6)
+    .fromTo('.tag', { autoAlpha: 1, scale: 0 }, { scale: 1, rotate: i => [-6, 4, -3][i], duration: 0.45, stagger: 0.15, ease: 'back.out(3)' }, 5.2)
+  // 4. call to action
+    .to('#slogan', { scale: 0.3, autoAlpha: 0, duration: 0.4, ease: 'power2.in' }, 6.1)
+    .fromTo('#cta', { autoAlpha: 1, scale: 0, rotate: -6 }, { scale: 1, rotate: -2, duration: 0.6, ease: 'back.out(2)' }, 6.4)
+    .to('#cta', { scale: 1.05, duration: 0.3, yoyo: true, repeat: 1, ease: 'sine.inOut' }, 7.0)
+  // 5. everything drives off, back to the opening frame
+    .to(['.sticker', '.tag'], { x: '+=1300', rotate: '+=200', duration: 0.7, stagger: 0.05, ease: 'power3.in' }, 7.75)
+    .to('#cta', { y: '-=1100', duration: 0.65, ease: 'power3.in' }, 7.85)
+    .to('#logo', { y: -1000, duration: 0.55, ease: 'power3.in' }, 7.95)
+    .set({}, {}, D);
+
+  window.seek = t => { tl.seek(t, false); };
+  window.DURATION = D;
+  window.SIZE = { w: 1080, h: 1350, outW: 720, outH: 900, posterAt: 1.33 };
+  window.ready = document.fonts.ready.then(() => Promise.all([...document.images].map(i => i.decode().catch(() => {}))));
+</script>
+</body>
+</html>

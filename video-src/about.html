@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Lalezar; src: url(assets/lalezar.ttf); }
+  @font-face { font-family: Readex; src: url(assets/readex-700.ttf); font-weight: 700; }
+  :root { --red: #e0263a; --red-deep: #b21017; --yellow: #fcb712; --mustard: #f0b84a; --asphalt: #363336; }
+  html, body { margin: 0; }
+  #stage { position: relative; width: 1080px; height: 1080px; overflow: hidden; font-family: Lalezar;
+    background:
+      repeating-linear-gradient(-28deg, transparent 0 70px, rgb(255 255 255 / .12) 70px 73px),
+      radial-gradient(110% 90% at 50% 30%, #f6c461 0%, var(--mustard) 60%, #e3a63a 100%); }
+  svg { position: absolute; inset: 0; overflow: visible; }
+  .edge { fill: none; stroke: #fff; stroke-width: 172; stroke-linecap: round; }
+  .band { fill: none; stroke: var(--asphalt); stroke-width: 150; stroke-linecap: round; }
+  #dash { fill: none; stroke: #fff; stroke-width: 9; stroke-dasharray: 40 50; stroke-linecap: round; }
+  .sign-plate { fill: var(--red); stroke: #fff; stroke-width: 8; }
+  .sign-ring { fill: none; stroke: var(--red-deep); stroke-width: 5; }
+  .sign-text { font-family: Lalezar; font-size: 42px; fill: #fff; text-anchor: middle; }
+  .pole { fill: #8d8589; }
+  #q { position: absolute; left: 0; right: 0; top: 150px; height: 260px; }
+  .q { position: absolute; inset: 0; display: grid; place-items: center; font-size: 150px; line-height: 1; color: #fff;
+    text-shadow: 6px 6px 0 var(--asphalt), -6px 6px 0 var(--asphalt), 6px -6px 0 var(--asphalt), -6px -6px 0 var(--asphalt),
+      0 8px 0 var(--asphalt), 0 -8px 0 var(--asphalt), 8px 0 0 var(--asphalt), -8px 0 0 var(--asphalt), 0 20px 0 var(--red-deep); }
+  .q em { font-style: normal; color: var(--yellow); }
+  #logo { position: absolute; left: 50%; top: 36px; width: 500px; margin-left: -250px; filter: drop-shadow(0 14px 0 rgb(0 0 0 / .2)); }
+  #hours { position: absolute; left: 50%; top: 340px; translate: -50% 0; display: flex; align-items: center; gap: 22px; white-space: nowrap;
+    background: var(--asphalt); color: #fff; padding: 14px 40px 18px; border-radius: 999px; box-shadow: 0 0 0 8px #fff; font-size: 56px; }
+  #hours b { color: var(--yellow); font-weight: 400; }
+  #clock { width: 84px; height: 84px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg viewBox="0 0 1080 1080">
+    <defs>
+      <path id="road" d="M-300 870 C 120 710, 300 1030, 560 890 S 960 710, 1380 860" />
+    </defs>
+    <use href="#road" class="edge" />
+    <use href="#road" class="band" />
+    <use href="#road" id="dash" />
+    <g id="signs"></g>
+    <!-- retro car, drawn facing right; the inner flip makes it face the way it drives -->
+    <g id="car">
+      <g transform="scale(1,-1) translate(-130,-120)"><g id="body">
+        <ellipse cx="130" cy="116" rx="118" ry="12" fill="rgb(0 0 0 / .22)" />
+        <path d="M18 92 C 18 64, 40 56, 62 52 C 80 18, 170 12, 200 48 C 228 52, 246 66, 246 92 Z" fill="#d31f2f" stroke="#262326" stroke-width="7" stroke-linejoin="round" />
+        <path d="M88 52 C 98 30, 148 26, 166 50 Z" fill="#cfe9f2" stroke="#262326" stroke-width="6" stroke-linejoin="round" />
+        <path d="M172 50 C 182 38, 196 42, 200 52 Z" fill="#cfe9f2" stroke="#262326" stroke-width="5" />
+        <rect x="236" y="70" width="14" height="10" rx="4" fill="#fcb712" stroke="#262326" stroke-width="4" />
+        <path d="M30 92 H 240" stroke="#262326" stroke-width="7" stroke-linecap="round" />
+        <g class="wheel" transform="translate(66 96)"><circle r="24" fill="#262326" /><circle r="10" fill="#cfc7cb" /><path d="M-10 0 H10 M0 -10 V10" stroke="#262326" stroke-width="4" /></g>
+        <g class="wheel" transform="translate(196 96)"><circle r="24" fill="#262326" /><circle r="10" fill="#cfc7cb" /><path d="M-10 0 H10 M0 -10 V10" stroke="#262326" stroke-width="4" /></g>
+      </g></g>
+    </g>
+  </svg>
+
+  <div id="q">
+    <div class="q" id="q1"><span>رايح <em>عالشغل</em>؟</span></div>
+    <div class="q" id="q2"><span>راجع <em>عالبيت</em>؟</span></div>
+    <div class="q" id="q3"><span>طالع <em>آخر الليل</em>؟</span></div>
+  </div>
+
+  <img id="logo" src="assets/logo.webp" alt="">
+  <div id="hours">
+    <svg id="clock" viewBox="-50 -50 100 100" style="position:static">
+      <circle r="44" fill="#fff" stroke="#fcb712" stroke-width="8" />
+      <line id="hh" x1="0" y1="0" x2="0" y2="-22" stroke="#262326" stroke-width="8" stroke-linecap="round" />
+      <line id="mh" x1="0" y1="0" x2="0" y2="-32" stroke="#e0263a" stroke-width="5" stroke-linecap="round" />
+    </svg>
+    <span>من <b>12 الظهر</b> لـ <b>3 الفجر</b></span>
+  </div>
+</div>
+<script src="assets/gsap.min.js"></script>
+<script src="assets/MotionPathPlugin.min.js"></script>
+<script>
+  gsap.registerPlugin(MotionPathPlugin);
+  const D = 10;
+  const road = document.getElementById('road');
+  const len = road.getTotalLength();
+  const branches = ['دوار العيادات', 'دوار الدرة', 'مجمع عمّان'];
+  const at = [0.67, 0.49, 0.31]; // the car drives right to left, so the first sign sits furthest right
+  const signs = document.getElementById('signs');
+  branches.forEach((name, i) => {
+    const p = road.getPointAtLength(len * at[i]);
+    const w = 270, x = p.x, y = p.y - 100;
+    signs.insertAdjacentHTML('beforeend', `
+      <g class="sign" id="sg${i}" transform="translate(${x} ${y})">
+        <rect class="pole" x="-7" y="-10" width="14" height="140" rx="4"/>
+        <rect class="sign-plate" x="${-w / 2}" y="-150" width="${w}" height="100" rx="16"/>
+        <rect class="sign-ring" x="${-w / 2 + 12}" y="-138" width="${w - 24}" height="76" rx="10"/>
+        <text class="sign-text" x="0" y="-84">${name}</text>
+      </g>`);
+  });
+
+  const tl = gsap.timeline({ paused: true });
+  gsap.set(['.q', '#logo', '#hours'], { autoAlpha: 0 });
+  gsap.set('.sign', { scaleY: 0, transformOrigin: '50% 100%' });
+
+  tl.fromTo('#dash', { strokeDashoffset: 0 }, { strokeDashoffset: 90 * 8, ease: 'none', duration: D }, 0);
+  // car: path is drawn left to right, so driving leftwards = progress 1 -> 0 (keeps autoRotate upright)
+  tl.to('#car', { motionPath: { path: '#road', autoRotate: true, start: 1, end: 0 }, duration: 7.4, ease: 'none', immediateRender: true }, 0);
+  tl.fromTo('.wheel', { rotation: 0 }, { rotation: 360 * 9, duration: 7.4, ease: 'none', transformOrigin: '50% 50%' }, 0);
+  tl.fromTo('#body', { y: 0 }, { y: -6, duration: 0.185, yoyo: true, repeat: 39, ease: 'sine.inOut' }, 0);
+
+  // signs pop as the car reaches them, each with its question
+  const reach = i => 7.4 * (1 - at[i]) + 0.06;
+  [0, 1, 2].forEach(i => {
+    const t = reach(i);
+    tl.to(`#sg${i}`, { scaleY: 1, duration: 0.5, ease: 'back.out(2.2)' }, t - 0.35)
+      .fromTo(`#q${i + 1}`, { autoAlpha: 1, scale: 0, rotate: i % 2 ? 5 : -5 }, { scale: 1, rotate: i % 2 ? 2 : -2, duration: 0.5, ease: 'back.out(2.4)' }, t - 0.55)
+      .to(`#q${i + 1}`, { scale: 0.4, autoAlpha: 0, duration: 0.25, ease: 'power2.in' }, t + 0.8);
+  });
+
+  // finale: logo and hours, clock runs 12 -> 3
+  tl.fromTo('#logo', { autoAlpha: 1, y: -500, rotate: -8 }, { y: 0, rotate: 0, duration: 0.8, ease: 'bounce.out' }, 7.2)
+    .fromTo('#hours', { autoAlpha: 1, scale: 0 }, { scale: 1, duration: 0.5, ease: 'back.out(2)' }, 7.8)
+    .fromTo('#hh', { rotate: 0, svgOrigin: '0 0' }, { rotate: 90, svgOrigin: '0 0', duration: 1.2, ease: 'power2.inOut' }, 8.0)
+    .fromTo('#mh', { rotate: 0, svgOrigin: '0 0' }, { rotate: 360 * 3, svgOrigin: '0 0', duration: 1.2, ease: 'power2.inOut' }, 8.0)
+  // reset to the opening frame
+    .to(['#logo', '#hours'], { y: '-=700', duration: 0.5, ease: 'power3.in' }, 9.4)
+    .to('.sign', { scaleY: 0, duration: 0.35, stagger: 0.06, ease: 'power2.in' }, 9.5)
+    .set({}, {}, D);
+
+  window.tl = tl;
+  window.seek = t => { tl.seek(t, false); };
+  window.DURATION = D;
+  window.SIZE = { w: 1080, h: 1080, outW: 720, outH: 720, posterAt: 8.6 };
+  window.ready = document.fonts.ready.then(() => Promise.all([...document.images].map(i => i.decode().catch(() => {}))));
+</script>
+</body>
+</html>
