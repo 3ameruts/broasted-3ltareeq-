@@ -548,7 +548,7 @@ function Footer() {
           </div>
         </div>
         <p className="footer__legal">
-          © {new Date().getFullYear()} {brand.name}.
+          © {new Date().getFullYear()} {brand.name}. <a href="#admin" className="footer__admin">لوحة التحكم</a>
         </p>
       </div>
     </footer>
