@@ -548,7 +548,7 @@ function Footer() {
           </div>
         </div>
         <p className="footer__legal">
-          © {new Date().getFullYear()} {brand.name}. <a href="#admin" className="footer__admin">لوحة التحكم</a>
+          © {new Date().getFullYear()} {brand.name}.
         </p>
         {brand.footerNote?.trim() && <p className="footer__legal footer__note" dir="auto">{brand.footerNote}</p>}
       </div>
