@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { supabase } from './supabase';
 import defaults from '../data/default-content.json';
 
 export type Item = { id: string; name: string; price: number; contents?: string; image?: string };
@@ -21,48 +22,78 @@ export type Content = {
 };
 
 export const DEFAULT_CONTENT = defaults as Content;
-const KEY = 'broasted-content-v1';
+const CACHE_KEY = 'broasted-cache-v1';
+const LEGACY_KEY = 'broasted-content-v1';
 
-// Demo storage: edits live in this browser only. The production build swaps this for the server.
-export function loadContent(): Content {
+// Merge section by section so fields added in later versions get their defaults.
+export function mergeContent(saved: Partial<Content> | null | undefined): Content {
+  if (!saved) return DEFAULT_CONTENT;
+  return {
+    ...DEFAULT_CONTENT,
+    ...saved,
+    brand: { ...DEFAULT_CONTENT.brand, ...saved.brand },
+    hero: { ...DEFAULT_CONTENT.hero, ...saved.hero },
+    about: { ...DEFAULT_CONTENT.about, ...saved.about },
+  };
+}
+
+function readJSON(key: string): Partial<Content> | null {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const saved = JSON.parse(raw) as Partial<Content>;
-      // Merge section by section so fields added in later versions get their defaults.
-      return {
-        ...DEFAULT_CONTENT,
-        ...saved,
-        brand: { ...DEFAULT_CONTENT.brand, ...saved.brand },
-        hero: { ...DEFAULT_CONTENT.hero, ...saved.hero },
-        about: { ...DEFAULT_CONTENT.about, ...saved.about },
-      };
-    }
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    /* storage blocked or corrupt: fall back to defaults */
+    return null;
   }
-  return DEFAULT_CONTENT;
 }
 
-export function saveContent(c: Content): { ok: true } | { ok: false; reason: string } {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(c));
+function writeCache(c: Content) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch { /* cache is optional */ }
+}
+
+// Edits saved by the old browser-only admin, offered once for publishing.
+export const readLegacyEdits = () => readJSON(LEGACY_KEY);
+export const clearLegacyEdits = () => { try { localStorage.removeItem(LEGACY_KEY); } catch { /* none */ } };
+
+export async function fetchContent(): Promise<Content | null> {
+  const { data, error } = await supabase.from('site_content').select('content').eq('id', 1).maybeSingle();
+  if (error || !data) return null;
+  return mergeContent(data.content as Partial<Content>);
+}
+
+export type SaveResult = { ok: true } | { ok: false; reason: 'not-setup' | 'not-admin' | 'network' };
+
+export async function publishContent(c: Content): Promise<SaveResult> {
+  const { error } = await supabase.from('site_content').upsert({ id: 1, content: c, updated_at: new Date().toISOString() });
+  if (!error) {
+    writeCache(c);
     return { ok: true };
-  } catch (e) {
-    const full = e instanceof DOMException && /quota/i.test(e.name + e.message);
-    return { ok: false, reason: full ? 'full' : 'blocked' };
   }
+  if (error.code === '42P01' || error.code === 'PGRST205') return { ok: false, reason: 'not-setup' };
+  if (error.code === '42501' || /row-level security/i.test(error.message)) return { ok: false, reason: 'not-admin' };
+  return { ok: false, reason: 'network' };
 }
 
-export function resetContent() {
-  try { localStorage.removeItem(KEY); } catch { /* nothing stored */ }
-}
+type Ctx = { content: Content; setContent: (c: Content) => void; loaded: boolean };
+const Ctx = createContext<Ctx | null>(null);
 
-const Ctx = createContext<{ content: Content; setContent: (c: Content) => void } | null>(null);
-
+// Renders the last copy this browser saw (or the built-in defaults) at once, then swaps in the live content.
 export function ContentProvider({ children }: { children: ReactNode }) {
-  const [content, setContent] = useState<Content>(loadContent);
-  return <Ctx.Provider value={{ content, setContent }}>{children}</Ctx.Provider>;
+  const [content, setContent] = useState<Content>(() => mergeContent(readJSON(CACHE_KEY)));
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    let live = true;
+    fetchContent()
+      .then(c => {
+        if (!live) return;
+        if (c) {
+          setContent(c);
+          writeCache(c);
+        }
+      })
+      .finally(() => live && setLoaded(true));
+    return () => { live = false; };
+  }, []);
+  return <Ctx.Provider value={{ content, setContent, loaded }}>{children}</Ctx.Provider>;
 }
 
 export function useContent() {

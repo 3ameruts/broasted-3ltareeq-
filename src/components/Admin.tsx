@@ -1,9 +1,14 @@
-import { useState, type ChangeEvent, type ReactNode } from 'react';
-import { useContent, saveContent, resetContent, DEFAULT_CONTENT, formatPrice, type Content, type Item, type Category, type Stat } from '../lib/content';
+import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import {
+  useContent, publishContent, mergeContent, readLegacyEdits, clearLegacyEdits, DEFAULT_CONTENT, formatPrice,
+  type Content, type Item, type Category, type Stat,
+} from '../lib/content';
+import { supabase, IMAGE_BUCKET } from '../lib/supabase';
 
-// Downscale an uploaded photo in the browser so it fits in demo storage.
-function readImage(file: File, max = 1000): Promise<string> {
-  return new Promise((resolve, reject) => {
+// Downscale a photo in the browser, then store it in Supabase Storage and return its public URL.
+async function uploadImage(file: File, max = 1400): Promise<string> {
+  const blob = await new Promise<Blob>((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
       const s = Math.min(1, max / Math.max(img.width, img.height));
@@ -12,44 +17,131 @@ function readImage(file: File, max = 1000): Promise<string> {
       c.height = Math.round(img.height * s);
       c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
       URL.revokeObjectURL(img.src);
-      resolve(c.toDataURL('image/webp', 0.8));
+      c.toBlob(b => (b ? resolve(b) : reject(new Error('encode'))), 'image/webp', 0.82);
     };
-    img.onerror = () => reject(new Error('bad image'));
+    img.onerror = () => reject(new Error('read'));
     img.src = URL.createObjectURL(file);
   });
+  const path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.webp`;
+  const { error } = await supabase.storage.from(IMAGE_BUCKET).upload(path, blob, { contentType: 'image/webp', cacheControl: '31536000' });
+  if (error) throw new Error('upload');
+  return supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+export default function Admin() {
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!session) { setIsAdmin(null); return; }
+    supabase.rpc('is_admin').then(({ data, error }) => setIsAdmin(error ? false : Boolean(data)));
+  }, [session]);
+
+  if (session === undefined) return <AdminShell><p className="admin__wait">عم نحمّل…</p></AdminShell>;
+  if (!session) return <AdminShell><Login /></AdminShell>;
+  if (isAdmin === null) return <AdminShell><p className="admin__wait">عم نتأكّد من الحساب…</p></AdminShell>;
+  if (!isAdmin) {
+    return (
+      <AdminShell>
+        <section className="apanel alogin">
+          <h3>هالحساب مش مسموحله يعدّل</h3>
+          <p>دخلت بـ <strong dir="ltr">{session.user.email}</strong>، بس هالإيميل مش مضاف بجدول <code>admins</code> بـ Supabase.</p>
+          <button className="abtn" onClick={() => supabase.auth.signOut()}>اطلع وادخل بحساب تاني</button>
+        </section>
+      </AdminShell>
+    );
+  }
+  return <Editor email={session.user.email ?? ''} />;
+}
+
+function AdminShell({ children }: { children: ReactNode }) {
+  const { content } = useContent();
+  return (
+    <div className="admin">
+      <header className="admin__bar">
+        <div className="admin__brand">
+          <img src={content.brand.logo} alt="" width={86} height={50} />
+          <strong>لوحة التحكم</strong>
+        </div>
+        <a className="abtn" href="#">شوف الموقع</a>
+      </header>
+      <div className="admin__body">{children}</div>
+    </div>
+  );
+}
+
+function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setErr('');
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    setBusy(false);
+    if (error) setErr(/invalid/i.test(error.message) ? 'الإيميل أو كلمة السر غلط.' : 'ما قدرنا نتصل بالسيرفر. شيّك على النت وجرّب كمان مرة.');
+  };
+  return (
+    <form className="apanel alogin" onSubmit={submit}>
+      <h3>ادخل على لوحة التحكم</h3>
+      <Field label="الإيميل"><input id="login-email" type="email" dir="ltr" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} /></Field>
+      <Field label="كلمة السر"><input id="login-password" type="password" dir="ltr" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></Field>
+      {err && <p className="afield__err" role="alert">{err}</p>}
+      <button className="abtn abtn--primary" type="submit" disabled={busy}>{busy ? 'عم ندخل…' : 'ادخل'}</button>
+    </form>
+  );
 }
 
 type Tab = 'brand' | 'menu' | 'branches' | 'gallery';
 
-export default function Admin() {
-  const { content, setContent } = useContent();
+function Editor({ email }: { email: string }) {
+  const { content, setContent, loaded } = useContent();
   const [draft, setDraft] = useState<Content>(() => structuredClone(content));
+  const [synced, setSynced] = useState(loaded);
   const [tab, setTab] = useState<Tab>('menu');
   const [toast, setToast] = useState<{ text: string; bad?: boolean } | null>(null);
+  const [saving, setSaving] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [legacy, setLegacy] = useState(() => readLegacyEdits());
   const dirty = JSON.stringify(draft) !== JSON.stringify(content);
+
+  // The live copy may arrive after the editor opens; take it once, before any edits.
+  useEffect(() => {
+    if (loaded && !synced) {
+      setDraft(structuredClone(content));
+      setSynced(true);
+    }
+  }, [loaded, synced, content]);
 
   const flash = (text: string, bad = false) => {
     setToast({ text, bad });
-    setTimeout(() => setToast(null), 3200);
+    setTimeout(() => setToast(null), 4200);
   };
 
-  const save = () => {
-    const r = saveContent(draft);
+  const save = async () => {
+    setSaving(true);
+    const r = await publishContent(draft);
+    setSaving(false);
     if (r.ok) {
       setContent(draft);
-      flash('انحفظت التعديلات');
-    } else {
-      flash(r.reason === 'full' ? 'المساحة امتلأت. احذف صور أو ارفع صور أصغر وجرّب مرة تانية.' : 'المتصفح منع الحفظ. جرّب من نافذة عادية مش خاصة.', true);
+      if (legacy) { clearLegacyEdits(); setLegacy(null); }
+      flash('انحفظت التعديلات وصارت على الموقع');
+      return;
     }
-  };
-
-  const reset = () => {
-    resetContent();
-    setContent(DEFAULT_CONTENT);
-    setDraft(structuredClone(DEFAULT_CONTENT));
-    setConfirmReset(false);
-    flash('رجع المحتوى للأصل');
+    flash(
+      r.reason === 'not-setup' ? 'قاعدة البيانات مش جاهزة. لازم يتشغّل ملف الإعداد setup.sql بـ Supabase أول.'
+        : r.reason === 'not-admin' ? 'هالحساب مش مسموحله يحفظ. تأكّد إنه إيميلك بجدول admins.'
+        : 'ما قدرنا نحفظ. شيّك على النت وجرّب كمان مرة.',
+      true
+    );
   };
 
   const up = (fn: (d: Content) => void) =>
@@ -66,18 +158,24 @@ export default function Admin() {
           <img src={draft.brand.logo} alt="" width={86} height={50} />
           <div>
             <strong>لوحة التحكم</strong>
-            <small>{dirty ? 'في تعديلات ما انحفظت' : 'كل شي محفوظ'}</small>
+            <small>{saving ? 'عم نحفظ…' : dirty ? 'في تعديلات ما انحفظت' : 'كل شي محفوظ وعلى الموقع'}</small>
           </div>
         </div>
         <div className="admin__actions">
           <a className="abtn" href="#">شوف الموقع</a>
-          <button className="abtn abtn--primary" onClick={save} disabled={!dirty}>احفظ التعديلات</button>
+          <button className="abtn abtn--primary" onClick={save} disabled={!dirty || saving}>احفظ وانشر</button>
         </div>
       </header>
 
-      <p className="admin__note">
-        <strong>نسخة تجريبية:</strong> التعديلات بتنحفظ على هالمتصفح بس، والزوار ما بيشوفوها. بالنسخة النهائية بتنحفظ على السيرفر وبتطلع لكل الناس، ولوحة التحكم بتكون بكلمة سر.
-      </p>
+      {legacy && (
+        <div className="admin__note">
+          <p><strong>لقينا تعديلات قديمة على هالجهاز</strong> من قبل ما تنربط لوحة التحكم بالسيرفر. بدك تحمّلها هون لتنشرها؟</p>
+          <div className="arow">
+            <button className="abtn abtn--small abtn--primary" onClick={() => { setDraft(mergeContent(legacy)); flash('حمّلنا التعديلات القديمة. راجعها واكبس احفظ وانشر.'); setLegacy(null); }}>حمّلها</button>
+            <button className="abtn abtn--small" onClick={() => { clearLegacyEdits(); setLegacy(null); }}>تجاهلها</button>
+          </div>
+        </div>
+      )}
 
       <nav className="admin__tabs" aria-label="أقسام لوحة التحكم">
         {([['menu', 'المنيو والأسعار'], ['brand', 'المعلومات والواجهة'], ['branches', 'الفروع'], ['gallery', 'الصور']] as [Tab, string][]).map(([k, label]) => (
@@ -93,15 +191,20 @@ export default function Admin() {
 
         <section className="apanel apanel--danger">
           <h3>رجّع كل شي للأصل</h3>
-          <p>بيمسح كل تعديلاتك ويرجّع المنيو والصور متل أول نسخة.</p>
+          <p>بيرجّع المنيو والصور والنصوص متل أول نسخة بلوحة التحكم. ما بيتغيّر شي على الموقع لحتى تكبس "احفظ وانشر".</p>
           {confirmReset ? (
             <div className="arow">
-              <button className="abtn abtn--danger" onClick={reset}>أكيد، رجّع الأصل</button>
+              <button className="abtn abtn--danger" onClick={() => { setDraft(structuredClone(DEFAULT_CONTENT)); setConfirmReset(false); flash('رجعت للأصل. اكبس احفظ وانشر لتطلع على الموقع.'); }}>أكيد، رجّع الأصل</button>
               <button className="abtn" onClick={() => setConfirmReset(false)}>إلغاء</button>
             </div>
           ) : (
             <button className="abtn" onClick={() => setConfirmReset(true)}>رجّع الأصل</button>
           )}
+        </section>
+
+        <section className="apanel apanel--danger">
+          <p>داخل بـ <strong dir="ltr">{email}</strong></p>
+          <button className="abtn abtn--small" onClick={() => supabase.auth.signOut()}>اطلع من الحساب</button>
         </section>
       </div>
 
@@ -143,15 +246,19 @@ function ListInput({ id, value, join, split, onChange, multiline }: { id: string
 
 function ImagePicker({ src, onChange, onRemove, label = 'الصورة' }: { src?: string; onChange: (v: string) => void; onRemove?: () => void; label?: string }) {
   const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
   const pick = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = '';
     if (!f) return;
+    setErr('');
+    setBusy(true);
     try {
-      setErr('');
-      onChange(await readImage(f));
-    } catch {
-      setErr('ما قدرنا نقرأ الصورة. جرّب صورة JPG أو PNG.');
+      onChange(await uploadImage(f));
+    } catch (x) {
+      setErr((x as Error).message === 'upload' ? 'ما قدرنا نرفع الصورة. شيّك على النت وجرّب كمان مرة.' : 'ما قدرنا نقرأ الصورة. جرّب صورة JPG أو PNG.');
+    } finally {
+      setBusy(false);
     }
   };
   return (
@@ -159,9 +266,9 @@ function ImagePicker({ src, onChange, onRemove, label = 'الصورة' }: { src?
       <div className="apick__thumb">{src ? <img src={src} alt="" /> : <span>بدون صورة</span>}</div>
       <div className="apick__ctrls">
         <span className="afield__label">{label}</span>
-        <label className="abtn abtn--small">
-          {src ? 'غيّر الصورة' : 'ارفع صورة'}
-          <input type="file" accept="image/*" onChange={pick} hidden />
+        <label className={'abtn abtn--small' + (busy ? ' is-busy' : '')} aria-disabled={busy}>
+          {busy ? 'عم نرفع الصورة…' : src ? 'غيّر الصورة' : 'ارفع صورة'}
+          <input type="file" accept="image/*" onChange={pick} hidden disabled={busy} />
         </label>
         {src && onRemove && <button className="abtn abtn--small abtn--ghost" onClick={onRemove}>شيل الصورة</button>}
         {err && <span className="afield__err">{err}</span>}
@@ -346,14 +453,9 @@ function GalleryEditor({ draft, up }: EdProps) {
           <ImagePicker key={i} label={`صورة ${i + 1}`} src={src} onChange={v => up(d => { d.gallery[i] = v; })} onRemove={() => up(d => { d.gallery.splice(i, 1); })} />
         ))}
       </div>
-      <label className="abtn abtn--add">
-        + ضيف صورة
-        <input type="file" accept="image/*" hidden onChange={async e => {
-          const f = e.target.files?.[0];
-          e.target.value = '';
-          if (f) { const v = await readImage(f, 1400); up(d => { d.gallery.push(v); }); }
-        }} />
-      </label>
+      <div className="agallery">
+        <ImagePicker label="ضيف صورة جديدة" onChange={v => up(d => { d.gallery.push(v); })} />
+      </div>
     </section>
   );
 }

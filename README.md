@@ -46,4 +46,13 @@ node render.mjs about 30   # فيديو قصتنا
 
 ## لوحة التحكم
 
-هالنسخة بتحفظ التعديلات بمتصفح الشخص اللي عدّل بس. الخطوة الجاية: ربطها بـ Supabase لحتى تنحفظ على السيرفر وتطلع لكل الزوار، مع دخول بإيميل وكلمة سر.
+على `/#admin`. الدخول بإيميل وكلمة سر من Supabase، وكل تعديل بيتحفظ بقاعدة البيانات وبيطلع لكل الزوار فوراً. الصور اللي بترفعها بتنحفظ بـ Supabase Storage.
+
+الإعداد لمرة وحدة:
+1. Supabase → **SQL Editor**: الصق `supabase/setup.sql` بعد ما تغيّر الإيميل بآخره، وكبست **Run**.
+2. Supabase → **Authentication → Users → Add user**: نفس الإيميل وكلمة سر، مع **Auto Confirm User**.
+3. (منصوح) **Authentication → Sign In / Providers**: طفّي **Allow new users to sign up**.
+
+لإضافة شخص تاني يعدّل: ضيف إيميله بجدول `admins` واعمله حساب من Authentication.
+
+رابط Supabase والمفتاح العام موجودين بـ `src/lib/supabase.ts`، وفيك تغيّرهم بمتغيّرات `VITE_SUPABASE_URL` و `VITE_SUPABASE_ANON_KEY` على Vercel.
