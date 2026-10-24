@@ -8,7 +8,10 @@
     "closeHour": 3,
     "instagram": "https://www.instagram.com/broasted_3ltareeq",
     "facebook": "https://www.facebook.com/brosted3ltareeq/",
-    "logo": "img/logo.webp"
+    "logo": "img/logo.webp",
+    "showStatus": true,
+    "statusOpen": "مفتوحين هلّق، لـ 3 الفجر",
+    "statusClosed": "مسكّرين هلّق، منفتح الساعة 12 الظهر"
   },
   "hero": {
     "eyebrow": "ثلاث فروع • كل يوم لـ 3 الفجر",
@@ -24,7 +27,33 @@
       "عشان هيك منفتح من 12 الظهر لـ 3 الفجر، وعنا ثلاث فروع: دوار العيادات، دوار الدرة، ومجمع عمّان. وين ما كنت، في فرع قريب منك.",
       "ووعدنا إلك مكتوب على كل علبة: معلش.. جاجنا فريش. بروستد سخن ومقرمش، وصوصات على كيفك."
     ],
-    "video": "video/about"
+    "video": "video/about",
+    "stats": [
+      {
+        "key": "branches",
+        "label": "فروع",
+        "value": null,
+        "show": true
+      },
+      {
+        "key": "hours",
+        "label": "ساعة مفتوحين باليوم",
+        "value": null,
+        "show": true
+      },
+      {
+        "key": "sandwiches",
+        "label": "ساندويشات",
+        "value": null,
+        "show": true
+      },
+      {
+        "key": "sauces",
+        "label": "صوصات",
+        "value": null,
+        "show": true
+      }
+    ]
   },
   "marquee": [
     "بروستد",

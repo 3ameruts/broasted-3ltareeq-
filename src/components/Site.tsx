@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGSAP } from '@gsap/react';
-import { useContent, isOpenNow, telHref, formatPrice, type Category, type Item, type Branch } from '../lib/content';
+import { useContent, isOpenNow, telHref, formatPrice, type Category, type Item, type Branch, type Stat } from '../lib/content';
 import { useSmoothScroll, scrollToId, gsap, ScrollTrigger } from '../lib/motion';
 import { locate, directionsUrl, type Located } from '../lib/geo';
 import ScrollVelocity from './bits/ScrollVelocity';
@@ -77,16 +77,17 @@ function Header() {
 
 function OpenStatus() {
   const { content } = useContent();
-  const { openHour, closeHour } = content.brand;
+  const { openHour, closeHour, showStatus, statusOpen, statusClosed } = content.brand;
   const [open, setOpen] = useState(() => isOpenNow(openHour, closeHour));
   useEffect(() => {
     const t = setInterval(() => setOpen(isOpenNow(openHour, closeHour)), 60000);
     return () => clearInterval(t);
   }, [openHour, closeHour]);
+  if (!showStatus) return null;
   return (
     <span className={'status' + (open ? ' is-open' : '')}>
       <span className="status__dot" aria-hidden="true" />
-      {open ? `مفتوحين هلّق، لـ ${closeHour} الفجر` : `مسكّرين هلّق، منفتح الساعة ${openHour} الظهر`}
+      {open ? statusOpen : statusClosed}
     </span>
   );
 }
@@ -384,13 +385,12 @@ function About() {
   const ref = useRef<HTMLElement>(null);
   const count = (id: string) => categories.find(c => c.id === id)?.items.length ?? 0;
   const hoursOpen = (brand.closeHour - brand.openHour + 24) % 24 || 24;
-  // Figures come from the live content, so they stay right when the menu or branches change.
-  const stats = [
-    { value: branches.length, label: 'فروع' },
-    { value: hoursOpen, label: 'ساعة مفتوحين باليوم' },
-    { value: count('sandwiches'), label: 'ساندويشات' },
-    { value: count('sauces'), label: 'صوصات' },
-  ].filter(s => s.value > 0);
+  // Automatic figures come from the live content; the admin can override any of them.
+  const auto: Record<Stat['key'], number> = { branches: branches.length, hours: hoursOpen, sandwiches: count('sandwiches'), sauces: count('sauces') };
+  const stats = (about.stats ?? [])
+    .filter(s => s.show)
+    .map(s => ({ label: s.label, value: s.value ?? auto[s.key] }))
+    .filter(s => s.value > 0);
 
   // Numbers rest at their real value; on first view they count up to it.
   useGSAP(

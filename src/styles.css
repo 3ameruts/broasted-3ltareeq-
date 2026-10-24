@@ -448,6 +448,13 @@ p { margin: 0; }
 }
 .afield input:focus, .afield textarea:focus { border-color: var(--asphalt); outline: none; }
 .asub { font-size: 1rem; margin-top: 6px; }
+.asubpanel { display: grid; gap: 12px; padding: 14px; border-radius: 14px; background: #fbf7ef; border: 1px solid #eee3d2; }
+.asubpanel .asub { margin: 0; }
+.acheck { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+.acheck input { width: 20px; height: 20px; accent-color: var(--asphalt); }
+.astats { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.astat { display: grid; grid-template-columns: 140px 1fr auto; gap: 12px; align-items: end; padding: 12px; border: 2px dashed #e6dccb; border-radius: 14px; }
+@media (max-width: 560px) { .astat { grid-template-columns: 1fr 1fr; } .astat .acheck { grid-column: 1 / -1; } }
 .aitems { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .aitem { border: 2px dashed #e6dccb; border-radius: 14px; padding: 14px; display: grid; gap: 12px; }
 .aitem__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

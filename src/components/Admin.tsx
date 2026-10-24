@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type ReactNode } from 'react';
-import { useContent, saveContent, resetContent, DEFAULT_CONTENT, formatPrice, type Content, type Item, type Category } from '../lib/content';
+import { useContent, saveContent, resetContent, DEFAULT_CONTENT, formatPrice, type Content, type Item, type Category, type Stat } from '../lib/content';
 
 // Downscale an uploaded photo in the browser so it fits in demo storage.
 function readImage(file: File, max = 1000): Promise<string> {
@@ -108,6 +108,13 @@ export default function Admin() {
       {toast && <div className={'atoast' + (toast.bad ? ' is-bad' : '')} role="status">{toast.text}</div>}
     </div>
   );
+}
+
+function autoStat(c: Content, key: Stat['key']) {
+  const count = (id: string) => c.categories.find(x => x.id === id)?.items.length ?? 0;
+  if (key === 'branches') return c.branches.length;
+  if (key === 'hours') return (c.brand.closeHour - c.brand.openHour + 24) % 24 || 24;
+  return count(key);
 }
 
 type EdProps = { draft: Content; up: (fn: (d: Content) => void) => void };
@@ -251,6 +258,15 @@ function BrandEditor({ draft, up }: EdProps) {
             <Field label="ساعة الفتح (0-23)" hint="12 يعني الظهر"><input id="b-open" type="number" min="0" max="23" value={b.openHour} onChange={e => up(d => { d.brand.openHour = Number(e.target.value); })} /></Field>
             <Field label="ساعة السكّر (0-23)" hint="3 يعني الفجر"><input id="b-close" type="number" min="0" max="23" value={b.closeHour} onChange={e => up(d => { d.brand.closeHour = Number(e.target.value); })} /></Field>
           </div>
+          <div className="asubpanel">
+            <h4 className="asub">جملة "مفتوحين هلّق" بالواجهة</h4>
+            <label className="acheck">
+              <input id="b-status-show" type="checkbox" checked={b.showStatus} onChange={e => up(d => { d.brand.showStatus = e.target.checked; })} />
+              اعرض الجملة بالواجهة
+            </label>
+            <Field label="لما نكون فاتحين" hint="بتطلع بين ساعة الفتح وساعة السكّر"><input id="b-status-open" value={b.statusOpen} onChange={e => up(d => { d.brand.statusOpen = e.target.value; })} /></Field>
+            <Field label="لما نكون مسكّرين"><input id="b-status-closed" value={b.statusClosed} onChange={e => up(d => { d.brand.statusClosed = e.target.value; })} /></Field>
+          </div>
           <div className="agrid">
             <Field label="رابط إنستغرام"><input id="b-ig" dir="ltr" value={b.instagram} onChange={e => up(d => { d.brand.instagram = e.target.value; })} /></Field>
             <Field label="رابط فيسبوك"><input id="b-fb" dir="ltr" value={b.facebook} onChange={e => up(d => { d.brand.facebook = e.target.value; })} /></Field>
@@ -274,9 +290,26 @@ function BrandEditor({ draft, up }: EdProps) {
         <div className="apanel__body">
           <Field label="عنوان القسم"><input id="a-title" value={draft.about.title} onChange={e => up(d => { d.about.title = e.target.value; })} /></Field>
           <Field label="الجملة الكبيرة"><input id="a-lead" value={draft.about.lead} onChange={e => up(d => { d.about.lead = e.target.value; })} /></Field>
-          <Field label="القصة" hint="كل فقرة بسطر لحال. الأرقام تحت القصة (الفروع، الساعات، الساندويشات، الصوصات) بتنحسب لحالها من المنيو والفروع.">
+          <Field label="القصة" hint="كل فقرة بسطر لحال.">
             <ListInput id="a-story" multiline value={draft.about.paragraphs} join={'\n'} split={/\n/} onChange={v => up(d => { d.about.paragraphs = v; })} />
           </Field>
+          <h4 className="asub">الأرقام تحت القصة</h4>
+          <p className="afield__hint">إذا تركت خانة الرقم فاضية، بينحسب لحاله من المنيو والفروع وأوقات الدوام.</p>
+          <ul className="astats">
+            {draft.about.stats.map((st, i) => (
+              <li key={st.key} className="astat">
+                <Field label="الرقم">
+                  <input id={`stat-${st.key}-value`} type="number" min="0" inputMode="numeric" placeholder={'تلقائي: ' + autoStat(draft, st.key)} value={st.value ?? ''}
+                    onChange={e => up(d => { d.about.stats[i].value = e.target.value === '' ? null : Number(e.target.value); })} />
+                </Field>
+                <Field label="الكلمة جنبه"><input id={`stat-${st.key}-label`} value={st.label} onChange={e => up(d => { d.about.stats[i].label = e.target.value; })} /></Field>
+                <label className="acheck">
+                  <input id={`stat-${st.key}-show`} type="checkbox" checked={st.show} onChange={e => up(d => { d.about.stats[i].show = e.target.checked; })} />
+                  اعرضه
+                </label>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
     </>
