@@ -123,7 +123,7 @@ function Editor({ email }: { email: string }) {
 
   const flash = (text: string, bad = false) => {
     setToast({ text, bad });
-    setTimeout(() => setToast(null), 4200);
+    setTimeout(() => setToast(null), bad ? 9000 : 4200);
   };
 
   const save = async () => {
@@ -136,12 +136,10 @@ function Editor({ email }: { email: string }) {
       flash('انحفظت التعديلات وصارت على الموقع');
       return;
     }
-    flash(
-      r.reason === 'not-setup' ? 'قاعدة البيانات مش جاهزة. لازم يتشغّل ملف الإعداد setup.sql بـ Supabase أول.'
-        : r.reason === 'not-admin' ? 'هالحساب مش مسموحله يحفظ. تأكّد إنه إيميلك بجدول admins.'
-        : 'ما قدرنا نحفظ. شيّك على النت وجرّب كمان مرة.',
-      true
-    );
+    const msg = r.reason === 'not-setup' ? 'قاعدة البيانات ناقصها صلاحيات. شغّل ملف الإعداد setup.sql من جديد بـ Supabase.'
+      : r.reason === 'not-admin' ? 'هالحساب مش مسموحله يحفظ. تأكّد إنه إيميلك بجدول admins.'
+      : 'ما قدرنا نحفظ. شيّك على النت وجرّب كمان مرة.';
+    flash(`${msg} (${r.detail})`, true);
   };
 
   const up = (fn: (d: Content) => void) =>

@@ -60,7 +60,7 @@ export async function fetchContent(): Promise<Content | null> {
   return mergeContent(data.content as Partial<Content>);
 }
 
-export type SaveResult = { ok: true } | { ok: false; reason: 'not-setup' | 'not-admin' | 'network' };
+export type SaveResult = { ok: true } | { ok: false; reason: 'not-setup' | 'not-admin' | 'network'; detail: string };
 
 export async function publishContent(c: Content): Promise<SaveResult> {
   const { error } = await supabase.from('site_content').upsert({ id: 1, content: c, updated_at: new Date().toISOString() });
@@ -68,9 +68,10 @@ export async function publishContent(c: Content): Promise<SaveResult> {
     writeCache(c);
     return { ok: true };
   }
-  if (error.code === '42P01' || error.code === 'PGRST205') return { ok: false, reason: 'not-setup' };
-  if (error.code === '42501' || /row-level security/i.test(error.message)) return { ok: false, reason: 'not-admin' };
-  return { ok: false, reason: 'network' };
+  // 42501 covers both a missing table grant and a row-level-security refusal; only the latter means "not an admin".
+  if (/row-level security/i.test(error.message)) return { ok: false, reason: 'not-admin', detail: error.message };
+  if (error.code === '42P01' || error.code === 'PGRST205' || error.code === '42501') return { ok: false, reason: 'not-setup', detail: error.message };
+  return { ok: false, reason: 'network', detail: error.message };
 }
 
 type Ctx = { content: Content; setContent: (c: Content) => void; loaded: boolean };

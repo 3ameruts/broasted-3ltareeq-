@@ -14,6 +14,11 @@ create table if not exists public.admins (
   email text primary key
 );
 
+-- صلاحيات الجداول (المشاريع الجديدة ما بتعطيها تلقائياً). مين بيعدّل فعلياً بتحدّده القواعد تحت.
+grant usage on schema public to anon, authenticated;
+grant select on public.site_content to anon, authenticated;
+grant insert, update on public.site_content to authenticated;
+
 alter table public.site_content enable row level security;
 alter table public.admins enable row level security;
 
