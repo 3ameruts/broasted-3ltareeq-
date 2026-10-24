@@ -383,6 +383,7 @@ p { margin: 0; }
 .footer__social a:hover { background: var(--yellow); color: var(--asphalt); }
 .footer__legal { font-size: var(--step--1); color: rgb(255 255 255 / 0.55); margin-top: 18px; }
 .footer__admin { color: rgb(255 255 255 / 0.55); }
+.footer__legal.footer__note { margin-top: 4px; white-space: pre-line; }
 
 /* Floating call button */
 .fab {

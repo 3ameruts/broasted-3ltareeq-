@@ -12,6 +12,7 @@ export type Content = {
     name: string; slogan: string; phone: string; hours: string; openHour: number; closeHour: number;
     instagram: string; facebook: string; logo: string;
     showStatus: boolean; statusOpen: string; statusClosed: string;
+    footerNote: string;
   };
   hero: { eyebrow: string; title: string; subtitle: string; video: string };
   about: { title: string; lead: string; paragraphs: string[]; video: string; stats: Stat[] };

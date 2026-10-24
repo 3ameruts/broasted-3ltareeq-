@@ -376,6 +376,9 @@ function BrandEditor({ draft, up }: EdProps) {
             <Field label="رابط إنستغرام"><input id="b-ig" dir="ltr" value={b.instagram} onChange={e => up(d => { d.brand.instagram = e.target.value; })} /></Field>
             <Field label="رابط فيسبوك"><input id="b-fb" dir="ltr" value={b.facebook} onChange={e => up(d => { d.brand.facebook = e.target.value; })} /></Field>
           </div>
+          <Field label="سطر تحت حقوق الملكية (آخر الموقع)" hint="بيطلع بنفس خط سطر ©. اتركه فاضي إذا ما بدك ياه.">
+            <input id="b-footer-note" value={b.footerNote ?? ''} onChange={e => up(d => { d.brand.footerNote = e.target.value; })} />
+          </Field>
           <ImagePicker label="اللوغو" src={b.logo} onChange={v => up(d => { d.brand.logo = v; })} />
         </div>
       </section>
