@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>علبة بروستد عالطريق ٢</title>
+<style>
+  @font-face { font-family: Lalezar; src: url(assets/lalezar.ttf); }
+  @font-face { font-family: Readex; src: url(assets/readex-700.ttf); font-weight: 700; }
+  :root { --red: #e0263a; --red-deep: #b21017; --yellow: #fcb712; --asphalt: #2e2b2e; --ink: #262326; }
+  html, body { margin: 0; background: #e9e5df; }
+  body { font-family: Readex, sans-serif; }
+  svg text { font-family: Lalezar, sans-serif; }
+  .ui { font-family: Readex, sans-serif; }
+
+  /* flat sheet */
+  #flat { display: none; padding: 60px; width: max-content; background: #f4f1ec; direction: ltr; }
+  #flat h1, #flat .sub, #flat .notes, #flat .label, #flat svg { direction: rtl; }
+  #flat h1, #flat .sub, #flat .notes { text-align: right; }
+  #flat h1 { font: 400 64px Lalezar; margin: 0 0 6px; color: var(--ink); }
+  #flat .sub { font: 700 22px Readex; color: #6b5f62; margin-bottom: 40px; }
+  .sheet { display: flex; align-items: flex-end; gap: 0; }
+  .col { display: flex; flex-direction: column; align-items: center; }
+  .label { font: 700 22px Readex; color: #6b5f62; margin-top: 14px; }
+  .panel { display: block; outline: 2px dashed #b9b0a6; outline-offset: -1px; }
+  .notes { margin-top: 44px; font: 700 20px/1.7 Readex; color: #4c4448; max-width: 1600px; }
+
+  /* 3D mockup */
+  #mock { display: none; width: 1600px; height: 1600px; position: relative; overflow: hidden;
+    background: radial-gradient(70% 60% at 50% 40%, #3a3436, #161314); }
+  #mock .floor { position: absolute; left: 50%; top: 79%; width: 900px; height: 120px; margin-left: -450px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgb(0 0 0 / .6), transparent); filter: blur(8px); }
+  .scene { position: absolute; left: 50%; top: 54%; perspective: 2600px; }
+  .box { position: relative; transform-style: preserve-3d; }
+  .face { position: absolute; left: 0; top: 0; backface-visibility: hidden; transform-origin: 50% 50%; }
+  .face svg { display: block; }
+</style>
+</head>
+<body>
+<div id="flat"></div>
+<div id="mock"><div class="floor"></div><div class="scene"><div class="box" id="box"></div></div></div>
+<script src="assets/qr.js"></script>
+<script src="assets/drumstick.js"></script>
+<script>
+// All sizes in millimetres. Gable box: W front width, D depth, H body height, R roof rise, T handle tab.
+const W = 240, D = 130, H = 140, R = 60, T = 55;
+const SLANT = Math.hypot(D / 2, R);
+const C = { red: '#e0263a', redDeep: '#b21017', yellow: '#fcb712', asphalt: '#2e2b2e', asphalt2: '#3a363a', ink: '#262326', white: '#ffffff' };
+const LOGO = 'assets/logo.png', LOGO_RATIO = 871 / 1476;
+const ROAD_Y = 108; // centre line height on the body, shared by all four faces so it wraps around the box
+
+let uid = 0;
+const id = p => p + (++uid);
+
+function defs() {
+  const n = id('noise'), o = id('outline');
+  return {
+    n, o,
+    svg: `<defs>
+      <filter id="${n}" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="7" result="t"/>
+        <feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .09 0"/>
+        <feComposite in2="SourceGraphic" operator="in"/>
+      </filter>
+      <filter id="${o}" x="-20%" y="-40%" width="140%" height="180%">
+        <feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="d"/>
+        <feFlood flood-color="#fff"/><feComposite in2="d" operator="in" result="w"/>
+        <feMerge><feMergeNode in="w"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>`,
+  };
+}
+
+const G = { red: '#9c111a', redLight: '#ad1720', redDark: '#7d0c13', gold: '#e2a93b', cream: '#f6ecdc' };
+const ROAD = 118; // the gold road runs at this height on all four faces
+
+function lux() {
+  const n = id('noise'), g = id('gold');
+  return {
+    n, g,
+    svg: `<defs>
+      <filter id="${n}" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="2" seed="3" result="t"/>
+        <feColorMatrix in="t" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .16 0"/>
+        <feComposite in2="SourceGraphic" operator="in"/>
+      </filter>
+      <linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#f7d27a"/><stop offset=".45" stop-color="#e2a93b"/>
+        <stop offset=".7" stop-color="#fbe0a0"/><stop offset="1" stop-color="#b9821c"/>
+      </linearGradient>
+    </defs>`,
+  };
+}
+
+function matte(w, h, d, fill = G.red) {
+  return `<rect width="${w}" height="${h}" fill="${fill}"/><rect width="${w}" height="${h}" fill="${fill}" filter="url(#${d.n})"/>`;
+}
+
+// gold road: two hairlines with a dashed centre, drawn by stroking the same path three times
+function road(path, d, under = G.red) {
+  return `<path d="${path}" fill="none" stroke="url(#${d.g})" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${path}" fill="none" stroke="${under}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${path}" fill="none" stroke="url(#${d.g})" stroke-width=".55" stroke-dasharray="3 2.6" stroke-linecap="round"/>`;
+}
+
+const frame = (w, h, d, inset = 6) => `<rect x="${inset}" y="${inset}" width="${w - inset * 2}" height="${h - inset * 2}" fill="none" stroke="url(#${d.g})" stroke-width=".45"/>`;
+const goldText = (x, y, size, text, d, extra = '') => `<text x="${x}" y="${y}" font-size="${size}" fill="url(#${d.g})" ${extra}>${text}</text>`;
+
+function goldCar(d) {
+  return `<path d="M18 92 C 18 64, 40 56, 62 52 C 80 18, 170 12, 200 48 C 228 52, 246 66, 246 92 Z M88 52 C 98 30, 148 26, 166 50 Z" fill="url(#${d.g})" fill-rule="evenodd"/>
+    <circle cx="66" cy="96" r="22" fill="url(#${d.g})"/><circle cx="196" cy="96" r="22" fill="url(#${d.g})"/>
+    <circle cx="66" cy="96" r="9" fill="${G.red}"/><circle cx="196" cy="96" r="9" fill="${G.red}"/>`;
+}
+
+// One continuous road: comes in along the bottom, climbs to the bone tip, traces the drumstick
+// from the logo, comes back down and carries on to the right edge.
+function drumstickRoad() {
+  const Hd = 92, top = 16, cx = 64;              // drumstick height and placement in mm
+  const Wd = Hd * window.DRUM.aspect;
+  const P = window.DRUM.pts.map(([u, v]) => [cx - Wd / 2 + u * Hd, top + v * Hd]);
+  P.push(P[0]);
+  const f = n => n.toFixed(2);
+  const seg = P.slice(1).map((p1, i) => {
+    const p0 = P[i - 1] || P[i], pa = P[i], p2 = P[i + 2] || p1;
+    const c1 = [pa[0] + (p1[0] - p0[0]) / 6, pa[1] + (p1[1] - p0[1]) / 6];
+    const c2 = [p1[0] - (p2[0] - pa[0]) / 6, p1[1] - (p2[1] - pa[1]) / 6];
+    return `C ${f(c1[0])} ${f(c1[1])} ${f(c2[0])} ${f(c2[1])} ${f(p1[0])} ${f(p1[1])}`;
+  }).join(' ');
+  const [bx, by] = P[0];
+  return `M -2 ${ROAD} H ${f(bx - 14)} C ${f(bx - 5)} ${ROAD}, ${f(bx)} ${f(ROAD - 3)}, ${f(bx)} ${f(by)}
+    ${seg}
+    C ${f(bx)} ${f(ROAD - 3)}, ${f(bx + 5)} ${ROAD}, ${f(bx + 14)} ${ROAD} H ${W + 2}`;
+}
+
+function front() {
+  const d = lux();
+  const p = drumstickRoad();
+  const lw = 78, lh = lw * LOGO_RATIO;
+  const cs = 16 / 260;
+  return svg(W, H, `${d.svg}${matte(W, H, d)}${frame(W, H, d)}
+    ${road(p, d)}
+    <g transform="translate(${200 + 16} ${ROAD - 130 * cs * 0.88}) scale(${-cs} ${cs})">${goldCar(d)}</g>
+    <image href="${LOGO}" x="${W - 16 - lw}" y="16" width="${lw}" height="${lh}"/>
+    ${goldText(W - 16, 16 + lh + 12, 11, 'معلش.. جاجنا فريش', d)}
+    <text x="${W - 16}" y="${16 + lh + 21}" font-size="5.4" fill="${G.cream}" font-family="Readex" font-weight="700" letter-spacing=".2">بروستد • تندر • ساندويشات</text>
+    <text x="${W - 12}" y="${H - 10}" font-size="4.6" fill="${G.cream}" opacity=".85" font-family="Readex" font-weight="700">إربد — الأردن</text>`);
+}
+
+function back() {
+  const d = lux();
+  const q = 32, qs = q / window.QR.size;
+  const rows = [
+    ['دوار العيادات', '32.5232° N · 35.8536° E'],
+    ['مجمع عمّان', '32.5371° N · 35.8704° E'],
+    ['دوار الدرة', '32.5581° N · 35.8734° E'],
+  ];
+  const x = W - 18;
+  const rowsSvg = rows.map(([n, c], i) => {
+    const y = 50 + i * 17;
+    return `<text x="${x}" y="${y}" font-size="11" fill="${G.cream}">${n}</text>
+      <text x="${x - 74}" y="${y - 1}" font-size="4.4" fill="url(#${d.g})" font-family="Readex" font-weight="700" direction="ltr" text-anchor="end">${c}</text>
+      <line x1="${x - 112}" y1="${y + 5}" x2="${x}" y2="${y + 5}" stroke="url(#${d.g})" stroke-width=".35"/>`;
+  }).join('');
+  return svg(W, H, `${d.svg}${matte(W, H, d)}${frame(W, H, d)}
+    ${road(`M -2 ${ROAD} H ${W + 2}`, d)}
+    ${goldText(x, 26, 15, 'ثلاث محطات عالطريق', d)}
+    <text x="${x}" y="35" font-size="5.6" fill="${G.cream}" font-family="Readex" font-weight="700">إربد • كل يوم</text>
+    ${rowsSvg}
+    <g transform="translate(22 40)">
+      <rect x="-4" y="-4" width="${q + 8}" height="${q + 8}" fill="${G.cream}"/>
+      <rect x="-6" y="-6" width="${q + 12}" height="${q + 12}" fill="none" stroke="url(#${d.g})" stroke-width=".6"/>
+      <g transform="scale(${qs})"><path d="${window.QR.d}" stroke="${G.redDark}" fill="none"/></g>
+      <text x="${q / 2}" y="${q + 13}" text-anchor="middle" font-size="5" fill="${G.cream}" font-family="Readex" font-weight="700">امسح للمنيو</text>
+    </g>
+    <g transform="translate(${22 + q / 2} 104)">
+      <text text-anchor="middle" font-size="10" fill="url(#${d.g})" font-family="Readex" font-weight="700" direction="ltr">12:00 — 03:00</text>
+    </g>
+    <text x="${W / 2}" y="${H - 9.5}" text-anchor="middle" font-size="5.6" fill="${G.cream}" font-family="Readex" font-weight="700" direction="ltr">0792892666  ·  0781525666  ·  broasted3ltareeq.com</text>`);
+}
+
+function sideWithGable(word, small, d) {
+  const total = H + R;
+  return svg(D, total, `${d.svg}
+    <polygon points="0,${R} ${D / 2},0 ${D},${R}" fill="${G.redDark}"/>
+    <g transform="translate(0 ${R})">${matte(D, H, d)}${frame(D, H, d, 5)}
+      <text transform="translate(${D / 2 + 14} ${(ROAD - 8) / 2 + 22}) rotate(-90)" text-anchor="middle" font-size="44" textLength="${ROAD - 30}" lengthAdjust="spacingAndGlyphs" fill="${G.redLight}">${word}</text>
+      ${road(`M -2 ${ROAD} H ${D + 2}`, d)}
+      ${small}
+    </g>`);
+}
+
+function sideA() {
+  const d = lux();
+  return sideWithGable('قرمشة', `<g transform="translate(${D / 2} 20)">
+      <circle r="9" fill="none" stroke="url(#${d.g})" stroke-width=".6"/>
+      <text text-anchor="middle" y="4.4" font-size="12" fill="url(#${d.g})">ع</text>
+    </g>
+    <text x="${D / 2}" y="${ROAD + 13}" text-anchor="middle" font-size="5" fill="${G.cream}" font-family="Readex" font-weight="700">بروستد عالطريق</text>`, d);
+}
+
+function sideB() {
+  const d = lux();
+  return sideWithGable('فريش', `<text x="${D / 2}" y="22" text-anchor="middle" font-size="9" fill="url(#${d.g})">كل يوم</text>
+    <text x="${D / 2}" y="31" text-anchor="middle" font-size="5.2" fill="${G.cream}" font-family="Readex" font-weight="700">من 12 الظهر لـ 3 الفجر</text>
+    <text x="${D / 2}" y="${ROAD + 13}" text-anchor="middle" font-size="5" fill="${G.cream}" font-family="Readex" font-weight="700" direction="ltr">0792892666</text>`, d);
+}
+
+function goldChecker(x, y, w, size, rows, d) {
+  let s = '';
+  for (let r = 0; r < rows; r++)
+    for (let i = 0; i * size < w; i++)
+      if ((i + r) % 2 === 0) s += `<rect x="${x + i * size}" y="${y + r * size}" width="${Math.min(size, w - i * size)}" height="${size}" fill="url(#${d.g})" opacity=".9"/>`;
+  return s;
+}
+
+function roof(label) {
+  const d = lux();
+  const lw = 62, lh = lw * LOGO_RATIO;
+  return svg(W, SLANT, `${d.svg}${matte(W, SLANT, d, G.redDark)}
+    ${goldChecker(0, SLANT - 7, W, 3.5, 2, d)}
+    ${label === 'logo'
+      ? `<image href="${LOGO}" x="${(W - lw) / 2}" y="${(SLANT - 7 - lh) / 2}" width="${lw}" height="${lh}"/>`
+      : `${goldText(W / 2, (SLANT - 7) / 2 + 1, 16, 'اتصل واطلب', d, 'text-anchor="middle"')}
+         <text x="${W / 2}" y="${(SLANT - 7) / 2 + 13}" text-anchor="middle" font-size="8" fill="${G.cream}" font-family="Readex" font-weight="700" direction="ltr">0792892666</text>`}`);
+}
+
+function handle() {
+  const d = lux();
+  return svg(W, T, `${d.svg}${matte(W, T, d, G.redDark)}
+    <rect x="${W / 2 - 46}" y="${T / 2 - 13}" width="92" height="26" rx="13" fill="#140a0b"/>
+    <rect x="${W / 2 - 49}" y="${T / 2 - 16}" width="98" height="32" rx="16" fill="none" stroke="url(#${d.g})" stroke-width=".6"/>`);
+}
+
+function svg(w, h, inner, scale = 1) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w * scale}" height="${h * scale}">${inner}</svg>`;
+}
+const scaled = (s, k) => s.replace(/width="([\d.]+)" height="([\d.]+)">/, (_, a, b) => `width="${a * k}" height="${b * k}">`);
+
+const view = new URLSearchParams(location.search).get('view') || 'flat';
+
+if (view === 'flat') {
+  const k = 6; // px per mm on the sheet
+  const el = document.getElementById('flat');
+  document.documentElement.dir = 'ltr';
+  el.style.display = 'block';
+  const col = (svgStr, label) => `<div class="col">${scaled(svgStr, k).replace('<svg ', '<svg class="panel" ')}<div class="label">${label}</div></div>`;
+  el.innerHTML = `
+    <h1>علبة بروستد عالطريق: خط واحد</h1>
+    <div class="sub">تصميم مبدئي للوجوه • القياسات المستعملة: ${W}×${D}×${H} ملم (عرض×عمق×ارتفاع) • المطبعة بتعطي القالب النهائي</div>
+    <div class="sheet" style="gap:${8 * k}px">
+      <div class="col">${scaled(handle(), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(roof('logo'), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(front(), k).replace('<svg ', '<svg class="panel" ')}<div class="label">قدّام (مع السقف والمسكة)</div></div>
+      ${col(sideA(), 'جنب ١')}
+      <div class="col">${scaled(handle(), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(roof('slogan'), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(back(), k).replace('<svg ', '<svg class="panel" ')}<div class="label">ورا (مع السقف والمسكة)</div></div>
+      ${col(sideB(), 'جنب ٢')}
+    </div>
+    <div class="notes">خط الطريق الذهبي بيدخل من طرف الوجه القدّامي، بيرسم قطعة البروستد، وبيكمّل حوالين العلبة كلها بنفس الارتفاع • الـ QR بيفتح broasted3ltareeq.com • قبل الطباعة: بنركّب الرسمات على قالب المطبعة بالقياس الحقيقي مع هامش قص 3 ملم وألوان CMYK، واللوغو بنسخة فكتور (AI/SVG/PDF).</div>`;
+} else {
+  const k = 3.2; // px per mm in the mockup
+  document.getElementById('mock').style.display = 'block';
+  const box = document.getElementById('box');
+  const face = (svgStr, w, h, transform) => `<div class="face" style="width:${w * k}px;height:${h * k}px;margin-left:${-w * k / 2}px;margin-top:${-h * k / 2}px;transform:${transform}">${scaled(svgStr, k)}</div>`;
+  const ang = Math.atan2(R, D / 2) * 180 / Math.PI;
+  const shade = (svgStr, a) => svgStr.replace('</svg>', `<rect x="-1" y="-1" width="9999" height="9999" fill="rgb(0 0 0 / ${a})"/></svg>`);
+  const yBody = 0, top = -H / 2;
+  // faces centred on the box's middle; roof planes hinge on the body's top edges
+  box.innerHTML = [
+    face(front(), W, H, `translateZ(${D / 2 * k}px)`),
+    face(shade(back(), .08), W, H, `rotateY(180deg) translateZ(${D / 2 * k}px)`),
+    face(shade(sideA(), .22), D, H + R, `rotateY(90deg) translateZ(${W / 2 * k}px) translateY(${-R / 2 * k}px)`),
+    face(shade(sideB(), .1), D, H + R, `rotateY(-90deg) translateZ(${W / 2 * k}px) translateY(${-R / 2 * k}px)`),
+    face(shade(roof('logo'), .02), W, SLANT, `translateY(${(top - R / 2) * k}px) translateZ(${D / 4 * k}px) rotateX(${90 - ang}deg)`),
+    face(shade(roof('slogan'), .14), W, SLANT, `translateY(${(top - R / 2) * k}px) translateZ(${-D / 4 * k}px) rotateY(180deg) rotateX(${90 - ang}deg)`),
+    face(handle(), W, T, `translateY(${(top - R - T / 2) * k}px)`),
+    face(shade(handle(), .12), W, T, `translateY(${(top - R - T / 2) * k}px) rotateY(180deg)`),
+  ].join('');
+  const turn = view === 'mock-back' ? 'rotateX(-16deg) rotateY(148deg)' : 'rotateX(-16deg) rotateY(-30deg)';
+  box.style.transform = `${turn} translateY(${(R / 2) * k * 0.5}px)`;
+}
+window.ready = document.fonts.ready.then(() => Promise.all([...document.images, ...document.querySelectorAll('image')].map(() => new Promise(r => setTimeout(r, 300)))));
+</script>
+</body>
+</html>
