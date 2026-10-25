@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>علبة بروستد عالطريق ٣</title>
+<style>
+  @font-face { font-family: Lalezar; src: url(assets/lalezar.ttf); }
+  @font-face { font-family: Readex; src: url(assets/readex-700.ttf); font-weight: 700; }
+  :root { --red: #e0263a; --red-deep: #b21017; --yellow: #fcb712; --asphalt: #2e2b2e; --ink: #262326; }
+  html, body { margin: 0; background: #e9e5df; }
+  body { font-family: Readex, sans-serif; }
+  svg text { font-family: Lalezar, sans-serif; }
+  .ui { font-family: Readex, sans-serif; }
+
+  /* flat sheet */
+  #flat { display: none; padding: 60px; width: max-content; background: #f4f1ec; direction: ltr; }
+  #flat h1, #flat .sub, #flat .notes, #flat .label, #flat svg { direction: rtl; }
+  #flat h1, #flat .sub, #flat .notes { text-align: right; }
+  #flat h1 { font: 400 64px Lalezar; margin: 0 0 6px; color: var(--ink); }
+  #flat .sub { font: 700 22px Readex; color: #6b5f62; margin-bottom: 40px; }
+  .sheet { display: flex; align-items: flex-end; gap: 0; }
+  .col { display: flex; flex-direction: column; align-items: center; }
+  .label { font: 700 22px Readex; color: #6b5f62; margin-top: 14px; }
+  .panel { display: block; outline: 2px dashed #b9b0a6; outline-offset: -1px; }
+  .notes { margin-top: 44px; font: 700 20px/1.7 Readex; color: #4c4448; max-width: 1600px; }
+
+  /* 3D mockup */
+  #mock { display: none; width: 1600px; height: 1600px; position: relative; overflow: hidden;
+    background: radial-gradient(70% 60% at 50% 40%, #f4efe7, #cfc6ba); }
+  #mock .floor { position: absolute; left: 50%; top: 79%; width: 900px; height: 120px; margin-left: -450px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgb(0 0 0 / .4), transparent); filter: blur(8px); }
+  .scene { position: absolute; left: 50%; top: 54%; perspective: 2600px; }
+  .box { position: relative; transform-style: preserve-3d; }
+  .face { position: absolute; left: 0; top: 0; backface-visibility: hidden; transform-origin: 50% 50%; }
+  .face svg { display: block; }
+</style>
+</head>
+<body>
+<div id="flat"></div>
+<div id="mock"><div class="floor"></div><div class="scene"><div class="box" id="box"></div></div></div>
+<script src="assets/qr.js"></script>
+<script src="assets/drumstick.js"></script>
+<script>
+// All sizes in millimetres. Gable box: W front width, D depth, H body height, R roof rise, T handle tab.
+const W = 240, D = 130, H = 140, R = 60, T = 55;
+const SLANT = Math.hypot(D / 2, R);
+const C = { red: '#e0263a', redDeep: '#b21017', yellow: '#fcb712', asphalt: '#2e2b2e', asphalt2: '#3a363a', ink: '#262326', white: '#ffffff' };
+const LOGO = 'assets/logo.png', LOGO_RATIO = 871 / 1476;
+const ROAD_Y = 108; // centre line height on the body, shared by all four faces so it wraps around the box
+
+let uid = 0;
+const id = p => p + (++uid);
+
+function defs() {
+  const n = id('noise'), o = id('outline');
+  return {
+    n, o,
+    svg: `<defs>
+      <filter id="${n}" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="7" result="t"/>
+        <feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .09 0"/>
+        <feComposite in2="SourceGraphic" operator="in"/>
+      </filter>
+      <filter id="${o}" x="-20%" y="-40%" width="140%" height="180%">
+        <feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="d"/>
+        <feFlood flood-color="#fff"/><feComposite in2="d" operator="in" result="w"/>
+        <feMerge><feMergeNode in="w"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>`,
+  };
+}
+
+const N = { black: '#141213', black2: '#1d1a1c', red: '#e0263a', redDeep: '#b21017', yellow: '#fcb712', cream: '#f6eedf' };
+const DRUM = 'assets/drumstick.png', DRUM_RATIO = 841 / 427;
+
+function base() {
+  const n = id('noise'), c = id('clip');
+  return {
+    n, c,
+    svg: (w, h) => `<defs>
+      <filter id="${n}" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="5" result="t"/>
+        <feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .05 0"/>
+        <feComposite in2="SourceGraphic" operator="in"/>
+      </filter>
+      <clipPath id="${c}"><rect width="${w}" height="${h}"/></clipPath>
+    </defs>`,
+  };
+}
+const fill = (w, h, d, color) => `<rect width="${w}" height="${h}" fill="${color}"/><rect width="${w}" height="${h}" fill="${color}" filter="url(#${d.n})"/>`;
+const stripe = (w, y, h = 4) => `<rect y="${y}" width="${w}" height="${h}" fill="${N.red}"/><rect y="${y - 1.4}" width="${w}" height=".7" fill="${N.yellow}"/>`;
+const T2 = (x, y, size, color, text, extra = '') => `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" ${extra}>${text}</text>`;
+const R2 = (x, y, size, color, text, extra = '') => `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" font-family="Readex" font-weight="700" ${extra}>${text}</text>`;
+
+function front() {
+  const d = base();
+  const dh = 168, dw = dh / DRUM_RATIO;          // oversized drumstick, cropped by the panel edge
+  const lw = 92, lh = lw * LOGO_RATIO, x = W - 14;
+  return svg(W, H, `${d.svg(W, H)}<g clip-path="url(#${d.c})">${fill(W, H, d, N.black)}
+    <circle cx="58" cy="92" r="62" fill="${N.red}"/>
+    <circle cx="58" cy="92" r="74" fill="none" stroke="${N.red}" stroke-width=".6" opacity=".7"/>
+    <circle cx="58" cy="92" r="84" fill="none" stroke="${N.red}" stroke-width=".4" opacity=".4"/>
+    <g transform="translate(60 88) rotate(-16)"><image href="${DRUM}" x="${-dw / 2}" y="${-dh / 2 + 10}" width="${dw}" height="${dh}"/></g>
+    <image href="${LOGO}" x="${x - lw}" y="12" width="${lw}" height="${lh}"/>
+    ${T2(x, 12 + lh + 20, 17, N.cream, 'معلش..')}
+    ${T2(x, 12 + lh + 44, 27, N.yellow, 'جاجنا فريش')}
+    ${R2(x, 12 + lh + 56, 5.8, N.cream, 'بروستد  •  تندر  •  ساندويشات', 'opacity=".85"')}
+    ${stripe(W, H - 9, 9)}
+    ${R2(x, H - 3, 4.8, '#fff', 'إربد · الأردن')}
+  </g>`);
+}
+
+function back() {
+  const d = base();
+  const x = W - 14;
+  const q = 34, qs = q / window.QR.size;
+  const branches = ['دوار العيادات', 'مجمع عمّان', 'دوار الدرة'];
+  const list = branches.map((b, i) => `<circle cx="${x - 2}" cy="${54 + i * 15 - 3.6}" r="2" fill="${N.red}"/>${T2(x - 8, 54 + i * 15, 11.5, '#fff', b)}`).join('');
+  // QR on a cream "ticket" with punched notches
+  const tx = 16, ty = 22, tw = 64, th = 86;
+  return svg(W, H, `${d.svg(W, H)}<g clip-path="url(#${d.c})">${fill(W, H, d, N.black)}
+    ${T2(x, 26, 9, N.red, 'وين تلاقينا')}
+    ${T2(x, 40, 17, N.yellow, 'ثلاث فروع بإربد')}
+    ${list}
+    ${R2(x, 100, 6.2, N.cream, 'كل يوم  ·  من 12 الظهر لـ 3 الفجر')}
+    ${T2(x, 118, 8.5, N.cream, 'اتصل واطلب')}
+    ${R2(x - 42, 118.4, 12.5, N.yellow, '0792892666', 'direction="ltr" text-anchor="end"')}
+    <g transform="translate(${tx} ${ty})">
+      <path d="M0 6 Q0 0 6 0 H${tw - 6} Q${tw} 0 ${tw} 6 V${th * .62 - 4} A4 4 0 0 0 ${tw} ${th * .62 + 4} V${th - 6} Q${tw} ${th} ${tw - 6} ${th} H6 Q0 ${th} 0 ${th - 6} V${th * .62 + 4} A4 4 0 0 0 0 ${th * .62 - 4} Z" fill="${N.cream}"/>
+      <line x1="6" y1="${th * .62}" x2="${tw - 6}" y2="${th * .62}" stroke="${N.black}" stroke-width=".5" stroke-dasharray="2 1.6" opacity=".5"/>
+      <g transform="translate(${(tw - q) / 2} 7) scale(${qs})"><path d="${window.QR.d}" stroke="${N.black}" fill="none"/></g>
+      ${T2(tw / 2, th * .62 + 12, 8.2, N.red, 'امسح وشوف المنيو', 'text-anchor="middle"')}
+      ${R2(tw / 2, th * .62 + 21, 4.6, N.black, 'broasted3ltareeq.com', 'text-anchor="middle" direction="ltr"')}
+      ${R2(tw / 2, th * .62 + 28, 4.4, '#6b5f62', '0781525666 · 0792892666', 'text-anchor="middle" direction="ltr"')}
+    </g>
+    ${stripe(W, H - 9, 9)}
+  </g>`);
+}
+
+function side(word, d) {
+  const total = H + R;
+  return svg(D, total, `${d.svg(D, total)}<g clip-path="url(#${d.c})">
+    ${fill(D, total, d, N.red)}
+    <polygon points="0,${R} ${D / 2},0 ${D},${R}" fill="${N.black}"/>
+    <g transform="translate(0 ${R})">
+      <text transform="translate(${D / 2 + 22} ${H / 2 - 4}) rotate(-90)" text-anchor="middle" font-size="74" textLength="${H - 26}" lengthAdjust="spacingAndGlyphs" fill="#fff">${word}</text>
+      ${stripe(D, H - 9, 9)}
+    </g>
+  </g>`);
+}
+const sideA = () => side('بروستد', base());
+const sideB = () => side('عالطريق', base());
+
+function roof(label) {
+  const d = base();
+  const lw = 66, lh = lw * LOGO_RATIO;
+  return svg(W, SLANT, `${d.svg(W, SLANT)}${fill(W, SLANT, d, label === 'logo' ? N.red : N.black)}
+    ${label === 'logo'
+      ? `<image href="${LOGO}" x="${(W - lw) / 2}" y="${(SLANT - lh) / 2}" width="${lw}" height="${lh}"/>`
+      : `${T2(W / 2, SLANT / 2 + 3, 18, N.cream, 'معلش.. <tspan fill="' + N.yellow + '">جاجنا فريش</tspan>', 'text-anchor="middle"')}`}`);
+}
+
+function handle() {
+  const d = base();
+  return svg(W, T, `${d.svg(W, T)}${fill(W, T, d, N.black)}
+    <rect x="${W / 2 - 46}" y="${T / 2 - 13}" width="92" height="26" rx="13" fill="#000"/>
+    <rect y="${T - 2}" width="${W}" height="2" fill="${N.red}"/>`);
+}
+
+function svg(w, h, inner, scale = 1) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w * scale}" height="${h * scale}">${inner}</svg>`;
+}
+const scaled = (s, k) => s.replace(/width="([\d.]+)" height="([\d.]+)">/, (_, a, b) => `width="${a * k}" height="${b * k}">`);
+
+const view = new URLSearchParams(location.search).get('view') || 'flat';
+
+if (view === 'flat') {
+  const k = 6; // px per mm on the sheet
+  const el = document.getElementById('flat');
+  document.documentElement.dir = 'ltr';
+  el.style.display = 'block';
+  const col = (svgStr, label) => `<div class="col">${scaled(svgStr, k).replace('<svg ', '<svg class="panel" ')}<div class="label">${label}</div></div>`;
+  el.innerHTML = `
+    <h1>علبة بروستد عالطريق: أسود جريء</h1>
+    <div class="sub">تصميم مبدئي للوجوه • القياسات المستعملة: ${W}×${D}×${H} ملم (عرض×عمق×ارتفاع) • المطبعة بتعطي القالب النهائي</div>
+    <div class="sheet" style="gap:${8 * k}px">
+      <div class="col">${scaled(handle(), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(roof('logo'), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(front(), k).replace('<svg ', '<svg class="panel" ')}<div class="label">قدّام (مع السقف والمسكة)</div></div>
+      ${col(sideA(), 'جنب ١')}
+      <div class="col">${scaled(handle(), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(roof('slogan'), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(back(), k).replace('<svg ', '<svg class="panel" ')}<div class="label">ورا (مع السقف والمسكة)</div></div>
+      ${col(sideB(), 'جنب ٢')}
+    </div>
+    <div class="notes">أسود مطفي، والدبوس الأصفر من اللوغو بحجم ضخم مقصوص على طرف العلبة • الـ QR على تذكرة بيفتح broasted3ltareeq.com • قبل الطباعة: بنركّب الرسمات على قالب المطبعة بالقياس الحقيقي مع هامش قص 3 ملم وألوان CMYK، واللوغو بنسخة فكتور (AI/SVG/PDF).</div>`;
+} else {
+  const k = 3.2; // px per mm in the mockup
+  document.getElementById('mock').style.display = 'block';
+  const box = document.getElementById('box');
+  const face = (svgStr, w, h, transform) => `<div class="face" style="width:${w * k}px;height:${h * k}px;margin-left:${-w * k / 2}px;margin-top:${-h * k / 2}px;transform:${transform}">${scaled(svgStr, k)}</div>`;
+  const ang = Math.atan2(R, D / 2) * 180 / Math.PI;
+  const shade = (svgStr, a) => svgStr.replace('</svg>', `<rect x="-1" y="-1" width="9999" height="9999" fill="rgb(0 0 0 / ${a})"/></svg>`);
+  const yBody = 0, top = -H / 2;
+  // faces centred on the box's middle; roof planes hinge on the body's top edges
+  box.innerHTML = [
+    face(front(), W, H, `translateZ(${D / 2 * k}px)`),
+    face(shade(back(), .08), W, H, `rotateY(180deg) translateZ(${D / 2 * k}px)`),
+    face(shade(sideA(), .22), D, H + R, `rotateY(90deg) translateZ(${W / 2 * k}px) translateY(${-R / 2 * k}px)`),
+    face(shade(sideB(), .1), D, H + R, `rotateY(-90deg) translateZ(${W / 2 * k}px) translateY(${-R / 2 * k}px)`),
+    face(shade(roof('logo'), .02), W, SLANT, `translateY(${(top - R / 2) * k}px) translateZ(${D / 4 * k}px) rotateX(${90 - ang}deg)`),
+    face(shade(roof('slogan'), .14), W, SLANT, `translateY(${(top - R / 2) * k}px) translateZ(${-D / 4 * k}px) rotateY(180deg) rotateX(${90 - ang}deg)`),
+    face(handle(), W, T, `translateY(${(top - R - T / 2) * k}px)`),
+    face(shade(handle(), .12), W, T, `translateY(${(top - R - T / 2) * k}px) rotateY(180deg)`),
+  ].join('');
+  const turn = view === 'mock-back' ? 'rotateX(-16deg) rotateY(148deg)' : 'rotateX(-16deg) rotateY(-30deg)';
+  box.style.transform = `${turn} translateY(${(R / 2) * k * 0.5}px)`;
+}
+window.ready = document.fonts.ready.then(() => Promise.all([...document.images, ...document.querySelectorAll('image')].map(() => new Promise(r => setTimeout(r, 300)))));
+</script>
+</body>
+</html>
