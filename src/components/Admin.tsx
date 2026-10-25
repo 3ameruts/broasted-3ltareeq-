@@ -427,6 +427,16 @@ function BrandEditor({ draft, up }: EdProps) {
 function BranchesEditor({ draft, up }: EdProps) {
   return (
     <>
+      <section className="apanel">
+        <h3>نصوص قسم الفروع</h3>
+        <div className="apanel__body">
+          <Field label="العنوان"><input id="br-title" value={draft.branchesText.title} onChange={e => up(d => { d.branchesText.title = e.target.value; })} /></Field>
+          <Field label="الجملة تحت العنوان" hint="اتركها فاضية إذا ما بدك ياها.">
+            <textarea id="br-lead" rows={2} value={draft.branchesText.lead} onChange={e => up(d => { d.branchesText.lead = e.target.value; })} />
+          </Field>
+          <Field label="نص زر أقرب فرع"><input id="br-button" value={draft.branchesText.button} onChange={e => up(d => { d.branchesText.button = e.target.value; })} /></Field>
+        </div>
+      </section>
       {draft.branches.map((br, i) => (
         <section key={br.id} className="apanel">
           <h3>{br.name}</h3>

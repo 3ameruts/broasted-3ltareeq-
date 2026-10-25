@@ -16,6 +16,7 @@ export type Content = {
   };
   hero: { eyebrow: string; title: string; subtitle: string; video: string };
   about: { title: string; lead: string; paragraphs: string[]; video: string; stats: Stat[] };
+  branchesText: { title: string; lead: string; button: string };
   marquee: string[];
   categories: Category[];
   branches: Branch[];
@@ -35,6 +36,7 @@ export function mergeContent(saved: Partial<Content> | null | undefined): Conten
     brand: { ...DEFAULT_CONTENT.brand, ...saved.brand },
     hero: { ...DEFAULT_CONTENT.hero, ...saved.hero },
     about: { ...DEFAULT_CONTENT.about, ...saved.about },
+    branchesText: { ...DEFAULT_CONTENT.branchesText, ...saved.branchesText },
   };
 }
 

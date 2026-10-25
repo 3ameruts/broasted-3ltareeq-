@@ -472,11 +472,11 @@ function Branches() {
       </svg>
       <div className="wrap branches__inner">
         <div className="branches__head">
-          <h2 id="branches-title" className="section-title section-title--light">فروعنا</h2>
-          <p className="section-lead section-lead--light">ثلاث فروع، وكلهن مفتوحين {content.brand.hours}.</p>
+          <h2 id="branches-title" className="section-title section-title--light">{content.branchesText.title}</h2>
+          {content.branchesText.lead.trim() && <p className="section-lead section-lead--light">{content.branchesText.lead}</p>}
           <Magnet padding={50} magnetStrength={4}>
             <button className="btn btn--yellow btn--big" onClick={find} disabled={loc.kind === 'busy'} aria-live="polite">
-              <RouteIcon /> {loc.kind === 'busy' ? 'عم ندوّر على موقعك…' : 'دلّني على أقرب فرع'}
+              <RouteIcon /> {loc.kind === 'busy' ? 'عم ندوّر على موقعك…' : content.branchesText.button}
             </button>
           </Magnet>
           <div className="branches__msg" role="status">
