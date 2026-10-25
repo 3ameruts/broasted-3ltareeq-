@@ -3,6 +3,7 @@ import { useGSAP } from '@gsap/react';
 import { useContent, isOpenNow, telHref, formatPrice, type Category, type Item, type Branch, type Stat } from '../lib/content';
 import { useSmoothScroll, scrollToId, gsap, ScrollTrigger } from '../lib/motion';
 import { locate, directionsUrl, type Located } from '../lib/geo';
+import { useTracking } from '../lib/tracking';
 import ScrollVelocity from './bits/ScrollVelocity';
 import Magnet from './bits/Magnet/Magnet';
 import ClickSpark from './bits/ClickSpark/ClickSpark';
@@ -12,6 +13,7 @@ const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function Site() {
   useSmoothScroll(true);
+  useTracking(useContent().content.tracking);
   const root = useRef<HTMLDivElement>(null);
 
   // Scroll motion uses transforms only, so every section stays readable without scrolling.

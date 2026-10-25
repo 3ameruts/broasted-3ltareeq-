@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { supabase } from './supabase';
+import type { Tracking } from './tracking';
 import defaults from '../data/default-content.json';
 
 export type Item = { id: string; name: string; price: number; contents?: string; image?: string };
@@ -17,6 +18,7 @@ export type Content = {
   hero: { eyebrow: string; title: string; subtitle: string; video: string };
   about: { title: string; lead: string; paragraphs: string[]; video: string; stats: Stat[] };
   branchesText: { title: string; lead: string; button: string };
+  tracking: Tracking;
   marquee: string[];
   categories: Category[];
   branches: Branch[];
@@ -37,6 +39,7 @@ export function mergeContent(saved: Partial<Content> | null | undefined): Conten
     hero: { ...DEFAULT_CONTENT.hero, ...saved.hero },
     about: { ...DEFAULT_CONTENT.about, ...saved.about },
     branchesText: { ...DEFAULT_CONTENT.branchesText, ...saved.branchesText },
+    tracking: { ...DEFAULT_CONTENT.tracking, ...saved.tracking },
   };
 }
 

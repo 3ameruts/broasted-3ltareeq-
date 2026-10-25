@@ -393,5 +393,10 @@
     "img/scene-20.webp",
     "img/scene-14.webp",
     "img/scene-13.webp"
-  ]
+  ],
+  "tracking": {
+    "googleTag": "",
+    "gtm": "",
+    "metaPixel": ""
+  }
 }

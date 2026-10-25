@@ -5,6 +5,7 @@ import {
   type Content, type Item, type Category, type Stat,
 } from '../lib/content';
 import { supabase, IMAGE_BUCKET } from '../lib/supabase';
+import { trackingValid, type Tracking } from '../lib/tracking';
 
 // Downscale a photo in the browser, then store it in Supabase Storage and return its public URL.
 async function uploadImage(file: File, max = 1400): Promise<string> {
@@ -382,6 +383,7 @@ function BrandEditor({ draft, up }: EdProps) {
           <ImagePicker label="اللوغو" src={b.logo} onChange={v => up(d => { d.brand.logo = v; })} />
         </div>
       </section>
+      <TrackingPanel draft={draft} up={up} />
       <section className="apanel">
         <h3>الواجهة الرئيسية</h3>
         <div className="apanel__body">
@@ -421,6 +423,31 @@ function BrandEditor({ draft, up }: EdProps) {
         </div>
       </section>
     </>
+  );
+}
+
+function TrackingPanel({ draft, up }: EdProps) {
+  const t = draft.tracking;
+  const field = (key: keyof Tracking, label: string, example: string, hint: string) => {
+    const v = t[key].trim();
+    const bad = v !== '' && !trackingValid[key](v);
+    return (
+      <Field label={label} hint={hint}>
+        <input id={`tr-${key}`} dir="ltr" placeholder={example} value={t[key]} onChange={e => up(d => { d.tracking[key] = e.target.value.trim(); })} aria-invalid={bad} />
+        {bad && <span className="afield__err">الرقم مش بالشكل الصح، متل {example}. ما رح يشتغل لحتى يتصلّح.</span>}
+      </Field>
+    );
+  };
+  return (
+    <section className="apanel">
+      <h3>الإحصائيات والإعلانات</h3>
+      <div className="apanel__body">
+        <p className="afield__hint">حط الرقم (ID) بس، مش الكود كامل. الخانة الفاضية ما بتشتغل. كبسات الاتصال وفتح خرائط الفروع بتنحسب لحالها.</p>
+        {field('googleTag', 'Google Analytics / Google Ads', 'G-XXXXXXXXXX', 'من Google Analytics: Admin ← Data streams ← Measurement ID. أو رقم Google Ads اللي بيبلّش بـ AW-')}
+        {field('metaPixel', 'Meta Pixel (فيسبوك وإنستغرام)', '123456789012345', 'من Meta Events Manager ← Data sources ← رقم البكسل (أرقام بس)')}
+        {field('gtm', 'Google Tag Manager (اختياري)', 'GTM-XXXXXXX', 'إذا بتستعمل Tag Manager. ما تحطّه مع نفس رقم Google Analytics لحتى ما ينحسب الزائر مرتين.')}
+      </div>
+    </section>
   );
 }
 
