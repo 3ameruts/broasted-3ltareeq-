@@ -163,7 +163,7 @@ function sideA() {
   const k = kit(D, H + R);
   return side(
     SA(D / 2, BAND_TOP + 31, 20, S.cream, 'طازة كل يوم', 'text-anchor="middle"'),
-    `<g transform="translate(${D / 2} 24)"><circle r="11" fill="none" stroke="${S.red}" stroke-width=".6"/>${SA(0, 5, 14, S.red, 'ع', 'text-anchor="middle"')}</g>`, k);
+    `<image href="${LOGO}" x="${D / 2 - 30}" y="${24 - 30 * LOGO_RATIO}" width="60" height="${60 * LOGO_RATIO}"/>`, k);
 }
 
 function sideB() {
