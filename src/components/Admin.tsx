@@ -44,16 +44,16 @@ export default function Admin() {
     supabase.rpc('is_admin').then(({ data, error }) => setIsAdmin(error ? false : Boolean(data)));
   }, [session]);
 
-  if (session === undefined) return <AdminShell><p className="admin__wait">عم نحمّل…</p></AdminShell>;
+  if (session === undefined) return <AdminShell><p className="admin__wait">بنحمّل…</p></AdminShell>;
   if (!session) return <AdminShell><Login /></AdminShell>;
-  if (isAdmin === null) return <AdminShell><p className="admin__wait">عم نتأكّد من الحساب…</p></AdminShell>;
+  if (isAdmin === null) return <AdminShell><p className="admin__wait">بنتأكّد من الحساب…</p></AdminShell>;
   if (!isAdmin) {
     return (
       <AdminShell>
         <section className="apanel alogin">
           <h3>هالحساب مش مسموحله يعدّل</h3>
           <p>دخلت بـ <strong dir="ltr">{session.user.email}</strong>، بس هالإيميل مش مضاف بجدول <code>admins</code> بـ Supabase.</p>
-          <button className="abtn" onClick={() => supabase.auth.signOut()}>اطلع وادخل بحساب تاني</button>
+          <button className="abtn" onClick={() => supabase.auth.signOut()}>اطلع وادخل بحساب ثاني</button>
         </section>
       </AdminShell>
     );
@@ -88,7 +88,7 @@ function Login() {
     setErr('');
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setBusy(false);
-    if (error) setErr(/invalid/i.test(error.message) ? 'الإيميل أو كلمة السر غلط.' : 'ما قدرنا نتصل بالسيرفر. شيّك على النت وجرّب كمان مرة.');
+    if (error) setErr(/invalid/i.test(error.message) ? 'الإيميل أو كلمة السر غلط.' : 'ما قدرنا نتصل بالسيرفر. شيّك على النت وجرّب مرة ثانية.');
   };
   return (
     <form className="apanel alogin" onSubmit={submit}>
@@ -96,7 +96,7 @@ function Login() {
       <Field label="الإيميل"><input id="login-email" type="email" dir="ltr" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} /></Field>
       <Field label="كلمة السر"><input id="login-password" type="password" dir="ltr" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></Field>
       {err && <p className="afield__err" role="alert">{err}</p>}
-      <button className="abtn abtn--primary" type="submit" disabled={busy}>{busy ? 'عم ندخل…' : 'ادخل'}</button>
+      <button className="abtn abtn--primary" type="submit" disabled={busy}>{busy ? 'بندخل…' : 'ادخل'}</button>
     </form>
   );
 }
@@ -139,7 +139,7 @@ function Editor({ email }: { email: string }) {
     }
     const msg = r.reason === 'not-setup' ? 'قاعدة البيانات ناقصها صلاحيات. شغّل ملف الإعداد setup.sql من جديد بـ Supabase.'
       : r.reason === 'not-admin' ? 'هالحساب مش مسموحله يحفظ. تأكّد إنه إيميلك بجدول admins.'
-      : 'ما قدرنا نحفظ. شيّك على النت وجرّب كمان مرة.';
+      : 'ما قدرنا نحفظ. شيّك على النت وجرّب مرة ثانية.';
     flash(`${msg} (${r.detail})`, true);
   };
 
@@ -157,7 +157,7 @@ function Editor({ email }: { email: string }) {
           <img src={draft.brand.logo} alt="" width={86} height={50} />
           <div>
             <strong>لوحة التحكم</strong>
-            <small>{saving ? 'عم نحفظ…' : dirty ? 'في تعديلات ما انحفظت' : 'كل شي محفوظ وعلى الموقع'}</small>
+            <small>{saving ? 'بنحفظ…' : dirty ? 'في تعديلات ما انحفظت' : 'كل إشي محفوظ وعلى الموقع'}</small>
           </div>
         </div>
         <div className="admin__actions">
@@ -189,8 +189,8 @@ function Editor({ email }: { email: string }) {
         {tab === 'gallery' && <GalleryEditor draft={draft} up={up} />}
 
         <section className="apanel apanel--danger">
-          <h3>رجّع كل شي للأصل</h3>
-          <p>بيرجّع المنيو والصور والنصوص متل أول نسخة بلوحة التحكم. ما بيتغيّر شي على الموقع لحتى تكبس "احفظ وانشر".</p>
+          <h3>رجّع كل إشي للأصل</h3>
+          <p>بيرجّع المنيو والصور والنصوص متل أول نسخة بلوحة التحكم. ما بيتغيّر إشي على الموقع لحتى تكبس "احفظ وانشر".</p>
           {confirmReset ? (
             <div className="arow">
               <button className="abtn abtn--danger" onClick={() => { setDraft(structuredClone(DEFAULT_CONTENT)); setConfirmReset(false); flash('رجعت للأصل. اكبس احفظ وانشر لتطلع على الموقع.'); }}>أكيد، رجّع الأصل</button>
@@ -255,7 +255,7 @@ function ImagePicker({ src, onChange, onRemove, label = 'الصورة' }: { src?
     try {
       onChange(await uploadImage(f));
     } catch (x) {
-      setErr((x as Error).message === 'upload' ? 'ما قدرنا نرفع الصورة. شيّك على النت وجرّب كمان مرة.' : 'ما قدرنا نقرأ الصورة. جرّب صورة JPG أو PNG.');
+      setErr((x as Error).message === 'upload' ? 'ما قدرنا نرفع الصورة. شيّك على النت وجرّب مرة ثانية.' : 'ما قدرنا نقرأ الصورة. جرّب صورة JPG أو PNG.');
     } finally {
       setBusy(false);
     }
@@ -266,7 +266,7 @@ function ImagePicker({ src, onChange, onRemove, label = 'الصورة' }: { src?
       <div className="apick__ctrls">
         <span className="afield__label">{label}</span>
         <label className={'abtn abtn--small' + (busy ? ' is-busy' : '')} aria-disabled={busy}>
-          {busy ? 'عم نرفع الصورة…' : src ? 'غيّر الصورة' : 'ارفع صورة'}
+          {busy ? 'بنرفع الصورة…' : src ? 'غيّر الصورة' : 'ارفع صورة'}
           <input type="file" accept="image/*" onChange={pick} hidden disabled={busy} />
         </label>
         {src && onRemove && <button className="abtn abtn--small abtn--ghost" onClick={onRemove}>شيل الصورة</button>}
@@ -365,7 +365,7 @@ function BrandEditor({ draft, up }: EdProps) {
             <Field label="ساعة السكّر (0-23)" hint="3 يعني الفجر"><input id="b-close" type="number" min="0" max="23" value={b.closeHour} onChange={e => up(d => { d.brand.closeHour = Number(e.target.value); })} /></Field>
           </div>
           <div className="asubpanel">
-            <h4 className="asub">جملة "مفتوحين هلّق" بالواجهة</h4>
+            <h4 className="asub">جملة "فاتحين هسّا" بالواجهة</h4>
             <label className="acheck">
               <input id="b-status-show" type="checkbox" checked={b.showStatus} onChange={e => up(d => { d.brand.showStatus = e.target.checked; })} />
               اعرض الجملة بالواجهة
@@ -485,7 +485,7 @@ function GalleryEditor({ draft, up }: EdProps) {
   return (
     <section className="apanel">
       <h3>صور المعرض</h3>
-      <p className="apanel__hint">هدول الصور بيطلعوا بشريط الصور بالموقع.</p>
+      <p className="apanel__hint">هاي الصور بتطلع بشريط الصور بالموقع.</p>
       <div className="agallery">
         {draft.gallery.map((src, i) => (
           <ImagePicker key={i} label={`صورة ${i + 1}`} src={src} onChange={v => up(d => { d.gallery[i] = v; })} onRemove={() => up(d => { d.gallery.splice(i, 1); })} />

@@ -478,7 +478,7 @@ function Branches() {
           {content.branchesText.lead.trim() && <p className="section-lead section-lead--light">{content.branchesText.lead}</p>}
           <Magnet padding={50} magnetStrength={4}>
             <button className="btn btn--yellow btn--big" onClick={find} disabled={loc.kind === 'busy'} aria-live="polite">
-              <RouteIcon /> {loc.kind === 'busy' ? 'عم ندوّر على موقعك…' : content.branchesText.button}
+              <RouteIcon /> {loc.kind === 'busy' ? 'بندوّر على موقعك…' : content.branchesText.button}
             </button>
           </Magnet>
           <div className="branches__msg" role="status">
@@ -489,7 +489,7 @@ function Branches() {
               </p>
             )}
             {loc.kind === 'error' && (
-              <p>{loc.denied ? 'ما سمحت للموقع يعرف مكانك. فيك تسمحله من إعدادات المتصفح، أو اختار الفرع من تحت.' : 'ما قدرنا نعرف موقعك هلّق. اختار الفرع الأقرب إلك من تحت.'}</p>
+              <p>{loc.denied ? 'ما سمحت للموقع يعرف مكانك. بتقدر تسمحله من إعدادات المتصفح، أو اختار الفرع من تحت.' : 'ما قدرنا نعرف موقعك هسّا. اختار الفرع الأقرب إلك من تحت.'}</p>
             )}
           </div>
         </div>
@@ -516,7 +516,7 @@ function BranchSign({ branch, km, nearest, index }: { branch: Branch; km?: numbe
       <p className="sign__hours"><ClockIcon /> {content.brand.hours}</p>
       <div className="sign__actions">
         <a className="btn btn--white" href={branch.maps} target="_blank" rel="noopener"><PinIcon size={18} /> افتح بالخريطة</a>
-        <a className="btn btn--outline" href={directionsUrl(branch)} target="_blank" rel="noopener"><RouteIcon size={18} /> خُد الطريق</a>
+        <a className="btn btn--outline" href={directionsUrl(branch)} target="_blank" rel="noopener"><RouteIcon size={18} /> خوذ الطريق</a>
       </div>
       <span className="sign__pole" aria-hidden="true" />
     </li>
