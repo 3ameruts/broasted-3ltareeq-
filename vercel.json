@@ -1,4 +1,10 @@
 {
-  "rewrites": [{ "source": "/admin", "destination": "/index.html" }, { "source": "/admin/", "destination": "/index.html" }],
-  "headers": [{ "source": "/admin(/?)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] }]
+  "rewrites": [
+    { "source": "/admin", "destination": "/index.html" },
+    { "source": "/admin/", "destination": "/index.html" }
+  ],
+  "headers": [
+    { "source": "/admin", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] },
+    { "source": "/admin/", "headers": [{ "key": "X-Robots-Tag", "value": "noindex" }] }
+  ]
 }
