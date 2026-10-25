@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>علبة بروستد عالطريق ٦</title>
+<style>
+  @font-face { font-family: Lalezar; src: url(assets/lalezar.ttf); }
+  @font-face { font-family: Readex; src: url(assets/readex-700.ttf); font-weight: 700; }
+  :root { --red: #e0263a; --red-deep: #b21017; --yellow: #fcb712; --asphalt: #2e2b2e; --ink: #262326; }
+  html, body { margin: 0; background: #e9e5df; }
+  body { font-family: Readex, sans-serif; }
+  svg text { font-family: Lalezar, sans-serif; }
+  .ui { font-family: Readex, sans-serif; }
+
+  /* flat sheet */
+  #flat { display: none; padding: 60px; width: max-content; background: #f4f1ec; direction: ltr; }
+  #flat h1, #flat .sub, #flat .notes, #flat .label, #flat svg { direction: rtl; }
+  #flat h1, #flat .sub, #flat .notes { text-align: right; }
+  #flat h1 { font: 400 64px Lalezar; margin: 0 0 6px; color: var(--ink); }
+  #flat .sub { font: 700 22px Readex; color: #6b5f62; margin-bottom: 40px; }
+  .sheet { display: flex; align-items: flex-end; gap: 0; }
+  .col { display: flex; flex-direction: column; align-items: center; }
+  .label { font: 700 22px Readex; color: #6b5f62; margin-top: 14px; }
+  .panel { display: block; outline: 2px dashed #b9b0a6; outline-offset: -1px; }
+  .notes { margin-top: 44px; font: 700 20px/1.7 Readex; color: #4c4448; max-width: 1600px; }
+
+  /* 3D mockup */
+  #mock { display: none; width: 1600px; height: 1600px; position: relative; overflow: hidden;
+    background: radial-gradient(70% 60% at 50% 40%, #f4efe7, #cfc6ba); }
+  #mock .floor { position: absolute; left: 50%; top: 79%; width: 900px; height: 120px; margin-left: -450px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgb(0 0 0 / .4), transparent); filter: blur(8px); }
+  .scene { position: absolute; left: 50%; top: 54%; perspective: 2600px; }
+  .box { position: relative; transform-style: preserve-3d; }
+  .face { position: absolute; left: 0; top: 0; backface-visibility: hidden; transform-origin: 50% 50%; }
+  .face svg { display: block; }
+</style>
+</head>
+<body>
+<div id="flat"></div>
+<div id="mock"><div class="floor"></div><div class="scene"><div class="box" id="box"></div></div></div>
+<script src="assets/qr.js"></script>
+<script src="assets/drumstick.js"></script>
+<script>
+// All sizes in millimetres. Gable box: W front width, D depth, H body height, R roof rise, T handle tab.
+const W = 240, D = 130, H = 140, R = 60, T = 55;
+const SLANT = Math.hypot(D / 2, R);
+const C = { red: '#e0263a', redDeep: '#b21017', yellow: '#fcb712', asphalt: '#2e2b2e', asphalt2: '#3a363a', ink: '#262326', white: '#ffffff' };
+const LOGO = 'assets/logo.png', LOGO_RATIO = 871 / 1476;
+const ROAD_Y = 108; // centre line height on the body, shared by all four faces so it wraps around the box
+
+let uid = 0;
+const id = p => p + (++uid);
+
+function defs() {
+  const n = id('noise'), o = id('outline');
+  return {
+    n, o,
+    svg: `<defs>
+      <filter id="${n}" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="7" result="t"/>
+        <feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .09 0"/>
+        <feComposite in2="SourceGraphic" operator="in"/>
+      </filter>
+      <filter id="${o}" x="-20%" y="-40%" width="140%" height="180%">
+        <feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="d"/>
+        <feFlood flood-color="#fff"/><feComposite in2="d" operator="in" result="w"/>
+        <feMerge><feMergeNode in="w"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>`,
+  };
+}
+
+const K = { sky: '#9fdcf2', skyDeep: '#5cc0e4', cream: '#fff4e2', cream2: '#ffe9c7', red: '#ec2b3b', redDeep: '#c4182a', yellow: '#ffc21a', orange: '#ff8f2b', ink: '#262326', white: '#ffffff' };
+const DRUM = 'assets/drumstick.png', DRUM_RATIO = 841 / 427;
+const OUT = 1.6; // cartoon outline width in mm
+
+function kit(w, h) {
+  const c = id('clip'), dots = id('dots'), dotsW = id('dotsw'), st = id('sticker');
+  return {
+    c, dots, dotsW,
+    defs: `<defs>
+      <clipPath id="${c}"><rect width="${w}" height="${h}"/></clipPath>
+      <pattern id="${dots}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx="3" cy="3" r="1.1" fill="${K.yellow}"/></pattern>
+      <pattern id="${dotsW}" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="1.6" fill="#fff" opacity=".35"/></pattern>
+      <filter id="${st}" x="-20%" y="-20%" width="140%" height="140%">
+        <feMorphology in="SourceAlpha" operator="dilate" radius="2.6" result="grow"/>
+        <feFlood flood-color="#fff"/><feComposite in2="grow" operator="in" result="edge"/>
+        <feOffset in="grow" dx="1.4" dy="2" result="off"/><feFlood flood-color="#000" flood-opacity=".28"/><feComposite in2="off" operator="in" result="shadow"/>
+        <feMerge><feMergeNode in="shadow"/><feMergeNode in="edge"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>`,
+    st,
+  };
+}
+
+const KT = (x, y, size, color, text, extra = '') => `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" ${extra}>${text}</text>`;
+const KR = (x, y, size, color, text, extra = '') => `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" font-family="Readex" font-weight="700" ${extra}>${text}</text>`;
+
+// white cartoon glove; thumb shows which way the hand faces
+function glove(x, y, r = 5.2, thumbUp = false) {
+  return `<g transform="translate(${x} ${y})">
+    <circle cx="${thumbUp ? 0 : -r * .78}" cy="${thumbUp ? -r * 1.05 : -r * .3}" r="${r * .5}" fill="${K.white}" stroke="${K.ink}" stroke-width="${OUT * .8}"/>
+    <circle r="${r}" fill="${K.white}" stroke="${K.ink}" stroke-width="${OUT * .8}"/>
+    <path d="M${-r * .35} ${-r * .2} v${r * .7} M${r * .2} ${-r * .3} v${r * .8}" stroke="${K.ink}" stroke-width=".7" stroke-linecap="round"/>
+  </g>`;
+}
+
+// rubber-hose arm from shoulder to hand
+const arm = (sx, sy, cx, cy, hx, hy) => `<path d="M${sx} ${sy} Q${cx} ${cy} ${hx} ${hy}" fill="none" stroke="${K.ink}" stroke-width="3.6" stroke-linecap="round"/>`;
+
+// the logo's drumstick as a character. (x, y) = top-left, h = height. arms: list of [shoulderSide, ctrl, hand, thumbUp]
+function mascot(x, y, h, rot, arms = []) {
+  const w = h / DRUM_RATIO;
+  const sh = { l: [x + w * .1, y + h * .42], r: [x + w * .9, y + h * .4] };
+  const armsSvg = arms.map(([side, c, hand, up]) => {
+    const [sx, sy] = sh[side];
+    return arm(sx, sy, c[0], c[1], hand[0], hand[1]) + glove(hand[0], hand[1], h * .045, up);
+  }).join('');
+  const cx = x + w / 2, cy = y + h / 2;
+  return `<g transform="rotate(${rot} ${cx} ${cy})">
+    ${armsSvg}
+    <image href="${DRUM}" x="${x}" y="${y}" width="${w}" height="${h}"/>
+  </g>`;
+}
+
+function sparkle(x, y, r, color = K.white) {
+  return `<path transform="translate(${x} ${y})" d="M0 ${-r} Q${r * .18} ${-r * .18} ${r} 0 Q${r * .18} ${r * .18} 0 ${r} Q${-r * .18} ${r * .18} ${-r} 0 Q${-r * .18} ${-r * .18} 0 ${-r}Z" fill="${color}" stroke="${K.ink}" stroke-width="${OUT * .6}" stroke-linejoin="round"/>`;
+}
+
+function burst(cx, cy, r, n = 14, fill = K.yellow, inner = .72) {
+  const pts = Array.from({ length: n * 2 }, (_, i) => { const a = Math.PI * i / n - Math.PI / 2; const rr = i % 2 ? r * inner : r; return `${(cx + rr * Math.cos(a)).toFixed(2)},${(cy + rr * Math.sin(a)).toFixed(2)}`; }).join(' ');
+  return `<polygon points="${pts}" fill="${fill}" stroke="${K.ink}" stroke-width="${OUT}" stroke-linejoin="round"/>`;
+}
+
+function rays(cx, cy, r, n = 18, color = K.cream2) {
+  return Array.from({ length: n }, (_, i) => {
+    if (i % 2) return '';
+    const a1 = 2 * Math.PI * i / n, a2 = 2 * Math.PI * (i + 1) / n;
+    return `<path d="M${cx} ${cy} L${cx + r * Math.cos(a1)} ${cy + r * Math.sin(a1)} L${cx + r * Math.cos(a2)} ${cy + r * Math.sin(a2)}Z" fill="${color}"/>`;
+  }).join('');
+}
+
+// wavy red band along the bottom, scalloped top edge
+function band(w, y, h = 14, color = K.red) {
+  let d = `M0 ${y + 3}`;
+  const step = 8;
+  for (let x = 0; x < w; x += step) d += ` Q${x + step / 2} ${y - 2.5} ${x + step} ${y + 3}`;
+  d += ` V${y + h + 10} H0 Z`;
+  return `<path d="${d}" fill="${color}" stroke="${K.ink}" stroke-width="${OUT}"/>`;
+}
+
+function bubble(x, y, w, h, tail = 'left') {
+  const tx = tail === 'left' ? x + 16 : x + w - 16;
+  const dir = tail === 'left' ? -1 : 1;
+  return `<path d="M${x + 8} ${y} H${x + w - 8} Q${x + w} ${y} ${x + w} ${y + 8} V${y + h - 8} Q${x + w} ${y + h} ${x + w - 8} ${y + h}
+    H${tx + 6} L${tx + dir * 14} ${y + h + 12} L${tx - 4} ${y + h} H${x + 8} Q${x} ${y + h} ${x} ${y + h - 8} V${y + 8} Q${x} ${y} ${x + 8} ${y}Z"
+    fill="${K.white}" stroke="${K.ink}" stroke-width="${OUT}" stroke-linejoin="round"/>`;
+}
+
+const stick = (k, rot, cx, cy, inner) => `<g filter="url(#${k.st})" transform="rotate(${rot} ${cx} ${cy})">${inner}</g>`;
+
+function sauce(x, y, s = 1, color = K.orange) {
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <path d="M-14 -6 H14 L11 12 Q10 15 7 15 H-7 Q-10 15 -11 12 Z" fill="${K.ink}"/>
+    <ellipse cx="0" cy="-6" rx="14" ry="4.4" fill="${color}" stroke="${K.ink}" stroke-width="1.6"/>
+    <path d="M-7 -7 q4 -2.4 8 0" fill="none" stroke="#fff" stroke-width="1" opacity=".7" stroke-linecap="round"/>
+  </g>`;
+}
+
+const pill = (x, y, w, h, fill) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" fill="${fill}" stroke="${K.ink}" stroke-width="${OUT}"/>`;
+
+const INK = 2.4;
+function halftone(k, x, y, w, h, color) {
+  const p = id('ht');
+  return `<defs><pattern id="${p}" width="4.2" height="4.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><circle cx="2.1" cy="2.1" r=".9" fill="${color}"/></pattern>
+    <radialGradient id="${p}g" cx=".25" cy=".2" r=".9"><stop offset="0" stop-color="#fff"/><stop offset=".7" stop-color="#fff" stop-opacity=".2"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <mask id="${p}m"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#${p}g)"/></mask></defs>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#${p})" mask="url(#${p}m)"/>`;
+}
+
+function panel(k, x, y, w, h, bg, dot, inner) {
+  const c = id('pc');
+  return `<defs><clipPath id="${c}"><rect x="${x}" y="${y}" width="${w}" height="${h}"/></clipPath></defs>
+    <g clip-path="url(#${c})"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${bg}"/>${halftone(k, x, y, w, h, dot)}${inner}</g>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="${K.ink}" stroke-width="${INK}"/>`;
+}
+
+// yellow caption box in the panel's top corner
+function caption(x, y, text, size = 8, fill = K.yellow) {
+  const w = text.length * size * .52 + 8;
+  return `<rect x="${x - w}" y="${y}" width="${w}" height="${size + 6}" fill="${fill}" stroke="${K.ink}" stroke-width="${INK * .7}"/>
+    ${KT(x - 4, y + size + 1.6, size, K.ink, text)}`;
+}
+
+function phone(x, y, r = 0) {
+  return `<g transform="translate(${x} ${y}) rotate(${r})">
+    <rect x="-5" y="-9" width="10" height="18" rx="2.2" fill="${K.ink}"/><rect x="-3.6" y="-6.6" width="7.2" height="11.6" rx="1" fill="${K.sky}"/>
+  </g>`;
+}
+
+const qmark = (x, y, s, r) => KT(x, y, s, K.red, '؟', `text-anchor="middle" stroke="${K.ink}" stroke-width="1" paint-order="stroke" transform="rotate(${r} ${x} ${y})"`);
+
+function front() {
+  const k = kit(W, H);
+  const m = 7, g = 5, ph = H - m * 2 - 16, pw = (W - m * 2 - g * 2) / 3, py = m;
+  const P = i => W - m - pw - i * (pw + g); // panel x, right to left
+  const mh = 70, mw = mh / DRUM_RATIO;
+  // panel 1: hungry
+  const x1 = P(0), mx1 = x1 + pw / 2 - mw / 2, my1 = py + ph - mh + 10;
+  const p1 = panel(k, x1, py, pw, ph, K.sky, K.skyDeep, `
+    ${mascot(mx1, my1, mh, -4, [['l', [mx1 - 8, my1 + 42], [mx1 + 4, my1 + 20], false], ['r', [mx1 + mw + 10, my1 + 46], [mx1 + mw + 6, my1 + 58], false]])}
+    ${qmark(x1 + 14, py + 36, 20, -14)}${qmark(x1 + pw - 12, py + 44, 15, 12)}${qmark(x1 + pw / 2 + 4, py + 30, 12, 4)}
+    ${caption(x1 + pw - 3, py + 3, 'جوعان؟', 9)}`);
+  // panel 2: call
+  const x2 = P(1), mx2 = x2 + pw / 2 - mw / 2 + 4, my2 = py + ph - mh + 10;
+  const p2 = panel(k, x2, py, pw, ph, K.yellow, K.orange, `
+    ${burst(x2 + 22, py + 34, 18, 12, '#fff', .74)}
+    ${KT(x2 + 22, py + 37, 8.4, K.red, 'رن رن!', 'text-anchor="middle"')}
+    ${mascot(mx2, my2, mh, 4, [['l', [mx2 - 14, my2 + 36], [mx2 - 2, my2 + 16], false], ['r', [mx2 + mw + 10, my2 + 44], [mx2 + mw + 8, my2 + 56], false]])}
+    ${phone(mx2 + 2, my2 + 9, -18)}
+    ${caption(x2 + pw - 3, py + 3, 'اتصل!', 9)}`);
+  // panel 3: ready
+  const x3 = P(2), mx3 = x3 + pw / 2 - mw / 2, my3 = py + ph - mh + 10;
+  const p3 = panel(k, x3, py, pw, ph, K.red, K.redDeep, `
+    ${rays(x3 + pw / 2, my3 + 30, 120, 18, '#f2465a')}
+    ${mascot(mx3, my3, mh, 0, [['l', [mx3 - 14, my3 + 26], [mx3 - 10, my3 + 8], true], ['r', [mx3 + mw + 14, my3 + 24], [mx3 + mw + 10, my3 + 6], true]])}
+    ${sparkle(x3 + 10, py + 40, 4.6, K.yellow)}${sparkle(x3 + pw - 9, py + 54, 3.6, '#fff')}
+    ${caption(x3 + pw - 3, py + 3, 'جاهز وسخن!', 9)}`);
+  const lw = 52, lh = lw * LOGO_RATIO;
+  return svg(W, H, `${k.defs}<g clip-path="url(#${k.c})">
+    <rect width="${W}" height="${H}" fill="${K.cream}"/>
+    ${p1}${p2}${p3}
+    ${KT(W - m, H - 5, 10, K.ink, 'معلش.. <tspan fill="' + K.red + '">جاجنا فريش!</tspan>')}
+    ${KR(m, H - 5.5, 7, K.ink, '0792892666', 'direction="ltr"')}
+  </g>`);
+}
+
+function back() {
+  const k = kit(W, H);
+  const m = 7, g = 5, ph = H - m * 2 - 16, wl = 92, wr = W - m * 2 - g - wl;
+  const xr = W - m - wr, xl = m;
+  const q = 34, qs = q / window.QR.size, qx = xl + wl - q - 14, qy = m + 24;
+  const branches = ['دوار العيادات', 'مجمع عمّان', 'دوار الدرة'];
+  const right = panel(k, xr, m, wr, ph, K.cream, K.cream2, `
+    ${caption(xr + wr - 3, m + 3, 'وين تلاقينا؟', 10, K.red)}
+    ${branches.map((b, i) => {
+      const y = m + 34 + i * 20;
+      return `<rect x="${xr + 10}" y="${y - 11}" width="${wr - 20}" height="16" rx="3" fill="#fff" stroke="${K.ink}" stroke-width="${INK * .6}"/>
+        <circle cx="${xr + wr - 18}" cy="${y - 3}" r="3" fill="${K.red}" stroke="${K.ink}" stroke-width="1"/>
+        ${KT(xr + wr - 26, y + 1.4, 10.5, K.ink, b)}`;
+    }).join('')}
+    ${KR(xr + wr - 12, m + ph - 10, 6.2, K.ink, 'إربد  •  كل يوم من 12 الظهر لـ 3 الفجر')}`);
+  const mh = 54, mw = mh / DRUM_RATIO, mx = xl + 4, my = m + ph - mh + 8;
+  const left = panel(k, xl, m, wl, ph, K.yellow, K.orange, `
+    ${caption(xl + wl - 3, m + 3, 'امسح!', 9, K.red)}
+    <rect x="${qx - 5}" y="${qy - 5}" width="${q + 10}" height="${q + 10}" fill="#fff" stroke="${K.ink}" stroke-width="${INK * .7}"/>
+    <g transform="translate(${qx} ${qy}) scale(${qs})"><path d="${window.QR.d}" stroke="${K.ink}" fill="none"/></g>
+    ${KT(qx + q + 5, qy + q + 15, 8, K.ink, 'وشوف المنيو')}
+    ${mascot(mx, my, mh, 6, [['r', [mx + mw + 10, my + 10], [qx + 4, qy + q + 2], false]])}`);
+  return svg(W, H, `${k.defs}<g clip-path="url(#${k.c})">
+    <rect width="${W}" height="${H}" fill="${K.cream}"/>
+    ${right}${left}
+    ${KT(W - m, H - 5, 10, K.ink, 'اتصل واطلب')}
+    ${KR(W - m - 56, H - 5.5, 7.6, K.red, '0792892666  ·  0781525666', 'direction="ltr" text-anchor="end"')}
+    ${KR(m, H - 5.5, 6, K.ink, 'broasted3ltareeq.com', 'direction="ltr"')}
+  </g>`);
+}
+
+function sideA() {
+  const total = H + R, k = kit(D, total);
+  const m = 7;
+  return svg(D, total, `${k.defs}<g clip-path="url(#${k.c})">
+    <rect width="${D}" height="${total}" fill="${K.cream}"/>
+    <polygon points="0,${R} ${D / 2},0 ${D},${R}" fill="${K.red}" stroke="${K.ink}" stroke-width="${INK}" stroke-linejoin="round"/>
+    <g transform="translate(0 ${R})">
+      ${panel(k, m, m, D - m * 2, H - m * 2, K.red, K.redDeep, `
+        ${rays(D / 2, H / 2, 140, 22, '#f2465a')}
+        <g transform="rotate(-12 ${D / 2} ${H / 2})">
+          ${KT(D / 2, H / 2 + 6, 40, K.yellow, 'كرَنش!', `text-anchor="middle" stroke="${K.ink}" stroke-width="3" paint-order="stroke"`)}
+        </g>
+        ${sparkle(24, 26, 6, '#fff')}${sparkle(D - 26, H - 30, 7, K.yellow)}
+        <g stroke="${K.ink}" stroke-width="2" stroke-linecap="round"><path d="M22 ${H - 34} l10 -8 M18 ${H - 22} l14 -2 M${D - 30} 30 l-10 6 M${D - 24} 40 l-14 0"/></g>`)}
+    </g>
+  </g>`);
+}
+
+function sideB() {
+  const total = H + R, k = kit(D, total);
+  const m = 7, mh = 84, mw = mh / DRUM_RATIO, mx = D / 2 - mw / 2 - 8, my = H - m - mh + 10;
+  return svg(D, total, `${k.defs}<g clip-path="url(#${k.c})">
+    <rect width="${D}" height="${total}" fill="${K.cream}"/>
+    <polygon points="0,${R} ${D / 2},0 ${D},${R}" fill="${K.yellow}" stroke="${K.ink}" stroke-width="${INK}" stroke-linejoin="round"/>
+    <g transform="translate(0 ${R})">
+      ${panel(k, m, m, D - m * 2, H - m * 2, K.sky, K.skyDeep, `
+        ${bubble(m + 26, m + 8, D - m * 2 - 34, 34, 'left')}
+        ${KT(D - m - 14, m + 22, 9, K.ink, 'معلش..')}
+        ${KT(D - m - 14, m + 36, 13, K.red, 'جاجنا فريش!')}
+        ${mascot(mx, my, mh, -6, [['r', [mx + mw + 12, my + 30], [mx + mw + 16, my + 8], true]])}
+        ${sauce(D - m - 20, H - m - 14, .8, K.red)}`)}
+    </g>
+  </g>`);
+}
+
+function roof(label) {
+  const k = kit(W, SLANT);
+  const lw = 66, lh = lw * LOGO_RATIO;
+  return svg(W, SLANT, `${k.defs}
+    <rect width="${W}" height="${SLANT}" fill="${label === 'logo' ? K.yellow : K.red}"/>
+    ${halftone(k, 0, 0, W, SLANT, label === 'logo' ? K.orange : K.redDeep)}
+    ${label === 'logo'
+      ? `<image href="${LOGO}" x="${(W - lw) / 2}" y="${(SLANT - lh) / 2}" width="${lw}" height="${lh}"/>`
+      : `${KT(W / 2, SLANT / 2 + 2, 17, K.yellow, 'جوعان؟ اتصل واطلب', `text-anchor="middle" stroke="${K.ink}" stroke-width="2" paint-order="stroke"`)}
+         ${KR(W / 2, SLANT / 2 + 13, 8, '#fff', '0792892666', 'text-anchor="middle" direction="ltr"')}`}
+    <rect y="${SLANT - 1.2}" width="${W}" height="1.2" fill="${K.ink}"/>`);
+}
+
+function handle() {
+  const k = kit(W, T);
+  return svg(W, T, `${k.defs}<rect width="${W}" height="${T}" fill="${K.red}"/>${halftone(k, 0, 0, W, T, K.redDeep)}
+    <rect x="${W / 2 - 46}" y="${T / 2 - 13}" width="92" height="26" rx="13" fill="${K.cream}" stroke="${K.ink}" stroke-width="${INK}"/>`);
+}
+
+function svg(w, h, inner, scale = 1) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w * scale}" height="${h * scale}">${inner}</svg>`;
+}
+const scaled = (s, k) => s.replace(/width="([\d.]+)" height="([\d.]+)">/, (_, a, b) => `width="${a * k}" height="${b * k}">`);
+
+const view = new URLSearchParams(location.search).get('view') || 'flat';
+
+if (view === 'flat') {
+  const k = 6; // px per mm on the sheet
+  const el = document.getElementById('flat');
+  document.documentElement.dir = 'ltr';
+  el.style.display = 'block';
+  const col = (svgStr, label) => `<div class="col">${scaled(svgStr, k).replace('<svg ', '<svg class="panel" ')}<div class="label">${label}</div></div>`;
+  el.innerHTML = `
+    <h1>علبة بروستد عالطريق: كوميكس</h1>
+    <div class="sub">تصميم مبدئي للوجوه • القياسات المستعملة: ${W}×${D}×${H} ملم (عرض×عمق×ارتفاع) • المطبعة بتعطي القالب النهائي</div>
+    <div class="sheet" style="gap:${8 * k}px">
+      <div class="col">${scaled(handle(), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(roof('logo'), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(front(), k).replace('<svg ', '<svg class="panel" ')}<div class="label">قدّام (مع السقف والمسكة)</div></div>
+      ${col(sideA(), 'جنب ١')}
+      <div class="col">${scaled(handle(), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(roof('slogan'), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(back(), k).replace('<svg ', '<svg class="panel" ')}<div class="label">ورا (مع السقف والمسكة)</div></div>
+      ${col(sideB(), 'جنب ٢')}
+    </div>
+    <div class="notes">الوجه القدّامي قصة بثلاث مربعات: جوعان؟ ← اتصل! ← جاهز وسخن! • ورا: مربع الفروع ومربع الـ QR (بيفتح broasted3ltareeq.com) • قبل الطباعة: بنركّب الرسمات على قالب المطبعة بالقياس الحقيقي مع هامش قص 3 ملم وألوان CMYK، واللوغو بنسخة فكتور (AI/SVG/PDF).</div>`;
+} else {
+  const k = 3.2; // px per mm in the mockup
+  document.getElementById('mock').style.display = 'block';
+  const box = document.getElementById('box');
+  const face = (svgStr, w, h, transform) => `<div class="face" style="width:${w * k}px;height:${h * k}px;margin-left:${-w * k / 2}px;margin-top:${-h * k / 2}px;transform:${transform}">${scaled(svgStr, k)}</div>`;
+  const ang = Math.atan2(R, D / 2) * 180 / Math.PI;
+  const shade = (svgStr, a) => svgStr.replace('</svg>', `<rect x="-1" y="-1" width="9999" height="9999" fill="rgb(0 0 0 / ${a})"/></svg>`);
+  const yBody = 0, top = -H / 2;
+  // faces centred on the box's middle; roof planes hinge on the body's top edges
+  box.innerHTML = [
+    face(front(), W, H, `translateZ(${D / 2 * k}px)`),
+    face(shade(back(), .08), W, H, `rotateY(180deg) translateZ(${D / 2 * k}px)`),
+    face(shade(sideA(), .22), D, H + R, `rotateY(90deg) translateZ(${W / 2 * k}px) translateY(${-R / 2 * k}px)`),
+    face(shade(sideB(), .1), D, H + R, `rotateY(-90deg) translateZ(${W / 2 * k}px) translateY(${-R / 2 * k}px)`),
+    face(shade(roof('logo'), .02), W, SLANT, `translateY(${(top - R / 2) * k}px) translateZ(${D / 4 * k}px) rotateX(${90 - ang}deg)`),
+    face(shade(roof('slogan'), .14), W, SLANT, `translateY(${(top - R / 2) * k}px) translateZ(${-D / 4 * k}px) rotateY(180deg) rotateX(${90 - ang}deg)`),
+    face(handle(), W, T, `translateY(${(top - R - T / 2) * k}px)`),
+    face(shade(handle(), .12), W, T, `translateY(${(top - R - T / 2) * k}px) rotateY(180deg)`),
+  ].join('');
+  const turn = view === 'mock-back' ? 'rotateX(-16deg) rotateY(148deg)' : 'rotateX(-16deg) rotateY(-30deg)';
+  box.style.transform = `${turn} translateY(${(R / 2) * k * 0.5}px)`;
+}
+window.ready = document.fonts.ready.then(() => Promise.all([...document.images, ...document.querySelectorAll('image')].map(() => new Promise(r => setTimeout(r, 300)))));
+</script>
+</body>
+</html>
