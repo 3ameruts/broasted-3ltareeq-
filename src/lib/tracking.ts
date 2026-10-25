@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
-export type Tracking = { googleTag: string; gtm: string; metaPixel: string };
+import type { Tracking } from './types';
+export type { Tracking };
 
 // IDs come from the admin panel, so only well-formed ones are allowed into a script URL.
 const valid = {

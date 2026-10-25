@@ -4,6 +4,7 @@ import { useContent, isOpenNow, telHref, formatPrice, type Category, type Item, 
 import { useSmoothScroll, scrollToId, gsap, ScrollTrigger } from '../lib/motion';
 import { locate, directionsUrl, type Located } from '../lib/geo';
 import { useTracking } from '../lib/tracking';
+import { buildSchema } from '../lib/seo';
 import { liveOffers } from '../lib/offers';
 import Offers from './Offers';
 import ScrollVelocity from './bits/ScrollVelocity';
@@ -15,7 +16,13 @@ const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function Site() {
   useSmoothScroll(true);
-  useTracking(useContent().content.tracking);
+  const { content } = useContent();
+  useTracking(content.tracking);
+  // Keep the search-engine schema in step with live edits from the admin panel.
+  useEffect(() => {
+    const el = document.getElementById('ld-schema');
+    if (el) el.textContent = JSON.stringify(buildSchema(content));
+  }, [content]);
   const root = useRef<HTMLDivElement>(null);
 
   // Scroll motion uses transforms only, so every section stays readable without scrolling.
