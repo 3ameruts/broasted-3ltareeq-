@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>علبة بروستد عالطريق ٤</title>
+<style>
+  @font-face { font-family: Lalezar; src: url(assets/lalezar.ttf); }
+  @font-face { font-family: Readex; src: url(assets/readex-700.ttf); font-weight: 700; }
+  :root { --red: #e0263a; --red-deep: #b21017; --yellow: #fcb712; --asphalt: #2e2b2e; --ink: #262326; }
+  html, body { margin: 0; background: #e9e5df; }
+  body { font-family: Readex, sans-serif; }
+  svg text { font-family: Lalezar, sans-serif; }
+  .ui { font-family: Readex, sans-serif; }
+
+  /* flat sheet */
+  #flat { display: none; padding: 60px; width: max-content; background: #f4f1ec; direction: ltr; }
+  #flat h1, #flat .sub, #flat .notes, #flat .label, #flat svg { direction: rtl; }
+  #flat h1, #flat .sub, #flat .notes { text-align: right; }
+  #flat h1 { font: 400 64px Lalezar; margin: 0 0 6px; color: var(--ink); }
+  #flat .sub { font: 700 22px Readex; color: #6b5f62; margin-bottom: 40px; }
+  .sheet { display: flex; align-items: flex-end; gap: 0; }
+  .col { display: flex; flex-direction: column; align-items: center; }
+  .label { font: 700 22px Readex; color: #6b5f62; margin-top: 14px; }
+  .panel { display: block; outline: 2px dashed #b9b0a6; outline-offset: -1px; }
+  .notes { margin-top: 44px; font: 700 20px/1.7 Readex; color: #4c4448; max-width: 1600px; }
+
+  /* 3D mockup */
+  #mock { display: none; width: 1600px; height: 1600px; position: relative; overflow: hidden;
+    background: radial-gradient(70% 60% at 50% 40%, #f4efe7, #cfc6ba); }
+  #mock .floor { position: absolute; left: 50%; top: 79%; width: 900px; height: 120px; margin-left: -450px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgb(0 0 0 / .4), transparent); filter: blur(8px); }
+  .scene { position: absolute; left: 50%; top: 54%; perspective: 2600px; }
+  .box { position: relative; transform-style: preserve-3d; }
+  .face { position: absolute; left: 0; top: 0; backface-visibility: hidden; transform-origin: 50% 50%; }
+  .face svg { display: block; }
+</style>
+</head>
+<body>
+<div id="flat"></div>
+<div id="mock"><div class="floor"></div><div class="scene"><div class="box" id="box"></div></div></div>
+<script src="assets/qr.js"></script>
+<script src="assets/drumstick.js"></script>
+<script>
+// All sizes in millimetres. Gable box: W front width, D depth, H body height, R roof rise, T handle tab.
+const W = 240, D = 130, H = 140, R = 60, T = 55;
+const SLANT = Math.hypot(D / 2, R);
+const C = { red: '#e0263a', redDeep: '#b21017', yellow: '#fcb712', asphalt: '#2e2b2e', asphalt2: '#3a363a', ink: '#262326', white: '#ffffff' };
+const LOGO = 'assets/logo.png', LOGO_RATIO = 871 / 1476;
+const ROAD_Y = 108; // centre line height on the body, shared by all four faces so it wraps around the box
+
+let uid = 0;
+const id = p => p + (++uid);
+
+function defs() {
+  const n = id('noise'), o = id('outline');
+  return {
+    n, o,
+    svg: `<defs>
+      <filter id="${n}" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="7" result="t"/>
+        <feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .09 0"/>
+        <feComposite in2="SourceGraphic" operator="in"/>
+      </filter>
+      <filter id="${o}" x="-20%" y="-40%" width="140%" height="180%">
+        <feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="d"/>
+        <feFlood flood-color="#fff"/><feComposite in2="d" operator="in" result="w"/>
+        <feMerge><feMergeNode in="w"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>`,
+  };
+}
+
+const K = { cream: '#fff4e2', cream2: '#ffe9c7', red: '#ec2b3b', redDeep: '#c4182a', yellow: '#ffc21a', orange: '#ff8f2b', ink: '#262326', white: '#ffffff' };
+const DRUM = 'assets/drumstick.png', DRUM_RATIO = 841 / 427;
+const OUT = 1.6; // cartoon outline width in mm
+
+function kit(w, h) {
+  const c = id('clip'), dots = id('dots'), dotsW = id('dotsw');
+  return {
+    c, dots, dotsW,
+    defs: `<defs>
+      <clipPath id="${c}"><rect width="${w}" height="${h}"/></clipPath>
+      <pattern id="${dots}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><circle cx="3" cy="3" r="1.1" fill="${K.yellow}"/></pattern>
+      <pattern id="${dotsW}" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="1.6" fill="#fff" opacity=".35"/></pattern>
+    </defs>`,
+  };
+}
+
+const KT = (x, y, size, color, text, extra = '') => `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" ${extra}>${text}</text>`;
+const KR = (x, y, size, color, text, extra = '') => `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" font-family="Readex" font-weight="700" ${extra}>${text}</text>`;
+
+// white cartoon glove; thumb shows which way the hand faces
+function glove(x, y, r = 5.2, thumbUp = false) {
+  return `<g transform="translate(${x} ${y})">
+    <circle cx="${thumbUp ? 0 : -r * .78}" cy="${thumbUp ? -r * 1.05 : -r * .3}" r="${r * .5}" fill="${K.white}" stroke="${K.ink}" stroke-width="${OUT * .8}"/>
+    <circle r="${r}" fill="${K.white}" stroke="${K.ink}" stroke-width="${OUT * .8}"/>
+    <path d="M${-r * .35} ${-r * .2} v${r * .7} M${r * .2} ${-r * .3} v${r * .8}" stroke="${K.ink}" stroke-width=".7" stroke-linecap="round"/>
+  </g>`;
+}
+
+// rubber-hose arm from shoulder to hand
+const arm = (sx, sy, cx, cy, hx, hy) => `<path d="M${sx} ${sy} Q${cx} ${cy} ${hx} ${hy}" fill="none" stroke="${K.ink}" stroke-width="3.6" stroke-linecap="round"/>`;
+
+// the logo's drumstick as a character. (x, y) = top-left, h = height. arms: list of [shoulderSide, ctrl, hand, thumbUp]
+function mascot(x, y, h, rot, arms = []) {
+  const w = h / DRUM_RATIO;
+  const sh = { l: [x + w * .1, y + h * .42], r: [x + w * .9, y + h * .4] };
+  const armsSvg = arms.map(([side, c, hand, up]) => {
+    const [sx, sy] = sh[side];
+    return arm(sx, sy, c[0], c[1], hand[0], hand[1]) + glove(hand[0], hand[1], h * .045, up);
+  }).join('');
+  const cx = x + w / 2, cy = y + h / 2;
+  return `<g transform="rotate(${rot} ${cx} ${cy})">
+    <ellipse cx="${cx + 2}" cy="${y + h * .5}" rx="${w * .58}" ry="${h * .36}" fill="${K.redDeep}" opacity=".18"/>
+    ${armsSvg}
+    <image href="${DRUM}" x="${x}" y="${y}" width="${w}" height="${h}"/>
+  </g>`;
+}
+
+function sparkle(x, y, r, color = K.white) {
+  return `<path transform="translate(${x} ${y})" d="M0 ${-r} Q${r * .18} ${-r * .18} ${r} 0 Q${r * .18} ${r * .18} 0 ${r} Q${-r * .18} ${r * .18} ${-r} 0 Q${-r * .18} ${-r * .18} 0 ${-r}Z" fill="${color}" stroke="${K.ink}" stroke-width="${OUT * .6}" stroke-linejoin="round"/>`;
+}
+
+function burst(cx, cy, r, n = 14, fill = K.yellow, inner = .72) {
+  const pts = Array.from({ length: n * 2 }, (_, i) => { const a = Math.PI * i / n - Math.PI / 2; const rr = i % 2 ? r * inner : r; return `${(cx + rr * Math.cos(a)).toFixed(2)},${(cy + rr * Math.sin(a)).toFixed(2)}`; }).join(' ');
+  return `<polygon points="${pts}" fill="${fill}" stroke="${K.ink}" stroke-width="${OUT}" stroke-linejoin="round"/>`;
+}
+
+function rays(cx, cy, r, n = 18, color = K.cream2) {
+  return Array.from({ length: n }, (_, i) => {
+    if (i % 2) return '';
+    const a1 = 2 * Math.PI * i / n, a2 = 2 * Math.PI * (i + 1) / n;
+    return `<path d="M${cx} ${cy} L${cx + r * Math.cos(a1)} ${cy + r * Math.sin(a1)} L${cx + r * Math.cos(a2)} ${cy + r * Math.sin(a2)}Z" fill="${color}"/>`;
+  }).join('');
+}
+
+// wavy red band along the bottom, scalloped top edge
+function band(w, y, h = 14, color = K.red) {
+  let d = `M0 ${y + 3}`;
+  const step = 8;
+  for (let x = 0; x < w; x += step) d += ` Q${x + step / 2} ${y - 2.5} ${x + step} ${y + 3}`;
+  d += ` V${y + h + 10} H0 Z`;
+  return `<path d="${d}" fill="${color}" stroke="${K.ink}" stroke-width="${OUT}"/>`;
+}
+
+function bubble(x, y, w, h, tail = 'left') {
+  const tx = tail === 'left' ? x + 16 : x + w - 16;
+  const dir = tail === 'left' ? -1 : 1;
+  return `<path d="M${x + 8} ${y} H${x + w - 8} Q${x + w} ${y} ${x + w} ${y + 8} V${y + h - 8} Q${x + w} ${y + h} ${x + w - 8} ${y + h}
+    H${tx + 6} L${tx + dir * 14} ${y + h + 12} L${tx - 4} ${y + h} H${x + 8} Q${x} ${y + h} ${x} ${y + h - 8} V${y + 8} Q${x} ${y} ${x + 8} ${y}Z"
+    fill="${K.white}" stroke="${K.ink}" stroke-width="${OUT}" stroke-linejoin="round"/>`;
+}
+
+function front() {
+  const k = kit(W, H);
+  const mh = 132, mw = mh / DRUM_RATIO, mx = 34, my = 30;
+  const lw = 74, lh = lw * LOGO_RATIO;
+  return svg(W, H, `${k.defs}<g clip-path="url(#${k.c})">
+    <rect width="${W}" height="${H}" fill="${K.cream}"/>
+    ${rays(mx + mw / 2, my + mh * .38, 190)}
+    <circle cx="${mx + mw / 2}" cy="${my + mh * .38}" r="52" fill="url(#${k.dots})"/>
+    <circle cx="${mx + mw / 2}" cy="${my + mh * .38}" r="40" fill="${K.red}" stroke="${K.ink}" stroke-width="${OUT}"/>
+    ${mascot(mx, my, mh, -6, [
+      ['r', [mx + mw + 14, my + 40], [mx + mw + 20, my + 16], true],
+      ['l', [mx - 14, my + 70], [mx - 6, my + 82], false],
+    ])}
+    <g stroke="${K.ink}" stroke-width="1.2" stroke-linecap="round"><path d="M${mx + mw + 27} ${my + 8} l5 -4 M${mx + mw + 29} ${my + 16} l6 0 M${mx + mw + 26} ${my + 24} l5 3"/></g>
+    ${sparkle(14, 20, 6)}${sparkle(mx + mw + 6, my + 104, 4.4, K.yellow)}
+    ${bubble(W - 104, 12, 92, 46, 'left')}
+    ${KT(W - 18, 30, 11, K.ink, 'معلش..')}
+    ${KT(W - 18, 50, 18, K.red, 'جاجنا فريش!')}
+    <image href="${LOGO}" x="${W - 16 - lw}" y="${70}" width="${lw}" height="${lh}"/>
+    ${band(W, H - 18)}
+    ${KR(W / 2 + 40, H - 4.5, 6.4, K.white, 'بروستد  •  تندر  •  ساندويشات', 'text-anchor="middle"')}
+  </g>`);
+}
+
+function back() {
+  const k = kit(W, H);
+  const mh = 104, mw = mh / DRUM_RATIO, mx = 6, my = 42;
+  const q = 36, qs = q / window.QR.size, qx = 66, qy = 30;
+  const x = W - 14;
+  const pin = (px, py) => `<path transform="translate(${px} ${py}) scale(.36)" d="M0 -14 C-8 -14 -12 -8 -12 -3 C-12 6 0 14 0 14 C0 14 12 6 12 -3 C12 -8 8 -14 0 -14Z" fill="${K.red}" stroke="${K.ink}" stroke-width="3"/><circle cx="${px}" cy="${py - 1.2}" r="1.3" fill="#fff"/>`;
+  const branches = ['دوار العيادات', 'مجمع عمّان', 'دوار الدرة'];
+  return svg(W, H, `${k.defs}<g clip-path="url(#${k.c})">
+    <rect width="${W}" height="${H}" fill="${K.cream}"/>
+    <rect width="${W}" height="${H}" fill="url(#${k.dots})" opacity=".35"/>
+    ${mascot(mx, my, mh, 8, [
+      ['r', [mx + mw + 14, my + 26], [qx - 7, qy + q * .62], false],
+      ['l', [mx - 4, my + 60], [mx + 4, my + 70], false],
+    ])}
+    <g transform="rotate(-4 ${qx + q / 2} ${qy + q / 2})">
+      <rect x="${qx - 6}" y="${qy - 6}" width="${q + 12}" height="${q + 26}" rx="6" fill="${K.white}" stroke="${K.ink}" stroke-width="${OUT}"/>
+      <g transform="translate(${qx} ${qy}) scale(${qs})"><path d="${window.QR.d}" stroke="${K.ink}" fill="none"/></g>
+      ${KT(qx + q / 2, qy + q + 12.5, 6.4, K.red, 'امسح وشوف المنيو', 'text-anchor="middle"')}
+    </g>
+    ${sparkle(qx + q + 10, qy - 4, 4.4, K.yellow)}
+    ${KT(x, 26, 16, K.red, 'وين تلاقينا؟')}
+    ${branches.map((b, i) => pin(x - 2, 41 + i * 14) + KT(x - 8, 44 + i * 14, 11, K.ink, b)).join('')}
+    ${KR(x, 88, 6, K.ink, 'إربد  •  كل يوم من 12 الظهر لـ 3 الفجر')}
+    <g transform="translate(${x} 96)">
+      <rect x="-86" y="0" width="86" height="22" rx="11" fill="${K.yellow}" stroke="${K.ink}" stroke-width="${OUT}"/>
+      ${KT(-8, 9.6, 8, K.ink, 'اتصل واطلب')}
+      ${KR(-43, 18, 8.4, K.red, '0792892666', 'text-anchor="middle" direction="ltr"')}
+    </g>
+    ${band(W, H - 18)}
+    ${KR(W / 2, H - 4.5, 6, K.white, '0792892666  ·  0781525666  ·  broasted3ltareeq.com', 'text-anchor="middle" direction="ltr"')}
+  </g>`);
+}
+
+function gable(k, color, dots) {
+  return `<polygon points="0,${R} ${D / 2},0 ${D},${R}" fill="${color}" stroke="${K.ink}" stroke-width="${OUT}" stroke-linejoin="round"/>
+    <polygon points="0,${R} ${D / 2},0 ${D},${R}" fill="url(#${dots})"/>`;
+}
+
+function sideA() {
+  const total = H + R, k = kit(D, total);
+  return svg(D, total, `${k.defs}<g clip-path="url(#${k.c})">
+    <rect width="${D}" height="${total}" fill="${K.red}"/>
+    ${gable(k, K.redDeep, k.dotsW)}
+    <g transform="translate(0 ${R})">
+      <rect width="${D}" height="${H}" fill="url(#${k.dotsW})"/>
+      <g transform="rotate(-8 ${D / 2} 56)">${burst(D / 2, 56, 50, 16)}</g>
+      ${KT(D / 2, 62, 30, K.red, 'قرمش!', `text-anchor="middle" stroke="${K.ink}" stroke-width="1.4" paint-order="stroke" transform="rotate(-8 ${D / 2} 56)"`)}
+      ${sparkle(18, 18, 5)}${sparkle(D - 16, 100, 6, K.yellow)}
+      ${band(D, H - 18, 14, K.yellow)}
+      ${KR(D / 2, H - 4.5, 6, K.ink, 'بروستد عالطريق', 'text-anchor="middle"')}
+    </g>
+  </g>`);
+}
+
+function sideB() {
+  const total = H + R, k = kit(D, total);
+  const mh = 92, mw = mh / DRUM_RATIO, mx = D / 2 - mw / 2, my = 38;
+  return svg(D, total, `${k.defs}<g clip-path="url(#${k.c})">
+    <rect width="${D}" height="${total}" fill="${K.cream}"/>
+    <g transform="translate(0 ${R})">
+      ${rays(D / 2, 74, 140, 16, K.cream2)}
+      <circle cx="${D / 2}" cy="${my + mh * .36}" r="36" fill="${K.red}" stroke="${K.ink}" stroke-width="${OUT}"/>
+      ${KT(D / 2, 24, 15, K.red, 'طازة كل يوم', `text-anchor="middle" stroke="${K.white}" stroke-width="2.4" paint-order="stroke"`)}
+      ${mascot(mx, my, mh, 0, [
+        ['l', [mx - 16, my + 28], [mx - 12, my + 10], true],
+        ['r', [mx + mw + 16, my + 26], [mx + mw + 12, my + 8], true],
+      ])}
+      ${sparkle(14, 44, 5, K.yellow)}${sparkle(D - 14, 34, 4.4, K.yellow)}
+      ${band(D, H - 18, 14, K.red)}
+      ${KR(D / 2, H - 4.5, 6, K.white, '0792892666', 'text-anchor="middle" direction="ltr"')}
+    </g>
+    ${gable(k, K.yellow, k.dotsW)}
+  </g>`);
+}
+
+function roof(label) {
+  const k = kit(W, SLANT);
+  const lw = 64, lh = lw * LOGO_RATIO;
+  return svg(W, SLANT, `${k.defs}
+    <rect width="${W}" height="${SLANT}" fill="${label === 'logo' ? K.yellow : K.red}"/>
+    <rect width="${W}" height="${SLANT}" fill="url(#${k.dotsW})"/>
+    ${label === 'logo'
+      ? `<image href="${LOGO}" x="${(W - lw) / 2}" y="${(SLANT - lh) / 2}" width="${lw}" height="${lh}"/>${sparkle(W / 2 - 50, 16, 5, K.white)}${sparkle(W / 2 + 52, SLANT - 14, 4, K.white)}`
+      : `${KT(W / 2, SLANT / 2 + 1, 17, K.white, 'جوعان؟ اتصل واطلب', `text-anchor="middle" stroke="${K.ink}" stroke-width="1.4" paint-order="stroke"`)}
+         ${KR(W / 2, SLANT / 2 + 13, 9, K.yellow, '0792892666', 'text-anchor="middle" direction="ltr"')}`}`);
+}
+
+function handle() {
+  const k = kit(W, T);
+  return svg(W, T, `${k.defs}<rect width="${W}" height="${T}" fill="${K.red}"/><rect width="${W}" height="${T}" fill="url(#${k.dotsW})"/>
+    <rect x="${W / 2 - 46}" y="${T / 2 - 13}" width="92" height="26" rx="13" fill="${K.cream}" stroke="${K.ink}" stroke-width="${OUT}"/>`);
+}
+
+function svg(w, h, inner, scale = 1) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w * scale}" height="${h * scale}">${inner}</svg>`;
+}
+const scaled = (s, k) => s.replace(/width="([\d.]+)" height="([\d.]+)">/, (_, a, b) => `width="${a * k}" height="${b * k}">`);
+
+const view = new URLSearchParams(location.search).get('view') || 'flat';
+
+if (view === 'flat') {
+  const k = 6; // px per mm on the sheet
+  const el = document.getElementById('flat');
+  document.documentElement.dir = 'ltr';
+  el.style.display = 'block';
+  const col = (svgStr, label) => `<div class="col">${scaled(svgStr, k).replace('<svg ', '<svg class="panel" ')}<div class="label">${label}</div></div>`;
+  el.innerHTML = `
+    <h1>علبة بروستد عالطريق: دبّوس</h1>
+    <div class="sub">تصميم مبدئي للوجوه • القياسات المستعملة: ${W}×${D}×${H} ملم (عرض×عمق×ارتفاع) • المطبعة بتعطي القالب النهائي</div>
+    <div class="sheet" style="gap:${8 * k}px">
+      <div class="col">${scaled(handle(), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(roof('logo'), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(front(), k).replace('<svg ', '<svg class="panel" ')}<div class="label">قدّام (مع السقف والمسكة)</div></div>
+      ${col(sideA(), 'جنب ١')}
+      <div class="col">${scaled(handle(), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(roof('slogan'), k).replace('<svg ', '<svg class="panel" ')}<div style="height:${2 * k}px"></div>${scaled(back(), k).replace('<svg ', '<svg class="panel" ')}<div class="label">ورا (مع السقف والمسكة)</div></div>
+      ${col(sideB(), 'جنب ٢')}
+    </div>
+    <div class="notes">دبوس البروستد من اللوغو صار شخصية بإيدين كرتونية: بيلوّح قدّام، بيأشّر على الـ QR ورا، ورافع إيديه على الجنب • الـ QR بيفتح broasted3ltareeq.com • قبل الطباعة: بنركّب الرسمات على قالب المطبعة بالقياس الحقيقي مع هامش قص 3 ملم وألوان CMYK، واللوغو بنسخة فكتور (AI/SVG/PDF).</div>`;
+} else {
+  const k = 3.2; // px per mm in the mockup
+  document.getElementById('mock').style.display = 'block';
+  const box = document.getElementById('box');
+  const face = (svgStr, w, h, transform) => `<div class="face" style="width:${w * k}px;height:${h * k}px;margin-left:${-w * k / 2}px;margin-top:${-h * k / 2}px;transform:${transform}">${scaled(svgStr, k)}</div>`;
+  const ang = Math.atan2(R, D / 2) * 180 / Math.PI;
+  const shade = (svgStr, a) => svgStr.replace('</svg>', `<rect x="-1" y="-1" width="9999" height="9999" fill="rgb(0 0 0 / ${a})"/></svg>`);
+  const yBody = 0, top = -H / 2;
+  // faces centred on the box's middle; roof planes hinge on the body's top edges
+  box.innerHTML = [
+    face(front(), W, H, `translateZ(${D / 2 * k}px)`),
+    face(shade(back(), .08), W, H, `rotateY(180deg) translateZ(${D / 2 * k}px)`),
+    face(shade(sideA(), .22), D, H + R, `rotateY(90deg) translateZ(${W / 2 * k}px) translateY(${-R / 2 * k}px)`),
+    face(shade(sideB(), .1), D, H + R, `rotateY(-90deg) translateZ(${W / 2 * k}px) translateY(${-R / 2 * k}px)`),
+    face(shade(roof('logo'), .02), W, SLANT, `translateY(${(top - R / 2) * k}px) translateZ(${D / 4 * k}px) rotateX(${90 - ang}deg)`),
+    face(shade(roof('slogan'), .14), W, SLANT, `translateY(${(top - R / 2) * k}px) translateZ(${-D / 4 * k}px) rotateY(180deg) rotateX(${90 - ang}deg)`),
+    face(handle(), W, T, `translateY(${(top - R - T / 2) * k}px)`),
+    face(shade(handle(), .12), W, T, `translateY(${(top - R - T / 2) * k}px) rotateY(180deg)`),
+  ].join('');
+  const turn = view === 'mock-back' ? 'rotateX(-16deg) rotateY(148deg)' : 'rotateX(-16deg) rotateY(-30deg)';
+  box.style.transform = `${turn} translateY(${(R / 2) * k * 0.5}px)`;
+}
+window.ready = document.fonts.ready.then(() => Promise.all([...document.images, ...document.querySelectorAll('image')].map(() => new Promise(r => setTimeout(r, 300)))));
+</script>
+</body>
+</html>
