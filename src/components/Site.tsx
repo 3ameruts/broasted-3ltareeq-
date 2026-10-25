@@ -4,6 +4,8 @@ import { useContent, isOpenNow, telHref, formatPrice, type Category, type Item, 
 import { useSmoothScroll, scrollToId, gsap, ScrollTrigger } from '../lib/motion';
 import { locate, directionsUrl, type Located } from '../lib/geo';
 import { useTracking } from '../lib/tracking';
+import { liveOffers } from '../lib/offers';
+import Offers from './Offers';
 import ScrollVelocity from './bits/ScrollVelocity';
 import Magnet from './bits/Magnet/Magnet';
 import ClickSpark from './bits/ClickSpark/ClickSpark';
@@ -21,7 +23,8 @@ export default function Site() {
     () => {
       if (reduced()) return;
       gsap.utils.toArray<HTMLElement>('[data-rise]').forEach(el => {
-        gsap.from(el, { y: 70, rotate: Number(el.dataset.rise) || 0, duration: 1, ease: 'back.out(1.4)', scrollTrigger: { trigger: el, start: 'top 92%', once: true } });
+        // clearProps hands the element back to its CSS tilt and hover once it lands.
+        gsap.fromTo(el, { y: 70, rotate: Number(el.dataset.rise) || 0 }, { y: 0, rotate: 0, duration: 1, ease: 'back.out(1.4)', clearProps: 'transform,translate,rotate,scale', scrollTrigger: { trigger: el, start: 'top 92%', once: true } });
       });
       gsap.utils.toArray<HTMLElement>('[data-parallax]').forEach(el => {
         gsap.fromTo(el, { yPercent: -8 }, { yPercent: 8, ease: 'none', scrollTrigger: { trigger: el, scrub: true } });
@@ -36,6 +39,7 @@ export default function Site() {
         <Header />
         <main>
           <Hero />
+          <Offers />
           <Marquee />
           <Menu />
           <Gallery />
@@ -51,6 +55,7 @@ export default function Site() {
 
 function Header() {
   const { content } = useContent();
+  const offerCount = liveOffers(content.offers).length;
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const on = () => setScrolled(scrollY > 40);
@@ -65,6 +70,11 @@ function Header() {
           <img src={content.brand.logo} alt={content.brand.name} width={132} height={78} />
         </button>
         <nav className="header__nav" aria-label="أقسام الموقع">
+          {offerCount > 0 && (
+            <button className="header__offers" onClick={() => scrollToId('offers')}>
+              العروض <span className="header__count num">{offerCount}</span>
+            </button>
+          )}
           <button onClick={() => scrollToId('menu')}>المنيو</button>
           <button onClick={() => scrollToId('about')}>من نحن</button>
           <button onClick={() => scrollToId('branches')}>الفروع</button>

@@ -6,6 +6,7 @@ import {
 } from '../lib/content';
 import { supabase, IMAGE_BUCKET } from '../lib/supabase';
 import { trackingValid, type Tracking } from '../lib/tracking';
+import { offerState, daysLeft, todayInJordan, type Offer } from '../lib/offers';
 
 // Downscale a photo in the browser, then store it in Supabase Storage and return its public URL.
 async function uploadImage(file: File, max = 1400): Promise<string> {
@@ -101,7 +102,7 @@ function Login() {
   );
 }
 
-type Tab = 'brand' | 'menu' | 'branches' | 'gallery';
+type Tab = 'offers' | 'brand' | 'menu' | 'branches' | 'gallery';
 
 function Editor({ email }: { email: string }) {
   const { content, setContent, loaded } = useContent();
@@ -177,7 +178,7 @@ function Editor({ email }: { email: string }) {
       )}
 
       <nav className="admin__tabs" aria-label="أقسام لوحة التحكم">
-        {([['menu', 'المنيو والأسعار'], ['brand', 'المعلومات والواجهة'], ['branches', 'الفروع'], ['gallery', 'الصور']] as [Tab, string][]).map(([k, label]) => (
+        {([['menu', 'المنيو والأسعار'], ['offers', 'العروض'], ['brand', 'المعلومات والواجهة'], ['branches', 'الفروع'], ['gallery', 'الصور']] as [Tab, string][]).map(([k, label]) => (
           <button key={k} className={'atab' + (tab === k ? ' is-active' : '')} onClick={() => setTab(k)}>{label}</button>
         ))}
       </nav>
@@ -187,6 +188,7 @@ function Editor({ email }: { email: string }) {
         {tab === 'brand' && <BrandEditor draft={draft} up={up} />}
         {tab === 'branches' && <BranchesEditor draft={draft} up={up} />}
         {tab === 'gallery' && <GalleryEditor draft={draft} up={up} />}
+        {tab === 'offers' && <OffersEditor draft={draft} up={up} />}
 
         <section className="apanel apanel--danger">
           <h3>رجّع كل إشي للأصل</h3>
@@ -334,15 +336,15 @@ function CategoryEditor({ cat, ci, up }: { cat: Category; ci: number; up: EdProp
   );
 }
 
-function DeleteButton({ onConfirm }: { onConfirm: () => void }) {
+function DeleteButton({ onConfirm, label = 'احذف الصنف' }: { onConfirm: () => void; label?: string }) {
   const [ask, setAsk] = useState(false);
   return ask ? (
     <div className="arow">
-      <button className="abtn abtn--small abtn--danger" onClick={onConfirm}>أكيد، احذف الصنف</button>
+      <button className="abtn abtn--small abtn--danger" onClick={onConfirm}>أكيد، {label}</button>
       <button className="abtn abtn--small" onClick={() => setAsk(false)}>إلغاء</button>
     </div>
   ) : (
-    <button className="abtn abtn--small abtn--ghost" onClick={() => setAsk(true)}>احذف الصنف</button>
+    <button className="abtn abtn--small abtn--ghost" onClick={() => setAsk(true)}>{label}</button>
   );
 }
 
@@ -422,6 +424,83 @@ function BrandEditor({ draft, up }: EdProps) {
           </ul>
         </div>
       </section>
+    </>
+  );
+}
+
+function OffersEditor({ draft, up }: EdProps) {
+  const t = draft.offersText;
+  const offers = draft.offers ?? [];
+  const setOffer = (i: number, fn: (o: Offer) => void) => up(d => { fn(d.offers[i]); });
+  const label = { live: 'شغّال على الموقع', off: 'موقّف', ended: 'خلص وقته' } as const;
+  return (
+    <>
+      <section className="apanel">
+        <h3>نصوص قسم العروض</h3>
+        <div className="apanel__body">
+          <p className="afield__hint">القسم بيطلع تحت الواجهة، وكلمة "العروض" بتطلع بالشريط العلوي، بس لما يكون في عرض واحد شغّال على الأقل.</p>
+          <Field label="العنوان"><input id="of-title" value={t.title} onChange={e => up(d => { d.offersText.title = e.target.value; })} /></Field>
+          <Field label="الجملة تحت العنوان" hint="اتركها فاضية إذا ما بدك ياها."><input id="of-lead" value={t.lead} onChange={e => up(d => { d.offersText.lead = e.target.value; })} /></Field>
+          <Field label="نص الشريط المتحرّك فوق القسم"><input id="of-tape" value={t.tape} onChange={e => up(d => { d.offersText.tape = e.target.value; })} /></Field>
+        </div>
+      </section>
+
+      {offers.length === 0 && (
+        <section className="apanel apanel--danger">
+          <h3>ما في عروض لسا</h3>
+          <p>كبست "ضيف عرض" تحت لتضيف أول عرض.</p>
+        </section>
+      )}
+
+      {offers.map((o, i) => {
+        const st = offerState(o);
+        const left = daysLeft(o);
+        return (
+          <section key={o.id} className="apanel">
+            <div className="aoffer__head">
+              <strong>{o.title || 'عرض جديد'}</strong>
+              <span className={'astate astate--' + st}>{label[st]}{st === 'live' && left !== null ? ` • باقي ${left} ${left === 1 ? 'يوم' : 'أيام'}` : ''}</span>
+              <div className="aitem__move">
+                <button className="abtn abtn--icon" disabled={i === 0} onClick={() => up(d => { [d.offers[i - 1], d.offers[i]] = [d.offers[i], d.offers[i - 1]]; })} aria-label="لفوق">↑</button>
+                <button className="abtn abtn--icon" disabled={i === offers.length - 1} onClick={() => up(d => { [d.offers[i + 1], d.offers[i]] = [d.offers[i], d.offers[i + 1]]; })} aria-label="لتحت">↓</button>
+              </div>
+            </div>
+            <div className="apanel__body">
+              <label className="acheck">
+                <input id={`${o.id}-active`} type="checkbox" checked={o.active} onChange={e => setOffer(i, x => { x.active = e.target.checked; })} />
+                العرض شغّال
+              </label>
+              <Field label="اسم العرض"><input id={`${o.id}-title`} value={o.title} onChange={e => setOffer(i, x => { x.title = e.target.value; })} /></Field>
+              <Field label="شو فيه" hint="افصل بين الأشياء بإشارة +، مثلاً: 12 قطعة + بطاطا + لتر ماتركس">
+                <textarea id={`${o.id}-contents`} rows={2} value={o.contents} onChange={e => setOffer(i, x => { x.contents = e.target.value; })} />
+              </Field>
+              <div className="agrid">
+                <Field label="سعر العرض (د.أ)">
+                  <input id={`${o.id}-price`} type="number" inputMode="decimal" min="0" step="0.05" value={o.price} onChange={e => setOffer(i, x => { x.price = Number(e.target.value) || 0; })} />
+                </Field>
+                <Field label="السعر قبل العرض (اختياري)" hint="بيطلع مشطوب، ومعه قدّيش بيوفّر الزبون">
+                  <input id={`${o.id}-old`} type="number" inputMode="decimal" min="0" step="0.05" value={o.oldPrice ?? ''} onChange={e => setOffer(i, x => { x.oldPrice = e.target.value === '' ? null : Number(e.target.value); })} />
+                </Field>
+              </div>
+              <div className="agrid">
+                <Field label="الكلمة على النجمة" hint="مثلاً: عرض، جديد، 2+1. فاضية = بدون نجمة">
+                  <input id={`${o.id}-badge`} value={o.badge} onChange={e => setOffer(i, x => { x.badge = e.target.value; })} />
+                </Field>
+                <Field label="آخر يوم للعرض (اختياري)" hint="بعد هاليوم العرض بيختفي لحاله">
+                  <input id={`${o.id}-ends`} type="date" min={todayInJordan()} value={o.endsAt} onChange={e => setOffer(i, x => { x.endsAt = e.target.value; })} />
+                </Field>
+              </div>
+              <ImagePicker label="صورة العرض" src={o.image} onChange={v => setOffer(i, x => { x.image = v; })} onRemove={() => setOffer(i, x => { delete x.image; })} />
+              <DeleteButton label="احذف العرض" onConfirm={() => up(d => { d.offers.splice(i, 1); })} />
+            </div>
+          </section>
+        );
+      })}
+
+      <button className="abtn abtn--add" onClick={() => up(d => {
+        d.offers = d.offers ?? [];
+        d.offers.push({ id: 'offer-' + Date.now(), title: '', contents: '', price: 0, oldPrice: null, badge: 'عرض', active: true, endsAt: '' });
+      })}>+ ضيف عرض</button>
     </>
   );
 }
