@@ -6,7 +6,12 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const menu = readFileSync(resolve(here, '../src/data/default-content.json'), 'utf8');
+// Site defaults, with the side items replaced by the live list from the admin panel.
+const data = JSON.parse(readFileSync(resolve(here, '../src/data/default-content.json'), 'utf8'));
+const overrides = JSON.parse(readFileSync(resolve(here, 'overrides.json'), 'utf8'));
+const sides = data.categories.find(c => c.id === 'sides');
+sides.items = overrides.sides.map((it, i) => ({ id: 'sides-' + (i + 1), ...it }));
+const menu = JSON.stringify(data);
 const b = await chromium.launch({ args: ['--allow-file-access-from-files'] });
 const report = [];
 

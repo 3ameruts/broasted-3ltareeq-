@@ -40,6 +40,13 @@
   .contents { color: var(--soft); font-size: 15.5px; line-height: 1.38; margin-top: 2px; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex-shrink: 0; align-items: start; }
   .cols.fill { align-items: stretch; }
+  ul.rows.two { display: grid; grid-template-columns: 1fr 1fr; column-gap: 34px; }
+  ul.rows.two .row:last-child { border-bottom: 3px dashed var(--line); }
+  ul.rows.two .row { padding: 4px 0; }
+  .sauce-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 18px 14px; padding-top: 12px; border-top: 4px solid var(--ink); }
+  .sauce-strip h3 { font-family: Lalezar; font-weight: 400; font-size: 32px; line-height: 1; color: var(--red-deep); }
+  .sauces { display: contents; list-style: none; }
+  .sauces li { background: #fff; border: 3px solid var(--ink); border-radius: 999px; padding: 2px 14px; font-size: 19px; }
   .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
   .share { display: flex; background: var(--yellow); flex: 1 1 auto; min-height: 0; }
@@ -62,7 +69,7 @@
   .sand-head .note { font-size: 22px; }
   .sandwiches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 6px 14px 14px; }
   .sw { background: #fff; border: 3px solid var(--ink); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; }
-  .sw img { width: 100%; aspect-ratio: 1.85; object-fit: cover; background: #fff; border-bottom: 3px dashed var(--line); }
+  .sw img { width: 100%; aspect-ratio: 2.1; object-fit: cover; background: #fff; border-bottom: 3px dashed var(--line); }
   .sw .t { padding: 6px 8px 8px; display: flex; flex-direction: column; gap: 2px; }
   .sw b { font-family: Lalezar; font-weight: 400; font-size: 22px; line-height: 1.15; color: var(--ink); }
   .sw span { font-size: 13px; line-height: 1.38; color: var(--soft); }
@@ -128,7 +135,9 @@ function page2() {
         <div class="sand-head"><h2>${esc(s.name)}</h2>${s.note ? `<span class="note">${esc(s.note)}</span>` : ''}</div>
         <div class="sandwiches">${s.items.map(it => `<div class="sw"><img src="${IMG(it.image)}"><div class="t"><b>${esc(it.name)}</b><span>${esc(it.contents || '')}</span></div></div>`).join('')}</div>
       </section>
-      <div class="cols">${card(cat('sides'))}${card(cat('sauces'))}</div>
+      <section class="card"><div class="plain"><h2>${esc(cat('sides').name)}</h2></div><ul class="rows two">${cat('sides').items.map(row).join('')}</ul>
+        <div class="sauce-strip"><h3>${esc(cat('sauces').name)}</h3>${cat('sauces').note ? `<span class="note">${esc(cat('sauces').note)}</span>` : ''}
+          <ul class="sauces">${cat('sauces').items.map(it => `<li>${esc(it.name)}</li>`).join('')}</ul></div></section>
     </main>${footer}</div>`;
 }
 

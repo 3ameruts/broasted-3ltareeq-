@@ -1,0 +1,18 @@
+{
+  "_note": "Live prices edited in the admin panel that differ from src/data/default-content.json. Used by render.mjs for the social menu only.",
+  "sides": [
+    { "name": "ريزو", "price": 1.00 },
+    { "name": "علبة بطاطا", "price": 1.50 },
+    { "name": "كول سلو صغير", "price": 0.25 },
+    { "name": "كول سلو كبير", "price": 1.00 },
+    { "name": "ماء علب", "price": 0.25 },
+    { "name": "عصير أطفال", "price": 0.20 },
+    { "name": "مايونيز صغير", "price": 0.15 },
+    { "name": "مايونيز كبير", "price": 0.75 },
+    { "name": "مشروب غازي لتر", "price": 0.60 },
+    { "name": "مشروب غازي علبة", "price": 0.35 },
+    { "name": "خبز زيادة", "price": 0.05 },
+    { "name": "علبة مخلل", "price": 0.25 },
+    { "name": "اضافة شريحة جبنة داخل الساندويش", "price": 0.25 }
+  ]
+}
