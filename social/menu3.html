@@ -111,7 +111,9 @@
   .big-rows .cols.fill .stack > .card:not(.filler) { flex-shrink: 0; }
   .sw2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 8px 16px 16px; flex: 1; grid-auto-rows: 1fr; }
   .sw2 .it { display: flex; background: #fff; border: 3px solid var(--ink); border-radius: 18px; overflow: hidden; min-height: 0; }
-  .sw2 .it img { width: 44%; flex: none; object-fit: cover; border-left: 3px dashed var(--line); }
+  .sw2 .it img { width: 44%; flex: none; object-fit: cover; background: #fff; border-left: 3px dashed var(--line); }
+  /* long breads (e.g. chicken garlic) show whole instead of being cropped */
+  .sw2 .it img.whole { object-fit: contain; padding: 0 2px; }
   .sw2 .it .t { padding: 10px 14px; display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 0; }
   .sw2 .it b { font-family: Lalezar; font-weight: 400; font-size: 32px; line-height: 1.1; }
   .sw2 .it span { font-size: 16.5px; line-height: 1.45; color: var(--soft); }
@@ -162,12 +164,12 @@ const footer = `<footer>
 function page1() {
   const combo = cat('combo');
   const comboImg = combo.items.find(i => i.image)?.image;
-  const filler = (img, text) => `<section class="card filler"><img src="${IMG(img)}"><p>${esc(text)}</p></section>`;
+  const filler = (img, text) => `<section class="card filler"><img src="${img.startsWith('../') ? img : IMG(img)}"><p>${esc(text)}</p></section>`;
   return `<div class="page">${header(1, 'الوجبات')}
     <main class="big-rows">
       <div class="cols fill" style="flex:1">
         <div class="stack">${card(cat('broasted'), cat('broasted').image)}${card(cat('tender'), cat('tender').image)}</div>
-        <div class="stack">${card(combo, comboImg)}${card(cat('kids'), cat('kids').image)}${filler('img/scene-17.webp', C.brand.slogan)}</div>
+        <div class="stack">${card(combo, comboImg)}${card(cat('kids'), cat('kids').image)}${filler('../brand/photos/lifestyle/13.jpg', C.brand.slogan)}</div>
       </div>
     </main>${footer}</div>`;
 }
@@ -178,7 +180,7 @@ function page2() {
     <main>
       <section class="card grow">
         <div class="sand-head"><h2>${esc(s.name)}</h2>${s.note ? `<span class="note">${esc(s.note)}</span>` : ''}</div>
-        <div class="sw2">${s.items.map(it => `<div class="it"><img src="${IMG(it.image)}"><div class="t"><b>${esc(it.name)}</b><span>${esc(it.contents || '')}</span></div></div>`).join('')}</div>
+        <div class="sw2">${s.items.map(it => `<div class="it"><img src="${IMG(it.image)}" onload="if (this.naturalWidth / this.naturalHeight > 1.6 || /item-7\./.test(this.src)) this.classList.add('whole')"><div class="t"><b>${esc(it.name)}</b><span>${esc(it.contents || '')}</span></div></div>`).join('')}</div>
       </section>
     </main>${footer}</div>`;
 }
