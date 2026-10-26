@@ -32,5 +32,17 @@ for (const n of [1, 2]) {
   await p.locator('.page').screenshot({ path: resolve(here, `out/menu-${n}.png`) });
   await p.close();
 }
+// A4 print PDF: both pages, vector text, no margins
+{
+  const p = await b.newPage({ viewport: { width: 1080, height: 1527 } });
+  p.on('pageerror', e => report.push(`print: ${e.message}`));
+  await p.addInitScript(m => { window.MENU = JSON.parse(m); }, menu);
+  await p.goto('file://' + resolve(here, 'menu.html') + '?print=all');
+  await p.evaluate(() => window.ready);
+  const clipped = await p.evaluate(() => [...document.querySelectorAll('main')].map(m => m.scrollHeight - m.clientHeight).filter(v => v > 0).length);
+  if (clipped) report.push('print: content overflows');
+  await p.pdf({ path: resolve(here, 'out/menu-A4-print.pdf'), format: 'A4', printBackground: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
+  await p.close();
+}
 await b.close();
 console.log(report.length ? report : 'rendered without errors');
