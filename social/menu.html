@@ -40,13 +40,20 @@
   .contents { color: var(--soft); font-size: 15.5px; line-height: 1.38; margin-top: 2px; }
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex-shrink: 0; align-items: start; }
   .cols.fill { align-items: stretch; }
-  ul.rows.two { display: grid; grid-template-columns: 1fr 1fr; column-gap: 34px; }
-  ul.rows.two .row:last-child { border-bottom: 3px dashed var(--line); }
-  ul.rows.two .row { padding: 4px 0; }
-  .sauce-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 18px 14px; padding-top: 12px; border-top: 4px solid var(--ink); }
-  .sauce-strip h3 { font-family: Lalezar; font-weight: 400; font-size: 32px; line-height: 1; color: var(--red-deep); }
+  ul.rows.two { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 24px; padding: 0 18px 4px; }
+  ul.rows.two .name { font-size: 17px; }
+  ul.rows.two .price { font-size: 18px; }
+  ul.rows.two .price small { font-size: 12px; }
+  ul.rows.two .dots { border-bottom-width: 3px; translate: 0 -4px; min-width: 8px; }
+  .card.compact .plain { padding: 8px 18px 0; }
+  .card.compact .plain h2 { font-size: 28px; }
+  ul.rows.two .row:last-child { border-bottom: 2px dashed var(--line); }
+  ul.rows.two .row { padding: 3px 0; border-bottom-width: 2px; }
+  .sauce-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 18px 10px; padding-top: 8px; border-top: 3px solid var(--ink); }
+  .sauce-strip h3 { font-family: Lalezar; font-weight: 400; font-size: 24px; line-height: 1; color: var(--red-deep); }
   .sauces { display: contents; list-style: none; }
-  .sauces li { background: #fff; border: 3px solid var(--ink); border-radius: 999px; padding: 2px 14px; font-size: 19px; }
+  .sauces li { background: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 1px 10px; font-size: 15px; }
+  .sauce-strip .note { font-size: 15px; padding: 2px 10px; border-width: 2px; }
   .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
   .share { display: flex; background: var(--yellow); flex: 1 1 auto; min-height: 0; }
@@ -69,10 +76,10 @@
   .sand-head .note { font-size: 22px; }
   .sandwiches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 6px 14px 14px; }
   .sw { background: #fff; border: 3px solid var(--ink); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; }
-  .sw img { width: 100%; aspect-ratio: 2.1; object-fit: cover; background: #fff; border-bottom: 3px dashed var(--line); }
-  .sw .t { padding: 6px 8px 8px; display: flex; flex-direction: column; gap: 2px; }
-  .sw b { font-family: Lalezar; font-weight: 400; font-size: 22px; line-height: 1.15; color: var(--ink); }
-  .sw span { font-size: 13px; line-height: 1.38; color: var(--soft); }
+  .sw img { width: 100%; aspect-ratio: 1.33; object-fit: cover; background: #fff; border-bottom: 3px dashed var(--line); }
+  .sw .t { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 3px; }
+  .sw b { font-family: Lalezar; font-weight: 400; font-size: 27px; line-height: 1.15; color: var(--ink); }
+  .sw span { font-size: 15px; line-height: 1.4; color: var(--soft); }
 
   footer { position: relative; background: var(--asphalt); color: #fff; display: flex; align-items: center; gap: 26px; padding: 12px 40px; flex: none; }
   footer .call { display: flex; align-items: center; gap: 14px; }
@@ -86,9 +93,10 @@
   body.print .page { height: 1527px; break-after: page; zoom: calc(793.7 / 1080); }
   body.print .page:last-child { break-after: auto; }
   body.print main { justify-content: space-between; }
-  body.print .sw img { aspect-ratio: 1.3; }
-  body.print ul.rows.two .row { padding: 8px 0; }
-  body.print .sw span { font-size: 14px; }
+  body.print .sw img { aspect-ratio: .95; }
+  body.print .sw b { font-size: 29px; }
+  body.print ul.rows.two .row { padding: 5px 0; }
+  body.print .sw span { font-size: 16px; }
   @page { size: A4; margin: 0; }
   @media print { body { background: none; } }
 </style>
@@ -144,7 +152,7 @@ function page2() {
         <div class="sand-head"><h2>${esc(s.name)}</h2>${s.note ? `<span class="note">${esc(s.note)}</span>` : ''}</div>
         <div class="sandwiches">${s.items.map(it => `<div class="sw"><img src="${IMG(it.image)}"><div class="t"><b>${esc(it.name)}</b><span>${esc(it.contents || '')}</span></div></div>`).join('')}</div>
       </section>
-      <section class="card"><div class="plain"><h2>${esc(cat('sides').name)}</h2></div><ul class="rows two">${cat('sides').items.map(row).join('')}</ul>
+      <section class="card compact"><div class="plain"><h2>${esc(cat('sides').name)}</h2></div><ul class="rows two">${cat('sides').items.map(row).join('')}</ul>
         <div class="sauce-strip"><h3>${esc(cat('sauces').name)}</h3>${cat('sauces').note ? `<span class="note">${esc(cat('sauces').note)}</span>` : ''}
           <ul class="sauces">${cat('sauces').items.map(it => `<li>${esc(it.name)}</li>`).join('')}</ul></div></section>
     </main>${footer}</div>`;
