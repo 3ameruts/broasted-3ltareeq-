@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>منيو بروستد عالطريق للسوشال</title>
+<style>
+  @font-face { font-family: Lalezar; src: url(../packaging/assets/lalezar.ttf); }
+  @font-face { font-family: Readex; src: url(../packaging/assets/readex-700.ttf); font-weight: 700; }
+  :root { --red: #e0263a; --red-deep: #b21017; --yellow: #fcb712; --cream: #fbf5ea; --paper: #fffaf1; --ink: #2a2528; --soft: #6b5f62; --line: #eadfcd; --asphalt: #363336; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #ddd; font-family: Readex, sans-serif; font-weight: 700; color: var(--ink); }
+  .page { width: 1080px; height: 1350px; position: relative; overflow: hidden; background: var(--red); display: flex; flex-direction: column; }
+  .page::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle, rgb(255 255 255 / .09) 2.2px, transparent 2.6px) 0 0 / 26px 26px; pointer-events: none; }
+  .checker { height: 22px; flex: none; background: repeating-conic-gradient(var(--red-deep) 0 25%, #fff 0 50%) 0 0 / 22px 22px; position: relative; }
+
+  header { position: relative; display: flex; align-items: center; gap: 22px; padding: 16px 44px 10px; }
+  header .logo { height: 100px; filter: drop-shadow(0 5px 0 rgb(0 0 0 / .18)); }
+  header .ttl { flex: 1; }
+  header h1 { font-family: Lalezar; font-weight: 400; font-size: 76px; line-height: .95; color: var(--yellow);
+    text-shadow: 4px 4px 0 var(--ink), -4px 4px 0 var(--ink), 4px -4px 0 var(--ink), -4px -4px 0 var(--ink), 0 5px 0 var(--ink), 0 -5px 0 var(--ink), 5px 0 0 var(--ink), -5px 0 0 var(--ink), 0 11px 0 var(--red-deep); }
+  header .sub { font-family: Lalezar; font-size: 30px; color: #fff; margin-top: 4px; }
+  header .num { align-self: flex-start; background: var(--asphalt); color: var(--yellow); border-radius: 999px; padding: 8px 20px; font-size: 22px; direction: ltr; }
+
+  main { position: relative; flex: 1; padding: 4px 36px 16px; display: flex; flex-direction: column; gap: 16px; min-height: 0; overflow: hidden; }
+  .card { flex-shrink: 0; background: var(--paper); border-radius: 26px; border: 4px solid var(--ink); box-shadow: 7px 8px 0 var(--ink); overflow: hidden; display: flex; flex-direction: column; }
+  .card .head { position: relative; height: 74px; flex: none; }
+  .card .head img { width: 100%; height: 100%; object-fit: cover; }
+  .card .head h2 { position: absolute; bottom: 8px; right: 14px; background: var(--yellow); color: var(--ink); font-family: Lalezar; font-weight: 400; font-size: 30px; line-height: 1; padding: 8px 16px 4px; border-radius: 12px; border: 3px solid var(--ink); }
+  .card .plain { padding: 12px 18px 2px; display: flex; align-items: center; gap: 12px; }
+  .card .plain h2 { font-family: Lalezar; font-weight: 400; font-size: 38px; line-height: 1.1; color: var(--red-deep); }
+  .note { background: var(--yellow); border: 3px solid var(--ink); border-radius: 999px; padding: 4px 14px; font-size: 19px; white-space: nowrap; }
+  ul.rows { list-style: none; padding: 2px 18px 8px; display: flex; flex-direction: column; }
+  .row { padding: 6px 0; border-bottom: 3px dashed var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .line { display: flex; align-items: baseline; gap: 10px; }
+  .name { font-size: 23px; line-height: 1.25; }
+  .dots { flex: 1; border-bottom: 4px dotted #d4c6b0; translate: 0 -6px; min-width: 18px; }
+  .price { color: var(--red-deep); font-size: 25px; white-space: nowrap; direction: ltr; }
+  .price small { font-size: 17px; color: var(--soft); }
+  .contents { color: var(--soft); font-size: 15.5px; line-height: 1.38; margin-top: 2px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex-shrink: 0; align-items: start; }
+  .cols.fill { align-items: stretch; }
+  .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+  .share { display: flex; background: var(--yellow); flex: 1 1 auto; min-height: 0; }
+  .card.share { flex-shrink: 1; flex-direction: row; }
+  .filler { flex: 1 1 0; min-height: 120px; position: relative; }
+  .filler img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .filler p { position: absolute; bottom: 12px; right: 14px; left: 14px; text-align: center; font-family: Lalezar; font-size: 34px; color: #fff; text-shadow: 0 3px 0 var(--ink), 0 0 14px rgb(0 0 0 / .45); }
+  .share .photo { width: 40%; flex: none; position: relative; }
+  .share .photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .share .txt { padding: 14px 22px; display: flex; flex-direction: column; justify-content: center; gap: 8px; flex: 1; }
+  .share h2 { font-family: Lalezar; font-weight: 400; font-size: 46px; line-height: 1; color: var(--red-deep); }
+  .share .tag { align-self: flex-start; background: var(--red); color: #fff; border-radius: 999px; padding: 2px 14px; font-size: 18px; }
+  .share ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 8px; }
+  .share li { background: #fff; border: 2px solid var(--ink); border-radius: 999px; padding: 3px 12px; font-size: 18px; }
+  .share .big { font-family: Lalezar; font-size: 54px; line-height: 1; color: var(--ink); direction: ltr; text-align: right; }
+  .share .big small { font-size: 26px; }
+
+  .sand-head { display: flex; align-items: center; gap: 16px; padding: 12px 18px 4px; }
+  .sand-head h2 { font-family: Lalezar; font-weight: 400; font-size: 44px; line-height: 1; color: var(--red-deep); }
+  .sand-head .note { font-size: 22px; }
+  .sandwiches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 6px 14px 14px; }
+  .sw { background: #fff; border: 3px solid var(--ink); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; }
+  .sw img { width: 100%; aspect-ratio: 1.85; object-fit: cover; background: #fff; border-bottom: 3px dashed var(--line); }
+  .sw .t { padding: 6px 8px 8px; display: flex; flex-direction: column; gap: 2px; }
+  .sw b { font-family: Lalezar; font-weight: 400; font-size: 22px; line-height: 1.15; color: var(--ink); }
+  .sw span { font-size: 13px; line-height: 1.38; color: var(--soft); }
+
+  footer { position: relative; background: var(--asphalt); color: #fff; display: flex; align-items: center; gap: 26px; padding: 12px 40px; flex: none; }
+  footer .call { display: flex; align-items: center; gap: 14px; }
+  footer .call .ic { width: 58px; height: 58px; border-radius: 50%; background: var(--yellow); display: grid; place-items: center; }
+  footer .call b { display: block; font-size: 20px; color: #fff; }
+  footer .call strong { display: block; font-size: 36px; color: var(--yellow); direction: ltr; text-align: right; line-height: 1.1; }
+  footer .info { flex: 1; font-size: 18px; line-height: 1.6; color: rgb(255 255 255 / .88); }
+  footer .info em { font-style: normal; color: var(--yellow); }
+  footer .web { font-size: 18px; color: rgb(255 255 255 / .8); direction: ltr; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+const C = window.MENU;
+const IMG = p => '../public/' + p;
+const cat = id => C.categories.find(c => c.id === id);
+const money = n => n.toFixed(2);
+const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+const row = it => `<li class="row"><div class="line"><span class="name">${esc(it.name)}</span><span class="dots"></span><span class="price">${money(it.price)} <small>د.أ</small></span></div>${it.contents ? `<p class="contents">${esc(it.contents)}</p>` : ''}</li>`;
+const card = (c, img) => `<section class="card">${img ? `<div class="head"><img src="${IMG(img)}"><h2>${esc(c.name)}</h2></div>` : `<div class="plain"><h2>${esc(c.name)}</h2>${c.note ? `<span class="note">${esc(c.note)}</span>` : ''}</div>`}<ul class="rows">${c.items.map(row).join('')}</ul></section>`;
+
+const phoneIc = `<svg width="30" height="30" viewBox="0 0 24 24"><path d="M5.2 3.5h3.1l1.6 4.2-2.1 1.4a11.5 11.5 0 0 0 7.1 7.1l1.4-2.1 4.2 1.6v3.1a2 2 0 0 1-2.2 2A17.4 17.4 0 0 1 3.2 5.7a2 2 0 0 1 2-2.2Z" fill="#2a2528"/></svg>`;
+const branches = C.branches.map(b => b.name.replace('فرع ', '')).join(' · ');
+const header = (n, sub) => `<div class="checker"></div><header><img class="logo" src="${IMG(C.brand.logo)}"><div class="ttl"><h1>المنيو</h1><p class="sub">${sub}</p></div><span class="num">${n} / 2</span></header>`;
+const footer = `<footer>
+  <div class="call"><span class="ic">${phoneIc}</span><div><b>اتصل واطلب</b><strong>${C.brand.phone}</strong></div></div>
+  <p class="info"><em>إربد:</em> ${branches}<br>${esc(C.brand.hours)}</p>
+  <p class="web">broasted3ltareeq.com</p>
+</footer><div class="checker"></div>`;
+
+function page1() {
+  const sb = cat('sharebox'), sbi = sb.items[0];
+  const combo = cat('combo');
+  const comboImg = combo.items.find(i => i.image)?.image;
+  return `<div class="page">${header(1, 'معلش.. جاجنا فريش')}
+    <main>
+      <div class="cols fill">
+        <div class="stack">${card(cat('broasted'), cat('broasted').image)}${card(cat('tender'), cat('tender').image)}</div>
+        <div class="stack">${card(combo, comboImg)}${card(cat('kids'))}<section class="card filler"><img src="${IMG('img/scene-17.webp')}"><p>${esc(C.brand.slogan)}</p></section></div>
+      </div>
+      <section class="card share">
+        <div class="txt">
+          <span class="tag">للّمّة</span>
+          <h2>${esc(sb.name)}</h2>
+          <ul>${sbi.contents.split('+').map(s => `<li>${esc(s.trim())}</li>`).join('')}</ul>
+          <p class="big">${money(sbi.price)} <small>د.أ</small></p>
+        </div>
+        <div class="photo"><img src="${IMG(sb.image)}"></div>
+      </section>
+    </main>${footer}</div>`;
+}
+
+function page2() {
+  const s = cat('sandwiches');
+  return `<div class="page">${header(2, 'سندويشات وإضافات')}
+    <main>
+      <section class="card">
+        <div class="sand-head"><h2>${esc(s.name)}</h2>${s.note ? `<span class="note">${esc(s.note)}</span>` : ''}</div>
+        <div class="sandwiches">${s.items.map(it => `<div class="sw"><img src="${IMG(it.image)}"><div class="t"><b>${esc(it.name)}</b><span>${esc(it.contents || '')}</span></div></div>`).join('')}</div>
+      </section>
+      <div class="cols">${card(cat('sides'))}${card(cat('sauces'))}</div>
+    </main>${footer}</div>`;
+}
+
+const n = new URLSearchParams(location.search).get('page') || '1';
+document.getElementById('out').innerHTML = n === '2' ? page2() : page1();
+window.ready = document.fonts.ready.then(() => Promise.all([...document.images].map(i => i.decode().catch(() => {}))));
+</script>
+</body>
+</html>
