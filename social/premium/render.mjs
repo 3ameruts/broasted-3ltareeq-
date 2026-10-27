@@ -1,5 +1,5 @@
 // Renders the premium social media menu: four 1080x1350 carousel slides, exported at 2x as JPEG.
-// Usage: node social/premium/render.mjs [menu|menu-red|menu-road]   (run prep.mjs once first for the cutouts)
+// Usage: node social/premium/render.mjs [menu|menu-red|menu-road] [--pdf]   (run prep.mjs once first for the cutouts)
 import { chromium } from 'playwright';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -43,6 +43,12 @@ for (let n = 1; n <= count; n++) {
   const spill = await p.evaluate(() => [...document.querySelectorAll('[data-fit]')].filter(e => e.scrollHeight > e.clientHeight + 1).map(e => e.dataset.fit));
   if (spill.length) report.push(`slide ${n}: overflow in ${spill.join(', ')}`);
   await p.locator('.page').screenshot({ path: resolve(out, `${prefix}-${n}.jpg`), type: 'jpeg', quality: 92 });
+  await p.close();
+}
+if (process.argv.includes('--pdf')) {
+  // all slides in one PDF, vector text and embedded fonts
+  const p = await open('page=all', { viewport: { width: 1080, height: 1350 } });
+  await p.pdf({ path: resolve(out, `${prefix}-menu.pdf`), width: '1080px', height: '1350px', printBackground: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
   await p.close();
 }
 await b.close();
