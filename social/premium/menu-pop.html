@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>منيو بروستد عالطريق: نسخة الستيكرات</title>
+<script src="../../node_modules/@svgdotjs/svg.js/dist/svg.min.js"></script>
+<style>
+  @font-face { font-family: Cairo; font-weight: 900; src: url(../../node_modules/@fontsource/cairo/files/cairo-arabic-900-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Cairo; font-weight: 900; src: url(../../node_modules/@fontsource/cairo/files/cairo-latin-900-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Cairo; font-weight: 700; src: url(../../node_modules/@fontsource/cairo/files/cairo-arabic-700-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Cairo; font-weight: 700; src: url(../../node_modules/@fontsource/cairo/files/cairo-latin-700-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Tajawal; font-weight: 500; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-arabic-500-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Tajawal; font-weight: 500; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-latin-500-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Tajawal; font-weight: 800; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-arabic-800-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Tajawal; font-weight: 800; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-latin-800-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+
+  /* pop poster: sunburst backgrounds drawn with svg.js, food as die-cut stickers */
+  :root { --red: #e0263a; --red-deep: #b21017; --yellow: #fcb712; --cream: #fbf5ea; --white: #fffdf7; --ink: #2a2528; --soft: #6b5f62; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; font-family: Tajawal, sans-serif; color: var(--ink); }
+  .page { width: 1080px; height: 1350px; position: relative; overflow: hidden; }
+  .page > svg.bg { position: absolute; inset: 0; }
+  .layer { position: absolute; inset: 0; }
+  .abs { position: absolute; }
+
+  .logo { position: absolute; top: 34px; right: 40px; height: 92px; filter: drop-shadow(0 0 0 #fff) drop-shadow(3px 3px 0 var(--white)) drop-shadow(-3px -3px 0 var(--white)) drop-shadow(3px -3px 0 var(--white)) drop-shadow(-3px 3px 0 var(--white)) drop-shadow(0 6px 8px rgb(0 0 0 / .25)); }
+  .dots { position: absolute; top: 64px; left: 44px; display: flex; gap: 8px; direction: ltr; }
+  .dots i { width: 16px; height: 16px; border-radius: 50%; background: var(--white); border: 3px solid var(--ink); opacity: .55; }
+  .dots i.on { width: 42px; border-radius: 10px; opacity: 1; background: var(--yellow); }
+
+  /* sticker look for photos and cards: white die-cut border + thin dark outline */
+  .st { border: 12px solid var(--white); box-shadow: 0 0 0 4px var(--ink), 0 16px 24px rgb(0 0 0 / .28); }
+  .round { border-radius: 50%; overflow: hidden; }
+  .round img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* menu rows */
+  .rows { list-style: none; }
+  .row { padding: 10px 0; }
+  .row + .row { border-top: 3px dotted rgb(42 37 40 / .18); }
+  .line { display: flex; align-items: center; gap: 12px; }
+  .name { flex: 1; font: 800 28px/1.25 Tajawal; }
+  .pill { background: var(--red); color: var(--white); border-radius: 999px; padding: 6px 15px 8px; font: 900 27px/1 Cairo; white-space: nowrap; direction: ltr; box-shadow: 0 4px 0 var(--ink); }
+  .pill small { font: 700 15px/1 Cairo; margin-left: 4px; }
+  .contents { font: 500 18px/1.45 Tajawal; color: var(--soft); margin-top: 3px; }
+  .big .row { padding: 15px 0; }
+  .big .name { font-size: 30px; }
+  .big .contents { font-size: 19.5px; }
+  .big .pill { font-size: 29px; }
+  .col h3 { font: 900 36px/1.2 Cairo; color: var(--red-deep); margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+  .col h3::before { content: ""; width: 18px; height: 18px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 4px; rotate: 45deg; }
+
+  /* sandwiches: floating stickers in a 3-2-3-2 honeycomb */
+  .hive { position: absolute; top: 282px; left: 30px; right: 30px; bottom: 96px; display: flex; flex-direction: column; justify-content: space-between; }
+  .hive .r { display: flex; justify-content: center; gap: 20px; }
+  .sw { width: 326px; text-align: center; position: relative; }
+  .sw img { height: 128px; max-width: 300px; object-fit: contain; display: block; margin: 0 auto -18px; position: relative; z-index: 1; filter: drop-shadow(0 12px 12px rgb(80 30 0 / .3)); }
+  .r:nth-child(odd) .sw:nth-child(1) img { rotate: 4deg; } .r:nth-child(odd) .sw:nth-child(3) img { rotate: -4deg; }
+  .sw b { position: relative; z-index: 2; display: inline-block; background: var(--red); color: var(--white); font: 900 25px/1.1 Cairo; padding: 5px 16px 9px; border-radius: 14px; box-shadow: 0 0 0 4px var(--ink); rotate: -2deg; }
+  .sw p { font: 700 16px/1.38 Tajawal; color: var(--ink); margin-top: 6px; padding: 0 4px; }
+
+  /* cards on page 3 */
+  .card { background: var(--white); border-radius: 30px; }
+  .card.y { background: var(--yellow); }
+  .mini { list-style: none; display: flex; flex-wrap: wrap; gap: 7px; }
+  .mini li { font: 800 18px/1 Tajawal; padding: 8px 13px; border-radius: 999px; background: var(--white); border: 3px solid var(--ink); }
+  .burst-price { position: absolute; display: grid; place-items: center; text-align: center; font: 900 40px/1 Cairo; direction: ltr; color: var(--ink); }
+  .burst-price small { display: block; font: 700 18px/1 Cairo; }
+
+  .sauce { width: 132px; height: 132px; border-radius: 50%; background: var(--yellow); display: grid; place-items: center; text-align: center; font: 900 22px/1.15 Cairo; padding: 10px; }
+
+  .foot { position: absolute; left: 0; right: 0; bottom: 0; height: 86px; display: flex; align-items: center; gap: 26px; padding: 0 46px 4px; font: 800 22px/1 Cairo; }
+  .foot .i { display: flex; align-items: center; gap: 9px; }
+  .foot svg { width: 26px; height: 26px; }
+  .foot .phone { font-size: 32px; direction: ltr; }
+  .foot .sep { flex: 1; }
+  .foot.light { color: var(--white); } .foot.light svg { color: var(--yellow); }
+  .foot.dark { color: var(--ink); } .foot.dark svg { color: var(--red-deep); }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+const M = window.MENU, ICON = window.ICONS;
+const IMG = p => '../../public/' + p;
+const STK = img => 'sticker/' + img.match(/item-(\d+)/)[1] + '.png';
+const cat = id => M.categories.find(c => c.id === id);
+const money = n => n.toFixed(2);
+const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const B = M.brand;
+const branches = M.branches.map(b => b.name.replace('فرع ', '')).join(' · ');
+const insta = B.instagram.replace(/\/$/, '').split('/').pop();
+const C = { red: '#e0263a', redDeep: '#b21017', yellow: '#fcb712', cream: '#fbf5ea', white: '#fffdf7', ink: '#2a2528' };
+
+const burstSvg = (size, fill) => { const r = size / 2, pts = []; for (let i = 0; i < 28; i++) { const a = (i / 28) * Math.PI * 2 - Math.PI / 2, rr = (i % 2 ? .82 : 1) * (r - 4); pts.push((r + rr * Math.cos(a)).toFixed(1) + ',' + (r + rr * Math.sin(a)).toFixed(1)); }
+  return `<svg width="${size}" height="${size}" style="position:absolute;inset:0;z-index:-1"><polygon points="${pts.join(' ')}" fill="${fill}" stroke="#2a2528" stroke-width="5" stroke-linejoin="round"/></svg>`; };
+const pill = p => `<span class="pill">${money(p)}<small>د.أ</small></span>`;
+const row = it => `<li class="row"><div class="line"><span class="name">${esc(it.name)}</span>${pill(it.price)}</div>${it.contents ? `<p class="contents">${esc(it.contents)}</p>` : ''}</li>`;
+let TOTAL = 0;
+const chrome = (n, tone) => `<img class="logo" src="../../brand/photos/brand/logo.png"><div class="dots">${Array.from({ length: TOTAL }, (_, i) => `<i class="${i + 1 === n ? 'on' : ''}"></i>`).join('')}</div>
+  <div class="foot ${tone}"><span class="i">${ICON.Phone}<span class="phone">${esc(B.phone)}</span></span><span class="sep"></span><span class="i">${ICON.AtSign}<span>${esc(insta)}</span></span><span class="i">${ICON.Globe}<span>broasted3ltareeq.com</span></span></div>`;
+
+// ---- backgrounds with svg.js ----
+let seed = 7;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+function rays(d, cx, cy, n, color, opacity = 1) {
+  const R = 2200, g = d.group().opacity(opacity);
+  for (let i = 0; i < n; i += 2) {
+    const a1 = (i / n) * Math.PI * 2, a2 = ((i + 1) / n) * Math.PI * 2;
+    g.polygon([cx, cy, cx + R * Math.cos(a1), cy + R * Math.sin(a1), cx + R * Math.cos(a2), cy + R * Math.sin(a2)]).fill(color);
+  }
+}
+// cream (or any colour) panel with a wavy top edge, from y to the bottom
+function wave(d, y, color, amp = 22, waves = 5, stroke = C.ink) {
+  const w = 1080 / waves; let p = `M -10 ${y} `;
+  for (let i = 0; i < waves; i++) p += `q ${w / 4} ${-amp} ${w / 2} 0 t ${w / 2} 0 `;
+  p += 'L 1090 1400 L -10 1400 Z';
+  d.path(p).fill(color).stroke({ color: stroke, width: 5 });
+}
+// sesame seeds and sparkles sprinkled over an area
+function sprinkle(d, box, n, color, opacity = .5) {
+  const g = d.group().opacity(opacity);
+  for (let i = 0; i < n; i++) g.ellipse(9, 18).center(box[0] + rnd() * box[2], box[1] + rnd() * box[3]).fill(color).rotate(rnd() * 180);
+}
+function sparkle(d, x, y, s, color) {
+  d.path(`M 0 -1 Q 0.15 -0.15 1 0 Q 0.15 0.15 0 1 Q -0.15 0.15 -1 0 Q -0.15 -0.15 0 -1 Z`).size(s, s).center(x, y).fill(color).stroke({ color: C.ink, width: 3 });
+}
+function burst(d, x, y, r, points, fill) {
+  const pts = [];
+  for (let i = 0; i < points * 2; i++) { const a = (i / (points * 2)) * Math.PI * 2 - Math.PI / 2, rr = i % 2 ? r * .82 : r; pts.push(x + rr * Math.cos(a), y + rr * Math.sin(a)); }
+  d.polygon(pts).fill(fill).stroke({ color: C.ink, width: 5, linejoin: 'round' });
+}
+// sticker title: thick dark outline + white die-cut edge, drawn as SVG text
+function title(d, text, x, y, size, fill) {
+  const t = (stroke, w, dy = 0) => d.text(text).font({ family: 'Cairo', weight: 900, size, anchor: 'middle' }).attr({ x, y: y + dy, direction: 'rtl', 'paint-order': 'stroke', 'stroke-linejoin': 'round' }).fill(stroke ? stroke : fill).stroke(stroke ? { color: stroke, width: w } : { color: C.white, width: w });
+  t(C.ink, size * 0.34, 10);
+  t(C.ink, size * 0.34);
+  t(null, size * 0.2);
+}
+const bgPage = (n, draw) => { const el = document.createElement('div'); el.className = 'page'; const d = SVG().addTo(el).size(1080, 1350).addClass('bg'); seed = 7 + n; draw(d); return el; };
+
+const pages = [
+  // 1. meals
+  n => {
+    const el = bgPage(n, d => {
+      d.rect(1080, 1350).fill(C.red); rays(d, 540, 360, 36, '#ee3b4e');
+      sprinkle(d, [0, 120, 1080, 420], 60, C.white, .35);
+      title(d, 'الوجبات', 540, 260, 150, C.yellow);
+      wave(d, 580, C.cream);
+      d.rect(1080, 100).move(0, 1264).fill(C.red); d.line(0, 1264, 1080, 1264).stroke({ color: C.ink, width: 5 });
+      sparkle(d, 150, 330, 54, C.yellow); sparkle(d, 950, 420, 40, C.yellow);
+    });
+    const br = cat('broasted'), te = cat('tender');
+    el.insertAdjacentHTML('beforeend', `<div class="layer">
+      <div class="abs st round" style="width:250px;height:250px;right:70px;top:330px;rotate:6deg"><img src="${IMG(br.image)}"></div>
+      <div class="abs st round" style="width:250px;height:250px;left:70px;top:330px;rotate:-6deg"><img src="${IMG(te.image)}"></div>
+      <div class="abs big" data-fit="meals" style="top:630px;right:48px;left:48px;bottom:110px;display:grid;grid-template-columns:1fr 1fr;gap:40px;overflow:hidden">
+        <div class="col"><h3>${esc(br.name)}</h3><ul class="rows">${br.items.map(row).join('')}</ul></div>
+        <div class="col"><h3>${esc(te.name)}</h3><ul class="rows">${te.items.map(row).join('')}</ul></div>
+      </div>${chrome(n, 'light')}</div>`);
+    return el;
+  },
+  // 2. sandwiches
+  n => {
+    const s = cat('sandwiches'), p = s.items[0].price;
+    const el = bgPage(n, d => {
+      d.rect(1080, 1350).fill(C.yellow); rays(d, 540, 170, 40, '#ffc63a');
+      sprinkle(d, [0, 260, 1080, 1000], 70, C.white, .55);
+      title(d, s.name, 600, 212, 116, C.red);
+      burst(d, 150, 180, 92, 14, C.red);
+      d.rect(1080, 100).move(0, 1264).fill(C.red); d.line(0, 1264, 1080, 1264).stroke({ color: C.ink, width: 5 });
+    });
+    const rowsOf = [s.items.slice(0, 3), s.items.slice(3, 5), s.items.slice(5, 8), s.items.slice(8, 10)];
+    el.insertAdjacentHTML('beforeend', `<div class="layer">
+      <p class="burst-price" style="left:58px;top:90px;width:184px;height:184px;color:#fffdf7"><span>${money(p)}<small>د.أ</small><small style="font-size:15px;margin-top:4px">كل السندويشات</small></span></p>
+      <div class="hive" data-fit="sandwiches">${rowsOf.map(r => `<div class="r">${r.map(it => `<div class="sw"><img src="${STK(it.image)}"><b>${esc(it.name)}</b><p>${esc(it.contents)}</p></div>`).join('')}</div>`).join('')}</div>
+      ${chrome(n, 'light')}</div>`);
+    return el;
+  },
+  // 3. combos, share box, kids
+  n => {
+    const c = cat('combo'), k = cat('kids'), kid = k.items[0], sb = cat('sharebox'), si = sb.items[0];
+    const el = bgPage(n, d => {
+      d.rect(1080, 1350).fill(C.cream); rays(d, 540, 250, 40, C.yellow, .35);
+      sprinkle(d, [0, 120, 1080, 1100], 60, '#d9b98a', .5);
+      title(d, 'الكومبو', 640, 250, 140, C.red);
+      wave(d, 830, C.red, 22, 5);
+      sparkle(d, 220, 200, 52, C.red);
+    });
+    el.insertAdjacentHTML('beforeend', `<div class="layer">
+      <div class="abs st round" style="width:200px;height:200px;left:60px;top:150px;rotate:-8deg"><img src="${IMG(c.items.find(i => i.image).image)}"></div>
+      <div class="abs card st" data-fit="combo" style="top:380px;right:48px;left:48px;padding:14px 30px 12px;rotate:-1deg"><div class="col"><h3>${esc(c.name)}</h3><ul class="rows">${c.items.map(row).join('')}</ul></div></div>
+      <div class="abs card y st" style="top:870px;right:48px;width:560px;height:370px;overflow:hidden;rotate:1.5deg;display:flex;flex-direction:column">
+        <div style="height:130px;flex:none"><img src="${IMG(sb.image)}" style="width:100%;height:100%;object-fit:cover"></div>
+        <div style="padding:12px 22px"><b style="font:900 38px/1.15 Cairo">${esc(si.name)}</b><ul class="mini" style="margin-top:8px">${si.contents.split('+').map(x => `<li>${esc(x.trim())}</li>`).join('')}</ul></div></div>
+      <p class="burst-price" style="left:478px;top:830px;width:160px;height:160px;z-index:3;rotate:-10deg;color:#fffdf7;isolation:isolate">${burstSvg(160, '#e0263a')}<span>${money(si.price)}<small>د.أ</small></span></p>
+      <div class="abs card st" style="top:870px;left:48px;width:380px;height:370px;overflow:hidden;rotate:-2deg;display:flex;flex-direction:column">
+        <div style="height:130px;flex:none"><img src="${IMG(k.image)}" style="width:100%;height:100%;object-fit:cover"></div>
+        <div style="padding:12px 20px"><p style="font:800 19px/1 Tajawal;color:#b21017">${esc(k.name)}</p><b style="display:block;font:900 30px/1.2 Cairo;margin:6px 0">${esc(kid.name)}</b><p class="contents">${esc(kid.contents)}</p></div></div>
+      <p class="burst-price" style="left:300px;top:830px;width:150px;height:150px;z-index:3;rotate:8deg;isolation:isolate">${burstSvg(150, '#fcb712')}<span>${money(kid.price)}<small>د.أ</small></span></p>
+      ${chrome(n, 'light')}</div>`);
+    return el;
+  },
+  // 4. sides, sauces, contact
+  n => {
+    const sd = cat('sides'), sc = cat('sauces');
+    const el = bgPage(n, d => {
+      d.rect(1080, 1350).fill(C.red); rays(d, 540, 250, 36, '#ee3b4e');
+      sprinkle(d, [0, 120, 1080, 300], 40, C.white, .35);
+      title(d, 'الإضافات', 600, 250, 140, C.yellow);
+      sparkle(d, 160, 220, 56, C.yellow);
+    });
+    el.insertAdjacentHTML('beforeend', `<div class="layer">
+      <div class="abs card st" data-fit="sides" style="top:330px;right:48px;left:48px;padding:16px 30px 10px;rotate:1deg">
+        <div class="col"><h3>${esc(sd.name)}</h3><ul class="rows" style="display:grid;grid-template-columns:1fr 1fr;column-gap:36px">${sd.items.map(row).join('')}</ul></div></div>
+      <div class="abs" style="top:935px;right:48px;left:48px;text-align:center">
+        <p style="font:900 40px/1.1 Cairo;color:#fffdf7">${esc(sc.name)} <span style="font:800 22px/1 Tajawal;color:#fcb712">${esc(sc.note || '')}</span></p>
+        <div style="display:flex;justify-content:center;gap:12px;margin-top:16px">${sc.items.map((it, i) => `<span class="sauce st" style="rotate:${[-6, 4, -3, 6, -5, 3, -4][i % 7]}deg;${i % 2 ? 'background:#fffdf7' : ''}">${esc(it.name)}</span>`).join('')}</div></div>
+      <div class="abs card st" style="top:1135px;right:48px;left:48px;height:110px;padding:0 28px;display:flex;align-items:center;gap:26px;background:#2a2528;color:#fffdf7">
+        <b style="font:900 46px/1 Cairo;color:#fcb712;direction:ltr">${esc(B.phone)}</b>
+        <div style="flex:1;font:500 21px/1.5 Tajawal;padding-right:24px;border-right:3px solid rgb(255 255 255 / .2)"><p>إربد: ${esc(branches)}</p><p>${esc(B.hours)}</p></div></div>
+      <div class="foot light"><span class="i">${ICON.AtSign}<span>${esc(insta)}</span></span><span class="sep"></span><span class="i">${ICON.Globe}<span>broasted3ltareeq.com</span></span></div>
+      <img class="logo" src="../../brand/photos/brand/logo.png"><div class="dots">${Array.from({ length: TOTAL }, (_, i) => `<i class="${i + 1 === n ? 'on' : ''}"></i>`).join('')}</div></div>`);
+    return el;
+  },
+];
+TOTAL = pages.length;
+window.PAGES = TOTAL;
+const out = document.getElementById('out');
+const q = new URLSearchParams(location.search).get('page') || '1';
+// fonts first, so the SVG titles are laid out with Cairo
+window.ready = document.fonts.load('900 100px Cairo', 'الوجبات').then(() => {
+  (q === 'all' ? pages.map((p, i) => p(i + 1)) : [pages[q - 1](Number(q))]).forEach(el => out.appendChild(el));
+  return Promise.all([document.fonts.ready, ...[...document.images].map(i => i.decode().catch(() => {}))]);
+});
+</script>
+</body>
+</html>
