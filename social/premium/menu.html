@@ -145,6 +145,39 @@
   .contact .call b { font: 900 52px/1 Cairo; color: var(--gold); direction: ltr; text-align: right; }
   .contact .i { display: flex; align-items: center; gap: 12px; font: 500 23px/1.4 Tajawal; }
   .contact svg { width: 26px; height: 26px; color: var(--gold); flex: none; }
+  /* four-page version */
+  .p-meals .hero { height: 370px; }
+  .p-meals h2 { font-size: 66px; }
+  .p-meals .row { padding: 9px 0; }
+  .compact .row { padding: 11px 0; }
+  .compact .name { font-size: 31px; }
+  .compact .price { font-size: 38px; }
+  .compact .price small { font-size: 18px; }
+  .compact .contents { font-size: 20px; margin-top: 3px; }
+  .sec-h { font: 900 40px/1.1 Cairo; color: var(--gold); margin-top: 16px; display: flex; align-items: center; gap: 16px; }
+  .sec-h::after { content: ""; flex: 1; height: 1.5px; background: var(--hair); }
+  .sand-hd { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+  .sand-hd .badge { margin: 0 0 14px; }
+  .grid10 { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; gap: 0 36px; flex: 1; min-height: 0; margin-top: 10px; }
+  .grid10 .sw { padding: 8px 0; }
+  .grid10 .sw:nth-last-child(-n+2) { border-bottom: 0; }
+  .grid10 .sw .pic { width: 186px; height: 140px; }
+  .grid10 .sw b { font-size: 29px; margin-bottom: 4px; }
+  .grid10 .sw p { font-size: 17.5px; }
+  .duo { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; margin-top: auto; padding-top: 18px; }
+  .box { background: var(--bg2); border: 1.5px solid var(--line); border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; }
+  .box .ph { height: 190px; flex: none; }
+  .box .ph img { width: 100%; height: 100%; object-fit: cover; }
+  .box .t { padding: 16px 22px 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .box .kicker { font-size: 19px; }
+  .box b { font: 900 36px/1.15 Cairo; }
+  .box .contents { font-size: 20px; margin: 0; }
+  .box .price { margin-top: auto; font-size: 46px; }
+  .p-combo .row { padding: 13px 0; }
+  .p-combo .box .ph { height: 165px; }
+  .p-combo .box .t { padding-bottom: 16px; }
+  .mini { list-style: none; display: flex; flex-wrap: wrap; gap: 7px; }
+  .mini li { font: 800 17.5px/1 Tajawal; padding: 8px 12px; border-radius: 999px; border: 1.5px solid var(--hair); }
 </style>
 </head>
 <body>
@@ -168,44 +201,31 @@ const topBar = n => `<div class="top"><img src="${IMG(B.logo)}"><p class="brand"
 const foot = `<div class="foot"><span class="i">${ICON.Phone}<span class="phone">${esc(B.phone)}</span></span><span class="sep"></span><span class="i">${ICON.AtSign}<span>${esc(insta.slice(1))}</span></span><span class="i">${ICON.Globe}<span>broasted3ltareeq.com</span></span></div>`;
 
 const slides = [
-  // 1. cover
-  () => `<div class="page cover"><div class="bgimg"><img src="../../brand/photos/lifestyle/12.jpg"></div>
-    <div class="center"><img class="logo" src="../../brand/photos/brand/logo.png"><h1>المنيو</h1><p class="slogan">${esc(B.slogan)}</p>
-      <div class="chips">${['broasted', 'tender', 'combo', 'sandwiches', 'sharebox', 'kids'].map(id => `<span>${esc(cat(id).name)}</span>`).join('')}</div>
-      <p class="swipe">اسحب وشوف المنيو كامل ${ICON.ChevronsLeft}</p></div>${foot}</div>`,
-  // 2-3. broasted, tender
-  ...['broasted', 'tender'].map(id => n => {
-    const c = cat(id);
-    return `<div class="page with-hero">${topBar(n)}<div class="hero${c.items.length < 4 ? ' tall' : ''}"><img src="${IMG(c.image)}"></div>
-      <div class="body" data-fit="${id}">${head('وجبات', esc(c.name.replace('وجبات ', '')).replace(/^(.*)$/, '<em>$1</em>'))}<ul class="rows">${c.items.map(row).join('')}</ul></div>${foot}</div>`;
-  }),
-  // 4. combos + kids
+  // 1. meals: broasted + tender
+  n => `<div class="page with-hero p-meals">${topBar(n)}<div class="hero"><img src="${IMG(cat('broasted').image)}"></div>
+    <div class="body compact" data-fit="meals">${head('المنيو', '<em>الوجبات</em>')}
+      ${['broasted', 'tender'].map(id => `<h3 class="sec-h">${esc(cat(id).name)}</h3><ul class="rows">${cat(id).items.map(row).join('')}</ul>`).join('')}
+    </div>${foot}</div>`,
+  // 2. all ten sandwiches
   n => {
-    const c = cat('combo'), k = cat('kids'), kid = k.items[0];
-    return `<div class="page">${topBar(n)}<div class="body" data-fit="combo" style="padding-top:44px">${head('للفرد وللعيلة', 'الكومبو <em>والعائلية</em>')}
+    const s = cat('sandwiches');
+    return `<div class="page">${topBar(n)}<div class="body" data-fit="sandwiches" style="padding-top:26px">
+      <div class="sand-hd"><div>${head('اختار', '<em>السندويشات</em>')}</div>${s.note ? `<p class="badge">${esc(s.note)}</p>` : ''}</div>
+      <div class="grid10">${s.items.map(it => `<div class="sw"><div class="pic"><img src="${CUT(it.image)}"></div><div class="t"><b>${esc(it.name)}</b><p>${esc(it.contents)}</p></div></div>`).join('')}</div>
+    </div>${foot}</div>`;
+  },
+  // 3. combos, share box, kids
+  n => {
+    const c = cat('combo'), k = cat('kids'), kid = k.items[0], sb = cat('sharebox'), si = sb.items[0];
+    return `<div class="page">${topBar(n)}<div class="body p-combo" data-fit="combo" style="padding-top:26px">${head('للفرد وللعيلة', 'الكومبو <em>والعائلية</em>')}
       <ul class="rows">${c.items.map(row).join('')}</ul>
-      <div class="card"><div class="ph"><img src="${IMG(k.image)}"></div><div class="t"><p class="kicker">${esc(k.name)}</p><span class="name">${esc(kid.name)}</span><p class="contents">${esc(kid.contents)}</p>${price(kid.price)}</div></div>
+      <div class="duo">
+        <div class="box"><div class="ph"><img src="${IMG(sb.image)}"></div><div class="t"><p class="kicker">للّمّة</p><b>${esc(si.name)}</b><ul class="mini">${si.contents.split('+').map(x => `<li>${esc(x.trim())}</li>`).join('')}</ul>${price(si.price)}</div></div>
+        <div class="box"><div class="ph"><img src="${IMG(k.image)}"></div><div class="t"><p class="kicker">${esc(k.name)}</p><b>${esc(kid.name)}</b><p class="contents">${esc(kid.contents)}</p>${price(kid.price)}</div></div>
+      </div>
     </div>${foot}</div>`;
   },
-  // 5-6. sandwiches, five per slide: one featured + four
-  ...[0, 5].map((from, half) => n => {
-    const s = cat('sandwiches'), items = s.items.slice(from, from + 5), [f, ...rest] = items;
-    return `<div class="page">${topBar(n)}<div class="body" data-fit="sandwiches-${half + 1}" style="padding-top:40px">${head(half ? 'كمان من' : 'اختار', '<em>السندويشات</em>')}
-      ${s.note ? `<p class="badge">${esc(s.note)}</p>` : ''}
-      <div class="feature"><div class="pic"><img src="${CUT(f.image)}"></div><div class="t"><b>${esc(f.name)}</b><p>${esc(f.contents)}</p></div></div>
-      <div class="grid">${rest.map(it => `<div class="sw"><div class="pic"><img src="${CUT(it.image)}"></div><div class="t"><b>${esc(it.name)}</b><p>${esc(it.contents)}</p></div></div>`).join('')}</div>
-    </div>${foot}</div>`;
-  }),
-  // 7. share box
-  n => {
-    const c = cat('sharebox'), it = c.items[0];
-    return `<div class="page with-hero share">${topBar(n)}<div class="hero"><img src="${IMG(c.image)}"></div>
-      <div class="body" data-fit="sharebox">${head('للّمّة والسهرة', `<em>${esc(it.name)}</em>`)}
-      <ul class="items">${it.contents.split('+').map((x, i) => `<li><i>${i + 1}</i>${esc(x.trim())}</li>`).join('')}</ul>
-      <div class="total"><span>سعر البوكس كامل<small>كل اللي فوق بسعر واحد</small></span>${price(it.price)}</div>
-    </div>${foot}</div>`;
-  },
-  // 8. sides, sauces, contact
+  // 4. sides, sauces, contact
   n => {
     const sd = cat('sides'), sc = cat('sauces');
     return `<div class="page">${topBar(n)}<div class="body" data-fit="sides" style="padding-top:44px">${head('كمّل طلبك', `<em>${esc(sd.name)}</em>`)}
