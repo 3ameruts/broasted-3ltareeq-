@@ -1,5 +1,5 @@
 // Renders the premium social media menu: four 1080x1350 carousel slides, exported at 2x as JPEG.
-// Usage: node social/premium/render.mjs   (run prep.mjs once first for the cutouts)
+// Usage: node social/premium/render.mjs [menu|menu-red]   (run prep.mjs once first for the cutouts)
 import { chromium } from 'playwright';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -21,13 +21,15 @@ for (const c of data.categories) for (const it of c.items) if (contents[it.id]) 
 const icons = Object.fromEntries(['Phone', 'Clock', 'MapPin', 'Globe', 'ChevronsLeft', 'AtSign'].map(n => [n, renderToStaticMarkup(createElement(Lucide[n], { size: 24, strokeWidth: 2 }))]));
 const init = JSON.stringify({ menu: data, icons });
 
+const file = process.argv[2] || 'menu';
+const prefix = { menu: 'premium4', 'menu-red': 'red4' }[file] ?? file;
 const b = await chromium.launch({ args: ['--allow-file-access-from-files'] });
 const report = [];
 const open = async (query, opts) => {
   const p = await b.newPage(opts);
   p.on('pageerror', e => report.push(`${query}: ${e.message}`));
   await p.addInitScript(s => { const d = JSON.parse(s); window.MENU = d.menu; window.ICONS = d.icons; }, init);
-  await p.goto('file://' + resolve(here, 'menu.html') + '?' + query);
+  await p.goto('file://' + resolve(here, file + '.html') + '?' + query);
   await p.evaluate(() => window.ready);
   return p;
 };
@@ -40,7 +42,7 @@ for (let n = 1; n <= count; n++) {
   // anything spilling out of its box would be cut off in the post
   const spill = await p.evaluate(() => [...document.querySelectorAll('[data-fit]')].filter(e => e.scrollHeight > e.clientHeight + 1).map(e => e.dataset.fit));
   if (spill.length) report.push(`slide ${n}: overflow in ${spill.join(', ')}`);
-  await p.locator('.page').screenshot({ path: resolve(out, `premium4-${n}.jpg`), type: 'jpeg', quality: 92 });
+  await p.locator('.page').screenshot({ path: resolve(out, `${prefix}-${n}.jpg`), type: 'jpeg', quality: 92 });
   await p.close();
 }
 await b.close();

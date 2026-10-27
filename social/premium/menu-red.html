@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>منيو بروستد عالطريق: نسخة الأحمر</title>
+<style>
+  @font-face { font-family: Cairo; font-weight: 900; src: url(../../node_modules/@fontsource/cairo/files/cairo-arabic-900-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Cairo; font-weight: 900; src: url(../../node_modules/@fontsource/cairo/files/cairo-latin-900-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Cairo; font-weight: 700; src: url(../../node_modules/@fontsource/cairo/files/cairo-arabic-700-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Cairo; font-weight: 700; src: url(../../node_modules/@fontsource/cairo/files/cairo-latin-700-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Tajawal; font-weight: 500; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-arabic-500-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Tajawal; font-weight: 500; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-latin-500-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Tajawal; font-weight: 800; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-arabic-800-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Tajawal; font-weight: 800; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-latin-800-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+
+  :root {
+    --red: #e0263a; --red-deep: #b21017; --red-hi: #ee4256; --yellow: #fcb712; --cream: #fbf5ea; --paper: #fffaf1;
+    --ink: #2a2528; --soft: #6b5f62; --line: #eadfcd;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; font-family: Tajawal, sans-serif; color: var(--ink); }
+  .page { width: 1080px; height: 1350px; position: relative; overflow: hidden; display: flex; flex-direction: column;
+    background: radial-gradient(1100px 900px at 50% 38%, var(--red-hi), var(--red) 55%, var(--red-deep) 100%); }
+  /* halftone dots fading toward the middle */
+  .page::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(circle, rgb(255 255 255 / .13) 2px, transparent 2.6px) 0 0 / 24px 24px;
+    -webkit-mask: radial-gradient(800px 700px at 50% 45%, transparent 40%, #000 100%); }
+  .page > * { position: relative; }
+
+  .top { display: flex; align-items: center; gap: 18px; padding: 40px 52px 0; flex: none; }
+  .top img { height: 82px; filter: drop-shadow(0 6px 10px rgb(80 0 10 / .35)); }
+  .top .brand { font: 900 30px/1 Cairo; color: var(--cream); }
+  .top .brand small { display: block; font: 800 20px/1.5 Tajawal; color: var(--yellow); }
+  .top .num { margin-inline-start: auto; font: 900 22px/1 Cairo; background: var(--yellow); color: var(--ink); border-radius: 999px; padding: 10px 18px 12px; direction: ltr; }
+
+  .title { padding: 22px 52px 0; flex: none; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+  .kicker { font: 800 24px/1 Tajawal; color: var(--yellow); }
+  h2 { font: 900 80px/1.1 Cairo; color: var(--cream); text-shadow: 0 6px 0 var(--red-deep), 0 14px 30px rgb(80 0 10 / .35); }
+  .badge { background: var(--yellow); color: var(--ink); border-radius: 999px; padding: 12px 24px 14px; font: 900 24px/1 Cairo; margin-bottom: 18px; box-shadow: 0 8px 0 var(--red-deep); white-space: nowrap; }
+
+  .body { flex: 1; min-height: 0; padding: 18px 52px 0; display: flex; flex-direction: column; gap: 22px; }
+  .card { background: var(--paper); border-radius: 30px; box-shadow: 0 10px 0 var(--red-deep), 0 24px 40px rgb(80 0 10 / .3); overflow: hidden; }
+
+  /* rows with a yellow price pill */
+  .rows { list-style: none; }
+  .row { padding: 12px 0; border-bottom: 2px dashed var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .line { display: flex; align-items: center; gap: 12px; }
+  .name { font: 800 30px/1.25 Tajawal; }
+  .lead { flex: 1; border-bottom: 3px dotted #dccdb6; min-width: 16px; }
+  .price { background: var(--yellow); border-radius: 999px; padding: 6px 16px 8px; font: 900 30px/1 Cairo; white-space: nowrap; direction: ltr; }
+  .price small { font: 700 16px/1 Cairo; margin-left: 4px; }
+  .contents { font: 500 19.5px/1.45 Tajawal; color: var(--soft); margin-top: 3px; }
+
+  /* card with a photo strip on its left */
+  .split { display: flex; }
+  .fill .split { flex: 1; }
+  .fill .split .in { display: flex; flex-direction: column; }
+  .fill .split .rows { flex: 1; display: flex; flex-direction: column; justify-content: space-around; }
+  .fill .row { border-bottom: 0; }
+  .fill .row + .row { border-top: 2px dashed var(--line); }
+  .split .in { flex: 1; min-width: 0; padding: 16px 28px 14px; }
+  .split .ph { width: 250px; flex: none; position: relative; }
+  .split .ph img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .card h3 { font: 900 38px/1.2 Cairo; color: var(--red-deep); display: flex; align-items: center; gap: 12px; }
+  .card h3::after { content: ""; flex: 1; height: 4px; border-radius: 4px; background: var(--yellow); }
+
+  /* sandwiches: cutouts float out of the top of cream cards */
+  .sand { display: grid; grid-template-columns: repeat(5, 1fr); grid-auto-rows: 1fr; gap: 96px 14px; flex: 1; min-height: 0; padding-top: 78px; }
+  .sw { background: var(--paper); border-radius: 26px; box-shadow: 0 8px 0 var(--red-deep), 0 20px 30px rgb(80 0 10 / .28); position: relative; padding: 112px 12px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .sw img { position: absolute; top: -82px; left: 50%; translate: -50% 0; width: 214px; height: 184px; object-fit: contain; filter: drop-shadow(0 16px 14px rgb(60 0 8 / .45)); }
+  .sw b { font: 900 28px/1.15 Cairo; color: var(--red-deep); }
+  .sw p { font: 500 18.5px/1.5 Tajawal; color: var(--soft); }
+  .sw .price { margin-top: auto; font-size: 26px; }
+
+  /* share box + kids */
+  .duo { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; flex: 1; min-height: 0; }
+  .box { display: flex; flex-direction: column; }
+  .box.yellow { background: var(--yellow); }
+  .box .ph { height: 200px; flex: none; }
+  .box .ph img { width: 100%; height: 100%; object-fit: cover; }
+  .box .t { flex: 1; padding: 16px 24px 20px; display: flex; flex-direction: column; gap: 8px; }
+  .box .k { font: 800 20px/1 Tajawal; color: var(--red-deep); }
+  .box b { font: 900 38px/1.15 Cairo; }
+  .box .contents { font-size: 20px; margin: 0; }
+  .box .price { align-self: flex-start; margin-top: auto; font-size: 40px; padding: 8px 20px 10px; }
+  .box.yellow .price { background: var(--ink); color: var(--yellow); }
+  .mini { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+  .mini li { font: 800 18px/1 Tajawal; padding: 9px 14px; border-radius: 999px; background: var(--paper); }
+
+  /* sides */
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; padding: 14px 30px 18px; }
+  .cols2 .row { padding: 10px 0; }
+  .cols2 .row:nth-last-child(2) { border-bottom: 0; }
+  .cols2 .name { font-size: 25px; }
+  .cols2 .price { font-size: 24px; padding: 5px 13px 7px; }
+  .cols2 .price small { font-size: 14px; }
+  .strip { height: 140px; }
+  .strip img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 45%; }
+  .sauces { padding: 22px 30px 24px; background: var(--yellow); }
+  .sauces .hd { display: flex; align-items: baseline; gap: 16px; }
+  .sauces h3 { font: 900 40px/1.1 Cairo; color: var(--ink); }
+  .sauces h3::after { display: none; }
+  .sauces .note { font: 800 22px/1 Tajawal; color: var(--red-deep); }
+  .sauces ul { list-style: none; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .sauces li { font: 800 24px/1 Tajawal; padding: 12px 20px; border-radius: 999px; background: var(--paper); }
+  .contact { margin-top: auto; display: flex; align-items: center; gap: 30px; padding: 22px 30px; border-radius: 26px; background: var(--ink); color: var(--cream); }
+  .contact .call small { display: block; font: 800 20px/1 Tajawal; color: rgb(251 245 234 / .7); margin-bottom: 8px; }
+  .contact .call b { font: 900 50px/1 Cairo; color: var(--yellow); direction: ltr; display: block; }
+  .contact .info { flex: 1; display: flex; flex-direction: column; gap: 10px; padding-right: 30px; border-right: 2px solid rgb(251 245 234 / .15); }
+  .contact .i { display: flex; align-items: center; gap: 10px; font: 500 22px/1.4 Tajawal; }
+  .contact svg { width: 24px; height: 24px; color: var(--yellow); flex: none; }
+
+  .foot { flex: none; display: flex; align-items: center; gap: 28px; padding: 22px 52px 36px; font: 700 22px/1 Cairo; color: var(--cream); }
+  .foot .i { display: flex; align-items: center; gap: 10px; }
+  .foot svg { width: 26px; height: 26px; color: var(--yellow); }
+  .foot .phone { font-size: 30px; direction: ltr; }
+  .foot .sep { flex: 1; height: 2px; background: rgb(255 255 255 / .25); }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+const M = window.MENU, ICON = window.ICONS;
+const IMG = p => '../../public/' + p;
+const CUT = img => 'cut/' + img.match(/item-(\d+)/)[1] + '.png';
+const cat = id => M.categories.find(c => c.id === id);
+const money = n => n.toFixed(2);
+const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const B = M.brand;
+const branches = M.branches.map(b => b.name.replace('فرع ', '')).join(' · ');
+const insta = B.instagram.replace(/\/$/, '').split('/').pop();
+
+const price = p => `<span class="price">${money(p)}<small>د.أ</small></span>`;
+const row = it => `<li class="row"><div class="line"><span class="name">${esc(it.name)}</span><span class="lead"></span>${price(it.price)}</div>${it.contents ? `<p class="contents">${esc(it.contents)}</p>` : ''}</li>`;
+let TOTAL = 0;
+const topBar = n => `<div class="top"><img src="${IMG(B.logo)}"><p class="brand">${esc(B.name)}<small>${esc(B.slogan)}</small></p><p class="num">${n} / ${TOTAL}</p></div>`;
+const title = (kicker, t, extra = '') => `<div class="title"><div><p class="kicker">${esc(kicker)}</p><h2>${esc(t)}</h2></div>${extra}</div>`;
+const foot = `<div class="foot"><span class="i">${ICON.Phone}<span class="phone">${esc(B.phone)}</span></span><span class="sep"></span><span class="i">${ICON.AtSign}<span>${esc(insta)}</span></span><span class="i">${ICON.Globe}<span>broasted3ltareeq.com</span></span></div>`;
+const split = (c, img) => `<section class="card split"><div class="in"><h3>${esc(c.name)}</h3><ul class="rows">${c.items.map(row).join('')}</ul></div><div class="ph"><img src="${IMG(img)}"></div></section>`;
+
+const slides = [
+  // 1. meals
+  n => `<div class="page">${topBar(n)}${title('المنيو', 'الوجبات')}
+    <div class="body fill" data-fit="meals">${split(cat('broasted'), cat('broasted').image)}${split(cat('tender'), cat('tender').image)}</div>${foot}</div>`,
+  // 2. sandwiches
+  n => {
+    const s = cat('sandwiches');
+    return `<div class="page">${topBar(n)}${title('اختار', s.name, s.note ? `<p class="badge">${esc(s.note)}</p>` : '')}
+      <div class="body" data-fit="sandwiches"><div class="sand">${s.items.map(it => `<div class="sw"><img src="${CUT(it.image)}"><b>${esc(it.name)}</b><p>${esc(it.contents)}</p>${price(it.price)}</div>`).join('')}</div></div>${foot}</div>`;
+  },
+  // 3. combos, share box, kids
+  n => {
+    const c = cat('combo'), k = cat('kids'), kid = k.items[0], sb = cat('sharebox'), si = sb.items[0];
+    return `<div class="page">${topBar(n)}${title('للفرد وللعيلة', c.name)}
+      <div class="body" data-fit="combo">${split({ ...c, name: 'الكومبو' }, c.items.find(i => i.image).image)}
+        <div class="duo">
+          <section class="card box yellow"><div class="ph"><img src="${IMG(sb.image)}"></div><div class="t"><p class="k">للّمّة</p><b>${esc(si.name)}</b><ul class="mini">${si.contents.split('+').map(x => `<li>${esc(x.trim())}</li>`).join('')}</ul>${price(si.price)}</div></section>
+          <section class="card box"><div class="ph"><img src="${IMG(k.image)}"></div><div class="t"><p class="k">${esc(k.name)}</p><b>${esc(kid.name)}</b><p class="contents">${esc(kid.contents)}</p>${price(kid.price)}</div></section>
+        </div></div>${foot}</div>`;
+  },
+  // 4. sides, sauces, contact
+  n => {
+    const sd = cat('sides'), sc = cat('sauces');
+    return `<div class="page">${topBar(n)}${title('كمّل طلبك', 'الإضافات')}
+      <div class="body" data-fit="sides">
+        <section class="card" data-fit="sides-card"><div class="strip"><img src="../../brand/photos/lifestyle/13.jpg"></div><ul class="rows cols2">${sd.items.map(row).join('')}</ul>
+          <div class="sauces"><div class="hd"><h3>${esc(sc.name)}</h3>${sc.note ? `<span class="note">${esc(sc.note)}</span>` : ''}</div><ul>${sc.items.map(it => `<li>${esc(it.name)}</li>`).join('')}</ul></div></section>
+        <div class="contact"><div class="call"><small>اتصل واطلب</small><b>${esc(B.phone)}</b></div>
+          <div class="info"><p class="i">${ICON.MapPin}<span>إربد: ${esc(branches)}</span></p><p class="i">${ICON.Clock}<span>${esc(B.hours)}</span></p></div></div>
+      </div><div class="foot"><span class="i">${ICON.AtSign}<span>${esc(insta)}</span></span><span class="sep"></span><span class="i">${ICON.Globe}<span>broasted3ltareeq.com</span></span></div></div>`;
+  },
+];
+TOTAL = slides.length;
+window.PAGES = TOTAL;
+const q = new URLSearchParams(location.search).get('page') || '1';
+document.getElementById('out').innerHTML = (q === 'all' ? slides.map((s, i) => s(i + 1)) : [slides[q - 1](Number(q))]).join('');
+window.ready = Promise.all([document.fonts.ready, ...[...document.images].map(i => i.decode().catch(() => {}))]).then(() => document.fonts.ready);
+</script>
+</body>
+</html>
