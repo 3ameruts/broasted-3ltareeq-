@@ -1,5 +1,5 @@
 // Renders the premium social media menu: four 1080x1350 carousel slides, exported at 2x as JPEG.
-// Usage: node social/premium/render.mjs [menu|menu-red]   (run prep.mjs once first for the cutouts)
+// Usage: node social/premium/render.mjs [menu|menu-red|menu-road]   (run prep.mjs once first for the cutouts)
 import { chromium } from 'playwright';
 import { readFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -22,7 +22,7 @@ const icons = Object.fromEntries(['Phone', 'Clock', 'MapPin', 'Globe', 'Chevrons
 const init = JSON.stringify({ menu: data, icons });
 
 const file = process.argv[2] || 'menu';
-const prefix = { menu: 'premium4', 'menu-red': 'red4' }[file] ?? file;
+const prefix = { menu: 'premium4', 'menu-red': 'red4', 'menu-road': 'road4' }[file] ?? file;
 const b = await chromium.launch({ args: ['--allow-file-access-from-files'] });
 const report = [];
 const open = async (query, opts) => {

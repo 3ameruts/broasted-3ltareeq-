@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>منيو بروستد عالطريق: نسخة الطريق</title>
+<style>
+  @font-face { font-family: Cairo; font-weight: 900; src: url(../../node_modules/@fontsource/cairo/files/cairo-arabic-900-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Cairo; font-weight: 900; src: url(../../node_modules/@fontsource/cairo/files/cairo-latin-900-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Cairo; font-weight: 700; src: url(../../node_modules/@fontsource/cairo/files/cairo-arabic-700-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Cairo; font-weight: 700; src: url(../../node_modules/@fontsource/cairo/files/cairo-latin-700-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Tajawal; font-weight: 500; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-arabic-500-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Tajawal; font-weight: 500; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-latin-500-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Tajawal; font-weight: 800; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-arabic-800-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Tajawal; font-weight: 800; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-latin-800-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+
+  /* "on the road": asphalt, lane markings, road signs, gingham paper */
+  :root {
+    --red: #e0263a; --red-deep: #b21017; --yellow: #fcb712; --cream: #fbf5ea; --paper: #fffaf1;
+    --ink: #2a2528; --soft: #6b5f62; --line: #eadfcd; --asphalt: #363336;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; font-family: Tajawal, sans-serif; color: var(--ink); }
+  .page { width: 1080px; height: 1350px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: var(--cream); }
+  .page::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle, rgb(178 16 23 / .07) 1.6px, transparent 2px) 0 0 / 22px 22px; }
+  .page > * { position: relative; }
+
+  /* a road crossing the page corner */
+  .road { position: absolute; z-index: 0; pointer-events: none; }
+  .road svg { display: block; }
+
+  .top { display: flex; align-items: center; gap: 16px; padding: 38px 48px 0; flex: none; z-index: 2; }
+  .top img { height: 84px; }
+  .top .brand { font: 900 30px/1 Cairo; }
+  .top .brand small { display: block; font: 800 19px/1.5 Tajawal; color: var(--red-deep); }
+  /* page number as a road kilometre post */
+  .km { margin-inline-start: auto; width: 92px; background: #fff; border: 4px solid var(--ink); border-radius: 18px 18px 8px 8px; overflow: hidden; text-align: center; box-shadow: 0 6px 0 rgb(42 37 40 / .25); }
+  .km i { display: block; height: 22px; background: var(--red); border-bottom: 4px solid var(--ink); }
+  .km b { display: block; font: 900 28px/1 Cairo; padding: 8px 0 10px; direction: ltr; }
+
+  /* section title as a road sign */
+  .title { display: flex; align-items: center; gap: 18px; padding: 16px 48px 0; flex: none; z-index: 2; }
+  .sign { background: var(--red); color: var(--cream); border-radius: 22px; padding: 4px 34px 14px; font: 900 72px/1.15 Cairo;
+    box-shadow: inset 0 0 0 7px var(--red), inset 0 0 0 11px var(--cream), 0 9px 0 var(--ink); }
+  .arrow { display: flex; align-items: center; gap: 10px; font: 800 24px/1.2 Tajawal; color: var(--ink); }
+  .arrow::before { content: ""; width: 54px; height: 54px; flex: none; background: var(--yellow); border: 4px solid var(--ink); border-radius: 10px; rotate: 45deg; }
+  .arrow span { max-width: 230px; }
+  .note { margin-inline-start: auto; background: var(--asphalt); color: var(--yellow); font: 900 24px/1 Cairo; padding: 14px 22px 16px; border-radius: 14px; white-space: nowrap; }
+
+  .body { flex: 1; min-height: 0; padding: 26px 48px 22px; display: flex; flex-direction: column; gap: 24px; z-index: 1; }
+
+  /* ticket: gingham header, perforated edge */
+  .ticket { background: var(--paper); border: 4px solid var(--ink); border-radius: 26px; position: relative; box-shadow: 0 10px 24px rgb(42 37 40 / .18); }
+  .ticket .gh { height: 64px; border-radius: 22px 22px 0 0; background: repeating-conic-gradient(var(--red) 0 25%, #fff 0 50%) 0 0 / 32px 32px; border-bottom: 4px solid var(--ink); display: flex; align-items: center; padding: 0 22px; }
+  .ticket .gh h3 { background: var(--paper); border: 4px solid var(--ink); border-radius: 14px; padding: 2px 20px 8px; font: 900 36px/1.2 Cairo; color: var(--red-deep); translate: 0 4px; }
+  .ticket .in { padding: 10px 28px 14px; }
+  .ticket.has-photo .in { padding-left: 250px; }
+  .ticket .pic { position: absolute; left: 22px; top: 40px; width: 210px; height: 210px; border-radius: 50%; border: 5px solid var(--ink); overflow: hidden; background: #fff; box-shadow: 0 0 0 7px var(--yellow), 0 12px 20px rgb(0 0 0 / .25); }
+  .ticket .pic img { width: 100%; height: 100%; object-fit: cover; }
+
+  .rows { list-style: none; }
+  .row { padding: 11px 0; border-bottom: 3px dashed var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .line { display: flex; align-items: baseline; gap: 10px; }
+  .name { font: 800 29px/1.25 Tajawal; }
+  .lead { flex: 1; border-bottom: 4px dotted #d9c9b0; translate: 0 -7px; min-width: 14px; }
+  .price { font: 900 34px/1 Cairo; color: var(--red-deep); white-space: nowrap; direction: ltr; }
+  .price small { font: 700 17px/1 Cairo; color: var(--soft); margin-left: 4px; }
+  .contents { font: 500 19px/1.45 Tajawal; color: var(--soft); margin-top: 2px; }
+
+  /* sandwiches along a winding road */
+  .route { flex: 1; min-height: 0; position: relative; }
+  .route svg { position: absolute; left: 50%; top: -10px; translate: -50% 0; }
+  .stops { position: relative; height: 100%; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; column-gap: 150px; }
+  .stop { display: flex; align-items: center; gap: 12px; }
+  .stop:nth-child(even) { flex-direction: row-reverse; }
+  .stop .cut { width: 190px; height: 150px; flex: none; display: grid; place-items: center; }
+  .stop .cut img { max-width: 100%; max-height: 100%; filter: drop-shadow(0 14px 12px rgb(42 37 40 / .35)); }
+  .stop .t { flex: 1; min-width: 0; }
+  .stop:nth-child(even) .t { text-align: left; }
+  .stop b { display: block; font: 900 29px/1.15 Cairo; }
+  .stop p { font: 500 17px/1.45 Tajawal; color: var(--soft); margin-top: 4px; }
+  .stop .tag { display: inline-block; margin-top: 6px; background: var(--red); color: #fff; border-radius: 8px; padding: 4px 12px 6px; font: 900 21px/1 Cairo; direction: ltr; }
+
+  /* share box + kids */
+  .duo { display: grid; grid-template-columns: 1.35fr 1fr; gap: 22px; flex: 1; min-height: 0; }
+  .duo .ticket { display: flex; flex-direction: column; overflow: hidden; }
+  .duo .ph { height: 190px; flex: none; border-bottom: 4px solid var(--ink); }
+  .duo .ph img { width: 100%; height: 100%; object-fit: cover; }
+  .duo .t { flex: 1; padding: 14px 22px 18px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+  .duo .k { font: 800 20px/1 Tajawal; color: var(--red-deep); }
+  .duo b { font: 900 36px/1.15 Cairo; }
+  .duo .contents { font-size: 20px; margin: 0; }
+  .yellow { background: var(--yellow) !important; }
+  .mini { list-style: none; display: flex; flex-wrap: wrap; gap: 7px; }
+  .mini li { font: 800 17.5px/1 Tajawal; padding: 8px 12px; border-radius: 999px; background: var(--paper); border: 3px solid var(--ink); }
+  /* price stamp */
+  .stamp { position: absolute; left: 18px; bottom: 16px; width: 128px; height: 128px; border-radius: 50%; background: var(--red); color: #fff; display: grid; place-items: center; text-align: center; rotate: -10deg;
+    box-shadow: inset 0 0 0 5px var(--red), inset 0 0 0 8px #fff, 0 6px 0 var(--ink); font: 900 38px/1 Cairo; direction: ltr; }
+  .stamp small { display: block; font: 700 18px/1 Cairo; margin-top: 2px; }
+
+  /* sides + sauces as round road signs */
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; }
+  .cols2 .row { padding: 9px 0; }
+  .cols2 .row:last-child { border-bottom: 3px dashed var(--line); }
+  .cols2 .name { font-size: 25px; }
+  .cols2 .price { font-size: 28px; }
+  .signs { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 16px; }
+  .signs li { list-style: none; width: 124px; height: 124px; border-radius: 50%; background: #fff; border: 12px solid var(--red); box-shadow: 0 0 0 4px var(--ink), 0 8px 0 4px rgb(42 37 40 / .25); display: grid; place-items: center; text-align: center; font: 900 21px/1.15 Cairo; padding: 6px; }
+  .sauce-hd { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 14px; }
+  .sauce-hd h3 { font: 900 40px/1.1 Cairo; color: var(--red-deep); }
+  .sauce-hd span { font: 800 22px/1 Tajawal; background: var(--yellow); border: 3px solid var(--ink); border-radius: 999px; padding: 6px 14px 8px; }
+  /* contact as a highway direction sign */
+  .hw { margin-top: auto; background: var(--asphalt); color: var(--cream); border-radius: 22px; padding: 22px 30px; display: flex; align-items: center; gap: 28px;
+    box-shadow: inset 0 0 0 6px var(--asphalt), inset 0 0 0 9px var(--cream), 0 9px 0 var(--ink); }
+  .hw .call small { display: block; font: 800 21px/1 Tajawal; color: var(--yellow); margin-bottom: 8px; }
+  .hw .call b { font: 900 54px/1 Cairo; direction: ltr; display: block; }
+  .hw .info { flex: 1; display: flex; flex-direction: column; gap: 10px; padding-right: 28px; border-right: 3px solid rgb(251 245 234 / .25); }
+  .hw .i { display: flex; align-items: center; gap: 10px; font: 500 22px/1.4 Tajawal; }
+  .hw svg { width: 26px; height: 26px; color: var(--yellow); flex: none; }
+
+  /* footer: a strip of road with a dashed centre line */
+  .foot { flex: none; background: var(--asphalt); color: var(--cream); position: relative; display: flex; align-items: center; gap: 28px; padding: 30px 48px 34px; font: 700 22px/1 Cairo; z-index: 2; }
+  .foot::before { content: ""; position: absolute; left: 0; right: 0; top: 10px; height: 6px; background: repeating-linear-gradient(to left, var(--yellow) 0 44px, transparent 44px 76px); }
+  .foot .i { display: flex; align-items: center; gap: 10px; }
+  .foot svg { width: 26px; height: 26px; color: var(--yellow); }
+  .foot .phone { font-size: 30px; direction: ltr; }
+  .foot .sep { flex: 1; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+const M = window.MENU, ICON = window.ICONS;
+const IMG = p => '../../public/' + p;
+const CUT = img => 'cut/' + img.match(/item-(\d+)/)[1] + '.png';
+const cat = id => M.categories.find(c => c.id === id);
+const money = n => n.toFixed(2);
+const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const B = M.brand;
+const branches = M.branches.map(b => b.name.replace('فرع ', '')).join(' · ');
+const insta = B.instagram.replace(/\/$/, '').split('/').pop();
+
+const price = p => `<span class="price">${money(p)}<small>د.أ</small></span>`;
+const row = it => `<li class="row"><div class="line"><span class="name">${esc(it.name)}</span><span class="lead"></span>${price(it.price)}</div>${it.contents ? `<p class="contents">${esc(it.contents)}</p>` : ''}</li>`;
+let TOTAL = 0;
+const topBar = n => `<div class="top"><img src="${IMG(B.logo)}"><p class="brand">${esc(B.name)}<small>${esc(B.slogan)}</small></p><div class="km"><i></i><b>${n}/${TOTAL}</b></div></div>`;
+const title = (t, arrow, note) => `<div class="title"><h2 class="sign">${esc(t)}</h2>${arrow ? `<p class="arrow"><span>${esc(arrow)}</span></p>` : ''}${note ? `<p class="note">${esc(note)}</p>` : ''}</div>`;
+const foot = `<div class="foot"><span class="i">${ICON.Phone}<span class="phone">${esc(B.phone)}</span></span><span class="sep"></span><span class="i">${ICON.AtSign}<span>${esc(insta)}</span></span><span class="i">${ICON.Globe}<span>broasted3ltareeq.com</span></span></div>`;
+const ticket = (c, img) => `<section class="ticket${img ? ' has-photo' : ''}"><div class="gh"><h3>${esc(c.name)}</h3></div>${img ? `<div class="pic"><img src="${IMG(img)}"></div>` : ''}<div class="in"><ul class="rows">${c.items.map(row).join('')}</ul></div></section>`;
+// asphalt band with a dashed centre line, used as a corner decoration
+const cornerRoad = (style, d, w = 1400, h = 900) => `<div class="road" style="${style}"><svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><path d="${d}" fill="none" stroke="#363336" stroke-width="150" stroke-linecap="round"/><path d="${d}" fill="none" stroke="#fbf5ea" stroke-width="128" stroke-linecap="round"/><path d="${d}" fill="none" stroke="#363336" stroke-width="118" stroke-linecap="round"/><path d="${d}" fill="none" stroke="#fcb712" stroke-width="7" stroke-dasharray="40 30"/></svg></div>`;
+
+const slides = [
+  // 1. meals
+  n => `<div class="page">${cornerRoad('left:-200px;bottom:60px', 'M0 820 C 300 760, 420 520, 700 470 S 1100 380, 1400 120')}${topBar(n)}${title('الوجبات', 'بروستد وتندر')}
+    <div class="body" data-fit="meals">${ticket(cat('broasted'), cat('broasted').image)}${ticket(cat('tender'), cat('tender').image)}</div>${foot}</div>`,
+  // 2. sandwiches along the road
+  n => {
+    const s = cat('sandwiches');
+    const d = 'M70 0 C 160 110, -20 200, 70 300 S 160 500, 70 600 S -20 800, 70 900 L 70 1000';
+    return `<div class="page">${topBar(n)}${title(s.name, '', s.note)}
+      <div class="body" data-fit="sandwiches"><div class="route"><svg width="140" height="1000" viewBox="0 0 140 1000"><path d="${d}" fill="none" stroke="#363336" stroke-width="110"/><path d="${d}" fill="none" stroke="#fcb712" stroke-width="6" stroke-dasharray="34 26"/></svg>
+        <div class="stops">${s.items.map(it => `<div class="stop"><div class="t"><b>${esc(it.name)}</b><p>${esc(it.contents)}</p><span class="tag">${money(it.price)} د.أ</span></div><div class="cut"><img src="${CUT(it.image)}"></div></div>`).join('')}</div></div></div>${foot}</div>`;
+  },
+  // 3. combos, share box, kids
+  n => {
+    const c = cat('combo'), k = cat('kids'), kid = k.items[0], sb = cat('sharebox'), si = sb.items[0];
+    const stamp = p => `<p class="stamp"><span>${money(p)}<small>د.أ</small></span></p>`;
+    return `<div class="page">${cornerRoad('right:-260px;top:130px', 'M1400 60 C 1100 160, 1000 420, 700 470 S 300 700, 0 640')}${topBar(n)}${title('الكومبو', 'للفرد وللعيلة')}
+      <div class="body" data-fit="combo">${ticket({ ...c, name: c.name }, c.items.find(i => i.image).image)}
+        <div class="duo">
+          <section class="ticket yellow"><div class="ph"><img src="${IMG(sb.image)}"></div><div class="t"><p class="k">للّمّة</p><b>${esc(si.name)}</b><ul class="mini" style="margin-left:140px">${si.contents.split('+').map(x => `<li>${esc(x.trim())}</li>`).join('')}</ul>${stamp(si.price)}</div></section>
+          <section class="ticket"><div class="ph"><img src="${IMG(k.image)}"></div><div class="t"><p class="k">${esc(k.name)}</p><b>${esc(kid.name)}</b><p class="contents" style="margin-left:140px">${esc(kid.contents)}</p>${stamp(kid.price)}</div></section>
+        </div></div>${foot}</div>`;
+  },
+  // 4. sides, sauces, contact
+  n => {
+    const sd = cat('sides'), sc = cat('sauces');
+    return `<div class="page">${topBar(n)}${title('الإضافات', 'كمّل طلبك')}
+      <div class="body" data-fit="sides">
+        <section class="ticket"><div class="gh"><h3>${esc(sd.name)}</h3></div><div class="in"><ul class="rows cols2">${sd.items.map(row).join('')}</ul></div></section>
+        <div><div class="sauce-hd"><h3>${esc(sc.name)}</h3>${sc.note ? `<span>${esc(sc.note)}</span>` : ''}</div><ul class="signs">${sc.items.map(it => `<li>${esc(it.name)}</li>`).join('')}</ul></div>
+        <div class="hw"><div class="call"><small>اتصل واطلب</small><b>${esc(B.phone)}</b></div>
+          <div class="info"><p class="i">${ICON.MapPin}<span>إربد: ${esc(branches)}</span></p><p class="i">${ICON.Clock}<span>${esc(B.hours)}</span></p></div></div>
+      </div><div class="foot"><span class="i">${ICON.AtSign}<span>${esc(insta)}</span></span><span class="sep"></span><span class="i">${ICON.Globe}<span>broasted3ltareeq.com</span></span></div></div>`;
+  },
+];
+TOTAL = slides.length;
+window.PAGES = TOTAL;
+const q = new URLSearchParams(location.search).get('page') || '1';
+document.getElementById('out').innerHTML = (q === 'all' ? slides.map((s, i) => s(i + 1)) : [slides[q - 1](Number(q))]).join('');
+window.ready = Promise.all([document.fonts.ready, ...[...document.images].map(i => i.decode().catch(() => {}))]).then(() => document.fonts.ready);
+</script>
+</body>
+</html>
