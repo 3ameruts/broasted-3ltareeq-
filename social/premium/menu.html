@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>منيو بروستد عالطريق: نسخة السوشال</title>
+<style>
+  @font-face { font-family: Cairo; font-weight: 900; src: url(../../node_modules/@fontsource/cairo/files/cairo-arabic-900-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Cairo; font-weight: 900; src: url(../../node_modules/@fontsource/cairo/files/cairo-latin-900-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Cairo; font-weight: 700; src: url(../../node_modules/@fontsource/cairo/files/cairo-arabic-700-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Cairo; font-weight: 700; src: url(../../node_modules/@fontsource/cairo/files/cairo-latin-700-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Tajawal; font-weight: 500; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-arabic-500-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Tajawal; font-weight: 500; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-latin-500-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Tajawal; font-weight: 800; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-arabic-800-normal.woff2); unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E; }
+  @font-face { font-family: Tajawal; font-weight: 800; src: url(../../node_modules/@fontsource/tajawal/files/tajawal-latin-800-normal.woff2); unicode-range: U+0000-00FF, U+2000-206F; }
+
+  :root {
+    --bg: #161110; --bg2: #211816; --red: #e0263a; --red-deep: #b21017; --gold: #fcb712; --gold-soft: #f6cf72;
+    --cream: #fbf5ea; --muted: rgb(251 245 234 / .62); --hair: rgb(252 183 18 / .28); --line: rgb(251 245 234 / .14);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; font-family: Tajawal, sans-serif; color: var(--cream); }
+  .page { width: 1080px; height: 1350px; position: relative; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; break-after: page; }
+  .page:last-child { break-after: auto; }
+  /* warm glow + fine grain so the dark is not flat */
+  .page::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(900px 700px at 85% 8%, rgb(224 38 58 / .22), transparent 70%), radial-gradient(700px 600px at 0% 100%, rgb(252 183 18 / .08), transparent 70%); }
+  .page::after { content: ""; position: absolute; inset: 26px; border: 1.5px solid var(--hair); border-radius: 30px; pointer-events: none; z-index: 5; }
+  .page > * { position: relative; z-index: 1; }
+
+  /* top bar */
+  .top { display: flex; align-items: center; gap: 18px; padding: 52px 64px 0; flex: none; }
+  .top img { height: 74px; }
+  .top .brand { font: 900 30px/1 Cairo; }
+  .top .brand small { display: block; font: 500 19px/1.4 Tajawal; color: var(--muted); }
+  .top .num { margin-inline-start: auto; font: 700 22px/1 Cairo; color: var(--gold); letter-spacing: 2px; direction: ltr; }
+  .top .num span { color: var(--muted); }
+
+  /* section heading */
+  .kicker { font: 700 22px/1 Cairo; color: var(--gold); letter-spacing: .5px; display: flex; align-items: center; gap: 12px; }
+  .kicker::before { content: ""; width: 44px; height: 3px; border-radius: 3px; background: var(--red); }
+  h2 { font: 900 84px/1.05 Cairo; margin-top: 10px; }
+  h2 em { font-style: normal; color: var(--gold); }
+
+  /* price rows */
+  .rows { list-style: none; display: flex; flex-direction: column; }
+  .row { padding: 20px 0; border-bottom: 1.5px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .line { display: flex; align-items: baseline; gap: 16px; }
+  .name { font: 800 36px/1.25 Tajawal; }
+  .lead { flex: 1; border-bottom: 3px dotted rgb(251 245 234 / .22); translate: 0 -9px; min-width: 24px; }
+  .price { font: 900 44px/1 Cairo; color: var(--gold); white-space: nowrap; direction: ltr; }
+  .price small { font: 700 20px/1 Cairo; color: var(--gold-soft); margin-left: 4px; }
+  .contents { font: 500 23px/1.5 Tajawal; color: var(--muted); margin-top: 6px; }
+
+  .body { flex: 1; min-height: 0; padding: 0 64px; display: flex; flex-direction: column; }
+
+  /* category photo that fades into the page */
+  .hero { height: 500px; flex: none; margin: -128px 0 0; position: relative; z-index: 0; }
+  .hero img { width: 100%; height: 100%; object-fit: cover; }
+  .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgb(22 17 16 / .55) 0%, rgb(22 17 16 / 0) 30%, rgb(22 17 16 / 0) 55%, var(--bg) 100%); }
+  .with-hero .top { position: relative; z-index: 2; }
+  .with-hero .body { margin-top: -110px; position: relative; z-index: 2; }
+  .with-hero .rows { flex: 1; justify-content: space-evenly; padding-bottom: 10px; }
+  .with-hero .name { font-size: 40px; }
+  .with-hero .price { font-size: 50px; }
+  .with-hero .contents { font-size: 25px; }
+  .hero.tall { height: 600px; }
+
+  /* footer */
+  .foot { flex: none; display: flex; align-items: center; gap: 30px; padding: 22px 64px 54px; font: 700 22px/1 Cairo; color: var(--muted); }
+  .foot .i { display: flex; align-items: center; gap: 10px; }
+  .foot svg { width: 26px; height: 26px; color: var(--gold); }
+  .foot .phone { color: var(--cream); font-size: 30px; direction: ltr; }
+  .foot .sep { flex: 1; height: 1.5px; background: var(--line); }
+
+  /* cover */
+  .cover .bgimg { position: absolute; inset: 0 0 auto; height: 900px; z-index: 0; }
+  .cover .bgimg img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; }
+  .cover .bgimg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgb(22 17 16 / .6) 0%, rgb(22 17 16 / .05) 28%, rgb(22 17 16 / .2) 55%, var(--bg) 97%); }
+  .cover .center { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center; padding: 0 64px 18px; }
+  .cover .logo { height: 210px; filter: drop-shadow(0 18px 30px rgb(0 0 0 / .55)); margin-bottom: 18px; }
+  .cover h1 { font: 900 200px/0.95 Cairo; letter-spacing: -2px; text-shadow: 0 12px 40px rgb(0 0 0 / .5); }
+  .cover .slogan { font: 800 40px/1.3 Tajawal; color: var(--gold); margin-top: 14px; }
+  .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 34px; }
+  .chips span { font: 700 23px/1 Cairo; padding: 13px 22px 15px; border: 1.5px solid var(--hair); border-radius: 999px; background: rgb(255 255 255 / .04); }
+  .swipe { display: inline-flex; align-items: center; gap: 8px; margin-top: 34px; font: 700 24px/1 Cairo; color: var(--gold); }
+  .swipe svg { width: 30px; height: 30px; }
+
+  /* sandwiches */
+  .badge { align-self: flex-start; display: inline-flex; align-items: baseline; gap: 10px; margin-top: 16px; background: var(--red); border-radius: 999px; padding: 10px 26px 12px; font: 700 24px/1 Cairo; }
+  .badge b { font: 900 34px/1 Cairo; color: #fff; direction: ltr; }
+  .feature { display: flex; align-items: center; gap: 26px; margin-top: 22px; padding: 10px 0 20px; border-bottom: 1.5px solid var(--line); }
+  .feature .pic { width: 500px; height: 330px; flex: none; display: grid; place-items: center; position: relative; }
+  .feature .pic::before { content: ""; position: absolute; inset: 8% 4%; border-radius: 50%; background: radial-gradient(closest-side, rgb(224 38 58 / .45), transparent); }
+  .feature .pic img { max-width: 100%; max-height: 100%; position: relative; filter: drop-shadow(0 26px 26px rgb(0 0 0 / .6)); }
+  .feature .t { flex: 1; min-width: 0; }
+  .feature .t .tag { font: 700 20px/1 Cairo; color: var(--gold); }
+  .feature .t b { display: block; font: 900 56px/1.1 Cairo; margin: 10px 0 12px; }
+  .feature .t p { font: 500 25px/1.55 Tajawal; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; flex: 1; min-height: 0; padding-top: 6px; }
+  .sw { display: flex; align-items: center; gap: 16px; border-bottom: 1.5px solid var(--line); padding: 10px 0; min-height: 0; }
+  .grid .sw:nth-last-child(-n+2) { border-bottom: 0; }
+  .sw .pic { width: 190px; height: 150px; flex: none; display: grid; place-items: center; }
+  .sw .pic img { max-width: 100%; max-height: 100%; filter: drop-shadow(0 14px 14px rgb(0 0 0 / .55)); }
+  .sw .t { min-width: 0; }
+  .sw b { display: block; font: 900 33px/1.15 Cairo; margin-bottom: 6px; }
+  .sw p { font: 500 19px/1.45 Tajawal; color: var(--muted); }
+
+  /* kids card */
+  .card { display: flex; gap: 26px; align-items: center; margin-top: auto; background: var(--bg2); border: 1.5px solid var(--line); border-radius: 26px; overflow: hidden; }
+  .card .ph { width: 330px; height: 250px; flex: none; }
+  .card .ph img { width: 100%; height: 100%; object-fit: cover; }
+  .card .t { flex: 1; padding: 20px 0 20px 30px; }
+  .card .kicker { font-size: 20px; }
+  .card .name { display: block; font: 900 40px/1.2 Cairo; margin: 10px 0 6px; }
+  .card .price { display: inline-block; margin-top: 12px; }
+
+  /* share box */
+  .share .hero { height: 640px; }
+  .share .items { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 30px; }
+  .share .items li { display: flex; align-items: center; gap: 16px; background: var(--bg2); border: 1.5px solid var(--line); border-radius: 20px; padding: 18px 22px; font: 800 27px/1.3 Tajawal; }
+  .share .items li i { font: 900 22px/1 Cairo; font-style: normal; color: var(--bg); background: var(--gold); width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+  .share .total { display: flex; align-items: center; justify-content: space-between; margin-top: auto; margin-bottom: 8px; padding: 24px 34px; border-radius: 26px; background: linear-gradient(100deg, var(--red-deep), var(--red)); }
+  .share .total span { font: 900 36px/1.2 Cairo; }
+  .share .total span small { display: block; font: 500 22px/1.4 Tajawal; color: rgb(255 255 255 / .8); }
+  .share .total .price { color: #fff; font-size: 92px; display: flex; align-items: baseline; }
+  .share .total .price small { color: rgb(255 255 255 / .85); font-size: 32px; }
+
+  /* sides + sauces */
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; column-gap: 50px; margin-top: 18px; }
+  .cols2 .row { padding: 13px 0; }
+  .cols2 .row:last-child { border-bottom: 1.5px solid var(--line); }
+  .cols2 .name { font-size: 27px; }
+  .cols2 .price { font-size: 32px; }
+  .cols2 .price small { font-size: 17px; }
+  .sauces { margin-top: 30px; }
+  .sauces .hd { display: flex; align-items: baseline; gap: 18px; }
+  .sauces h3 { font: 900 46px/1.1 Cairo; }
+  .sauces .note { font: 700 22px/1 Cairo; color: var(--gold); }
+  .sauces ul { list-style: none; display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+  .sauces li { font: 800 25px/1 Tajawal; padding: 14px 22px; border-radius: 999px; background: var(--bg2); border: 1.5px solid var(--hair); }
+  .contact { margin-top: auto; display: grid; grid-template-columns: auto 1fr; gap: 14px 34px; padding: 28px 34px; border-radius: 26px; background: var(--bg2); border: 1.5px solid var(--line); }
+  .contact .call { grid-row: span 2; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding-left: 34px; border-left: 1.5px solid var(--line); }
+  .contact .call small { font: 700 22px/1 Cairo; color: var(--muted); }
+  .contact .call b { font: 900 52px/1 Cairo; color: var(--gold); direction: ltr; text-align: right; }
+  .contact .i { display: flex; align-items: center; gap: 12px; font: 500 23px/1.4 Tajawal; }
+  .contact svg { width: 26px; height: 26px; color: var(--gold); flex: none; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script>
+const M = window.MENU, ICON = window.ICONS;
+const IMG = p => '../../public/' + p;
+const CUT = img => 'cut/' + img.match(/item-(\d+)/)[1] + '.png';
+const cat = id => M.categories.find(c => c.id === id);
+const money = n => n.toFixed(2);
+const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const B = M.brand;
+const branches = M.branches.map(b => b.name.replace('فرع ', '')).join(' · ');
+const insta = '@' + B.instagram.replace(/\/$/, '').split('/').pop();
+
+const price = p => `<span class="price">${money(p)}<small>د.أ</small></span>`;
+const row = it => `<li class="row"><div class="line"><span class="name">${esc(it.name)}</span><span class="lead"></span>${price(it.price)}</div>${it.contents ? `<p class="contents">${esc(it.contents)}</p>` : ''}</li>`;
+const head = (kicker, title) => `<p class="kicker">${esc(kicker)}</p><h2>${title}</h2>`;
+let TOTAL = 0;
+const topBar = n => `<div class="top"><img src="${IMG(B.logo)}"><p class="brand">${esc(B.name)}<small>${esc(B.slogan)}</small></p><p class="num">${String(n).padStart(2, '0')} <span>/ ${String(TOTAL).padStart(2, '0')}</span></p></div>`;
+const foot = `<div class="foot"><span class="i">${ICON.Phone}<span class="phone">${esc(B.phone)}</span></span><span class="sep"></span><span class="i">${ICON.AtSign}<span>${esc(insta.slice(1))}</span></span><span class="i">${ICON.Globe}<span>broasted3ltareeq.com</span></span></div>`;
+
+const slides = [
+  // 1. cover
+  () => `<div class="page cover"><div class="bgimg"><img src="../../brand/photos/lifestyle/12.jpg"></div>
+    <div class="center"><img class="logo" src="../../brand/photos/brand/logo.png"><h1>المنيو</h1><p class="slogan">${esc(B.slogan)}</p>
+      <div class="chips">${['broasted', 'tender', 'combo', 'sandwiches', 'sharebox', 'kids'].map(id => `<span>${esc(cat(id).name)}</span>`).join('')}</div>
+      <p class="swipe">اسحب وشوف المنيو كامل ${ICON.ChevronsLeft}</p></div>${foot}</div>`,
+  // 2-3. broasted, tender
+  ...['broasted', 'tender'].map(id => n => {
+    const c = cat(id);
+    return `<div class="page with-hero">${topBar(n)}<div class="hero${c.items.length < 4 ? ' tall' : ''}"><img src="${IMG(c.image)}"></div>
+      <div class="body" data-fit="${id}">${head('وجبات', esc(c.name.replace('وجبات ', '')).replace(/^(.*)$/, '<em>$1</em>'))}<ul class="rows">${c.items.map(row).join('')}</ul></div>${foot}</div>`;
+  }),
+  // 4. combos + kids
+  n => {
+    const c = cat('combo'), k = cat('kids'), kid = k.items[0];
+    return `<div class="page">${topBar(n)}<div class="body" data-fit="combo" style="padding-top:44px">${head('للفرد وللعيلة', 'الكومبو <em>والعائلية</em>')}
+      <ul class="rows">${c.items.map(row).join('')}</ul>
+      <div class="card"><div class="ph"><img src="${IMG(k.image)}"></div><div class="t"><p class="kicker">${esc(k.name)}</p><span class="name">${esc(kid.name)}</span><p class="contents">${esc(kid.contents)}</p>${price(kid.price)}</div></div>
+    </div>${foot}</div>`;
+  },
+  // 5-6. sandwiches, five per slide: one featured + four
+  ...[0, 5].map((from, half) => n => {
+    const s = cat('sandwiches'), items = s.items.slice(from, from + 5), [f, ...rest] = items;
+    return `<div class="page">${topBar(n)}<div class="body" data-fit="sandwiches-${half + 1}" style="padding-top:40px">${head(half ? 'كمان من' : 'اختار', '<em>السندويشات</em>')}
+      ${s.note ? `<p class="badge">${esc(s.note)}</p>` : ''}
+      <div class="feature"><div class="pic"><img src="${CUT(f.image)}"></div><div class="t"><b>${esc(f.name)}</b><p>${esc(f.contents)}</p></div></div>
+      <div class="grid">${rest.map(it => `<div class="sw"><div class="pic"><img src="${CUT(it.image)}"></div><div class="t"><b>${esc(it.name)}</b><p>${esc(it.contents)}</p></div></div>`).join('')}</div>
+    </div>${foot}</div>`;
+  }),
+  // 7. share box
+  n => {
+    const c = cat('sharebox'), it = c.items[0];
+    return `<div class="page with-hero share">${topBar(n)}<div class="hero"><img src="${IMG(c.image)}"></div>
+      <div class="body" data-fit="sharebox">${head('للّمّة والسهرة', `<em>${esc(it.name)}</em>`)}
+      <ul class="items">${it.contents.split('+').map((x, i) => `<li><i>${i + 1}</i>${esc(x.trim())}</li>`).join('')}</ul>
+      <div class="total"><span>سعر البوكس كامل<small>كل اللي فوق بسعر واحد</small></span>${price(it.price)}</div>
+    </div>${foot}</div>`;
+  },
+  // 8. sides, sauces, contact
+  n => {
+    const sd = cat('sides'), sc = cat('sauces');
+    return `<div class="page">${topBar(n)}<div class="body" data-fit="sides" style="padding-top:44px">${head('كمّل طلبك', `<em>${esc(sd.name)}</em>`)}
+      <ul class="rows cols2">${sd.items.map(row).join('')}</ul>
+      <div class="sauces"><div class="hd"><h3>${esc(sc.name)}</h3>${sc.note ? `<span class="note">${esc(sc.note)}</span>` : ''}</div><ul>${sc.items.map(it => `<li>${esc(it.name)}</li>`).join('')}</ul></div>
+      <div class="contact"><div class="call"><small>اتصل واطلب</small><b>${esc(B.phone)}</b></div>
+        <p class="i">${ICON.MapPin}<span>إربد: ${esc(branches)}</span></p><p class="i">${ICON.Clock}<span>${esc(B.hours)}</span></p></div>
+    </div><div class="foot" style="padding-top:26px"><span class="i">${ICON.AtSign}<span>${esc(insta.slice(1))}</span></span><span class="sep"></span><span class="i">${ICON.Globe}<span>broasted3ltareeq.com</span></span></div></div>`;
+  },
+];
+TOTAL = slides.length;
+window.PAGES = TOTAL;
+const q = new URLSearchParams(location.search).get('page') || '1';
+document.getElementById('out').innerHTML = (q === 'all' ? slides.map((s, i) => s(i + 1)) : [slides[q - 1](Number(q))]).join('');
+window.ready = Promise.all([document.fonts.ready, ...[...document.images].map(i => i.decode().catch(() => {}))]).then(() => document.fonts.ready);
+</script>
+</body>
+</html>
