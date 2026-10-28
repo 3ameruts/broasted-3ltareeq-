@@ -1,0 +1,5 @@
+# Cloudflare Pages: keep the admin page out of search engines (same as the headers in vercel.json).
+/admin
+  X-Robots-Tag: noindex
+/admin/
+  X-Robots-Tag: noindex
