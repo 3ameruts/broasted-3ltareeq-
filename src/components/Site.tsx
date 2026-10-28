@@ -10,7 +10,8 @@ import Offers from './Offers';
 import ScrollVelocity from './bits/ScrollVelocity';
 import Magnet from './bits/Magnet/Magnet';
 import ClickSpark from './bits/ClickSpark/ClickSpark';
-import { PhoneIcon, PinIcon, RouteIcon, ClockIcon, InstagramIcon, FacebookIcon, CheckIcon } from './Icons';
+import { PhoneIcon, PinIcon, RouteIcon, ClockIcon, InstagramIcon, FacebookIcon, CheckIcon, BagIcon } from './Icons';
+import { useOrdering } from '../lib/ordering';
 
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -62,6 +63,7 @@ export default function Site() {
 
 function Header() {
   const { content } = useContent();
+  const ordering = useOrdering();
   const offerCount = liveOffers(content.offers).length;
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -86,10 +88,21 @@ function Header() {
           <button onClick={() => scrollToId('about')}>من نحن</button>
           <button onClick={() => scrollToId('branches')}>الفروع</button>
         </nav>
+        {ordering.visible && (
+          <a className="btn btn--white header__order" href={ordering.url}>
+            <BagIcon size={18} /> اطلب أونلاين
+          </a>
+        )}
         <a className="btn btn--yellow header__call" href={telHref(content.brand.phone)}>
           <PhoneIcon size={18} /> <span className="num">{content.brand.phone}</span>
         </a>
       </div>
+      {ordering.visible && (
+        <a className={'order-fab' + (scrolled ? ' is-on' : '')} href={ordering.url}>
+          <BagIcon size={22} /> اطلب أونلاين
+          <small>الدفع عند الاستلام</small>
+        </a>
+      )}
     </header>
   );
 }
@@ -114,6 +127,7 @@ function OpenStatus() {
 function Hero() {
   const { content } = useContent();
   const { hero, brand } = content;
+  const ordering = useOrdering();
   const ref = useRef<HTMLElement>(null);
   const words = hero.title.split(/\s+/).filter(Boolean);
 
@@ -147,13 +161,25 @@ function Hero() {
             ))}
           </h1>
           <p className="hero__sub">{hero.subtitle}</p>
+          {ordering.visible && <p className="hero__new"><span>جديد</span> صار فيك تطلب من الموقع: استلام أو توصيل، والدفع عند الاستلام</p>}
           <div className="hero__actions">
-            <Magnet padding={60} magnetStrength={3}>
-              <button className="btn btn--yellow btn--big" onClick={() => scrollToId('menu')}>شوف المنيو</button>
-            </Magnet>
-            <a className="btn btn--ghost btn--big" href={telHref(brand.phone)}>
-              <PhoneIcon size={20} /> اتصل واطلب
-            </a>
+            {ordering.visible ? (
+              <>
+                <Magnet padding={60} magnetStrength={3}>
+                  <a className="btn btn--yellow btn--big" href={ordering.url}><BagIcon size={22} /> اطلب أونلاين</a>
+                </Magnet>
+                <button className="btn btn--ghost btn--big" onClick={() => scrollToId('menu')}>شوف المنيو</button>
+              </>
+            ) : (
+              <>
+                <Magnet padding={60} magnetStrength={3}>
+                  <button className="btn btn--yellow btn--big" onClick={() => scrollToId('menu')}>شوف المنيو</button>
+                </Magnet>
+                <a className="btn btn--ghost btn--big" href={telHref(brand.phone)}>
+                  <PhoneIcon size={20} /> اتصل واطلب
+                </a>
+              </>
+            )}
           </div>
           <div className="hero__meta">
             <OpenStatus />
@@ -577,8 +603,10 @@ function Footer() {
 
 function CallFab() {
   const { content } = useContent();
+  // with online ordering on, phones show a compact call button next to the "order online" bar
+  const ordering = useOrdering();
   return (
-    <a className="fab" href={telHref(content.brand.phone)} aria-label={'اتصل على ' + content.brand.phone}>
+    <a className={'fab' + (ordering.visible ? ' fab--compact' : '')} href={telHref(content.brand.phone)} aria-label={'اتصل على ' + content.brand.phone}>
       <span className="fab__ring" aria-hidden="true" />
       <span className="fab__icon"><PhoneIcon size={26} /></span>
       <span className="fab__label">
