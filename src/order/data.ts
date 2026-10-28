@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Category, Content } from '../lib/types';
 
-// Orders run on their own Supabase project while we test; the env vars point it at the live project on launch.
+// Orders live in the site's Supabase project; VITE_ORDERS_SUPABASE_URL/KEY point a build at the test project instead.
 // The publishable key is safe in the browser: the database only allows create_order/get_order for visitors.
-const url = import.meta.env.VITE_ORDERS_SUPABASE_URL || 'https://qzglmmkrnasgocuvtkut.supabase.co';
-const key = import.meta.env.VITE_ORDERS_SUPABASE_KEY || 'sb_publishable_crkSQ5p2ntixzGDK5WRx6Q_2LAfmZee';
+const url = import.meta.env.VITE_ORDERS_SUPABASE_URL || 'https://xiforwroabkgcjcfkltr.supabase.co';
+const key = import.meta.env.VITE_ORDERS_SUPABASE_KEY || 'sb_publishable_gT4u_I9M8_Fa25PJv00Ddg_TTXYAvre';
 export const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 
 export type Settings = {
