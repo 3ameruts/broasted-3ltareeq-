@@ -5,10 +5,11 @@ import { Button } from '../ui/button';
 import { cn } from '../ui/cn';
 
 const STEPS = {
-  pickup: ['وصل طلبك', 'انقبل وعم يتحضّر', 'جاهز للاستلام', 'تم الاستلام'],
-  delivery: ['وصل طلبك', 'انقبل وعم يتحضّر', 'بالطريق إليك', 'تم التوصيل'],
+  pickup: ['وصل طلبك للفرع', 'عم يتحضّر', 'جاهز للاستلام', 'تم الاستلام'],
+  delivery: ['وصل طلبك للفرع', 'عم يتحضّر', 'بالطريق إليك', 'تم التوصيل'],
 };
-const stepOf = (s: Tracked['status']) => ({ new: 0, accepted: 1, ready: 2, delivered: 3, rejected: -1, no_show: -1 }[s]);
+// a printed order is already in the kitchen, so it counts as being prepared
+const stepOf = (o: Tracked) => ({ new: o.printed_at ? 1 : 0, accepted: 1, ready: 2, delivered: 3, rejected: -1, no_show: -1 }[o.status]);
 
 // Order status page (tracking link). Refreshes every 10 seconds until the order is finished.
 export function Tracking({ token, onNewOrder }: { token: string; onNewOrder: () => void }) {
@@ -33,7 +34,9 @@ export function Tracking({ token, onNewOrder }: { token: string; onNewOrder: () 
     </div>
   );
 
-  const step = stepOf(o.status);
+  const step = stepOf(o);
+  // not printed after 3 minutes: the branch printer may be off, so ask the customer to call
+  const stuck = o.status === 'new' && !o.printed_at && Date.now() - new Date(o.created_at).getTime() > 3 * 60000;
   const steps = STEPS[o.type];
   const copy = async () => { try { await navigator.clipboard.writeText(o.cliq_alias ?? ''); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* clipboard blocked */ } };
 
@@ -65,6 +68,13 @@ export function Tracking({ token, onNewOrder }: { token: string; onNewOrder: () 
             </li>
           ))}
         </ol>
+      )}
+
+      {stuck && (
+        <div className="flex flex-col gap-3 rounded-3xl bg-mustard/30 p-5" role="alert">
+          <p className="font-bold">الفرع ما استلم طلبك لسا. اتصل فينا نتأكد.</p>
+          <a href={`tel:${o.contact_phone}`} className="num flex h-12 items-center justify-center gap-2 rounded-2xl bg-brand-deep font-bold text-white"><Phone size={18} />{o.contact_phone}</a>
+        </div>
       )}
 
       {o.pay_method === 'cliq' && o.cliq_alias && step >= 0 && (

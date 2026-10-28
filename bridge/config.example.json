@@ -1,0 +1,8 @@
+{
+  "branchToken": "حط هون رمز الفرع من Supabase (05-printer.sql)",
+  "printerIp": "192.168.1.87",
+  "printerPort": 9100,
+  "supabaseUrl": "https://qzglmmkrnasgocuvtkut.supabase.co",
+  "supabaseKey": "sb_publishable_crkSQ5p2ntixzGDK5WRx6Q_2LAfmZee",
+  "pollSeconds": 3
+}

@@ -108,4 +108,28 @@ await db.exec('select public.cleanup_orders()');
 ok('cleanup runs', true);
 const nums = (await BOSS(`select number from public.orders where branch_id='b1' order by number`)).rows.map(x => x.number);
 ok('daily numbers are sequential without gaps', nums.every((n, i) => n === i + 1), nums.join(','));
+
+// ── printing through the cashier PC (05-printer.sql) ──
+await db.exec(readFileSync(dir + '/05-printer.sql', 'utf8'));
+const tok = Object.fromEntries((await db.query(`select branch_id, token from public.printer_tokens`)).rows.map(x => [x.branch_id, x.token]));
+ok('a printer token per branch', Object.keys(tok).length === 3 && Object.values(tok).every(t => t.length === 40));
+const pn = async (t) => (await anon('select public.printer_next($1) r', [t])).rows[0].r;
+const pd = async (t, id) => (await anon('select public.printer_done($1, $2) r', [t, id])).rows[0].r;
+ok('bad token gets nothing', (await pn('x'.repeat(40))).error === 'bad_token');
+await db.exec(`update public.orders set printed_at = null, print_claimed_at = null, status = 'new' where branch_id = 'b2'`);
+const j1 = await pn(tok.b2);
+ok('branch 2 printer gets a branch 2 order', j1.ok && j1.order && (await db.query('select branch_id from public.orders where id=$1', [j1.order.id])).rows[0].branch_id === 'b2');
+ok('order arrives with items, prices and warning count', Array.isArray(j1.order.items) && j1.order.items.length > 0 && typeof j1.order.warn === 'number');
+const j2 = await pn(tok.b2);
+ok('a claimed order is not handed out twice', !j2.order || j2.order.id !== j1.order.id);
+ok('print confirmed', (await pd(tok.b2, j1.order.id)).ok);
+await pd(tok.b2, j1.order.id);
+ok('confirming twice counts once', (await db.query('select print_count from public.orders where id=$1', [j1.order.id])).rows[0].print_count === 1);
+ok('branch 1 printer cannot confirm branch 2 order', (await pd(tok.b1, j1.order.id)).ok === false);
+await db.exec(`update public.orders set print_claimed_at = now() - interval '2 minutes' where id = '${j2.order?.id ?? j1.order.id}'`);
+const j3 = await pn(tok.b2);
+ok('unconfirmed claim is handed out again after a minute', !j2.order || (j3.order && j3.order.id === j2.order.id));
+ok('anon cannot read printer tokens', !!(await anon('select * from public.printer_tokens')).error);
+ok('branch staff cannot make tokens', !!(await B1(`select public.new_printer_token('b1')`)).error);
+ok('tracking shows printed time', 'printed_at' in (await anon('select public.get_order($1) r', [a1.token])).rows[0].r);
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

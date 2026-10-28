@@ -86,7 +86,7 @@ export async function createOrder(p: OrderPayload): Promise<CreateResult> {
 export type Tracked = {
   number: number; code: string; branch: string; status: 'new' | 'accepted' | 'ready' | 'delivered' | 'rejected' | 'no_show';
   type: 'pickup' | 'delivery'; name: string; phone: string; pay_method: 'cash' | 'cliq'; subtotal: number; reject_reason: string | null;
-  created_at: string; contact_phone: string; cliq_alias: string | null; cliq_name: string | null;
+  created_at: string; printed_at: string | null; contact_phone: string; cliq_alias: string | null; cliq_name: string | null;
   items: { name: string; qty: number; options: { name: string; qty: number }[]; note: string | null; line_total: number }[];
 };
 export async function getOrder(token: string): Promise<Tracked | null> {
