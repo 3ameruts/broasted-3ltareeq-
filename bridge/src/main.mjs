@@ -43,6 +43,14 @@ async function main() {
 
   await initRenderer({ wasm: asset('resvg.wasm', 'node_modules/@resvg/resvg-wasm/index_bg.wasm'), fonts: [asset('readex.ttf', 'assets/readex-700.ttf'), asset('lalezar.ttf', 'assets/lalezar.ttf')] });
 
+  // "logo": true prints the brand logo; "logo": "my-logo.png" prints a PNG placed next to the program
+  if (cfg.ticket.logo) {
+    const custom = typeof cfg.ticket.logo === 'string' && join(here, cfg.ticket.logo);
+    const data = custom ? (existsSync(custom) ? readFileSync(custom) : null) : asset('logo.png', 'assets/logo.png');
+    if (data && data.toString('ascii', 1, 4) === 'PNG') cfg.ticket.logoImage = { data, width: data.readUInt32BE(16), height: data.readUInt32BE(20) };
+    else log('اللوغو مش موجود أو مش PNG، الفاتورة رح تنطبع بدونه:', cfg.ticket.logo);
+  }
+
   const rpc = async (fn, body) => {
     const res = await fetch(`${cfg.supabaseUrl}/rest/v1/rpc/${fn}`, {
       method: 'POST', headers: { apikey: cfg.supabaseKey, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(15000),

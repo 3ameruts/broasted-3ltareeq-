@@ -7,6 +7,7 @@
   "pollSeconds": 3,
   "copies": 1,
   "ticket": {
+    "logo": true,
     "title": "طلب أونلاين",
     "footer": "صحتين وعافية",
     "textSize": "medium",

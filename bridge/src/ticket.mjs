@@ -21,7 +21,7 @@ function wrap(text, size, width) {
   return out.length ? out : [''];
 }
 
-// look: the "ticket" part of config.json — { title, footer, textSize, paper }
+// look: the "ticket" part of config.json — { title, footer, textSize, paper }, plus logoImage { data (png), width, height } when a logo is on
 export function ticketLayout(look = {}) {
   const dots = PAPER_DOTS[look.paper] ?? PAPER_DOTS[80];
   return { dots, width: Math.round(dots / (SCALE[look.textSize] ?? 1)) };
@@ -39,6 +39,11 @@ export function ticketSvg(o, look = {}) {
   const para = (s, size, opts = {}) => { for (const l of wrap(s, size, WIDTH - PAD * 2 - (opts.indent ?? 0))) { y += size * 1.35; parts.push(text(l, { size, ...opts, x: right - (opts.indent ?? 0) })); } };
 
   // header
+  if (look.logoImage) {
+    const { data, width, height } = look.logoImage;
+    const w = Math.round((WIDTH - PAD * 2) * 0.7), h = Math.round(w * height / width);
+    y += 8; parts.push(`<image href="data:image/png;base64,${data.toString('base64')}" x="${(WIDTH - w) / 2}" y="${y}" width="${w}" height="${h}"/>`); y += h + 6;
+  }
   y += 8; parts.push(`<rect x="${PAD}" y="${y}" width="${WIDTH - PAD * 2}" height="62" fill="none" stroke="#000" stroke-width="4" rx="8"/>`);
   y += 46; parts.push(text(look.title || 'طلب أونلاين', { size: 40, font: 'Lalezar', weight: 400, x: WIDTH / 2, anchor: 'middle' })); y += 16;
   y += 96; parts.push(ltr('#' + o.number, { size: 96, x: WIDTH / 2, anchor: 'middle' }));
