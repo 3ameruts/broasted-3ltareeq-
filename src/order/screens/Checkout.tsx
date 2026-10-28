@@ -86,8 +86,16 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
   };
 
   const busy = state === 'sending' || state === 'checking';
+  const alert = message && <p className="text-sm font-semibold text-brand-deep" role="alert">{message}{message === ERRORS.blocked && <> <a className="num underline" href={`tel:${contactPhone}`}>{contactPhone}</a></>}</p>;
+  const submitButton = (
+    <Button size="lg" className="w-full" onClick={submit} disabled={busy || cart.count === 0} aria-busy={busy}>
+      {state === 'sending' ? 'عم نبعت طلبك…' : state === 'checking' ? 'عم نتأكد من طلبك…' : state === 'failed' ? 'جرّب مرة ثانية'
+        : <>تأكيد الطلب · <span className="num">{money(cart.total)}</span> د.أ</>}
+    </Button>
+  );
   return (
-    <div ref={topRef} className="mx-auto flex max-w-lg flex-col gap-6 px-4 pt-3 pb-40">
+    <div ref={topRef} className="mx-auto max-w-lg px-4 pt-3 pb-40 lg:grid lg:max-w-5xl lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-10 lg:px-6 lg:pb-16">
+    <div className="flex flex-col gap-6">
       <button onClick={onBack} className="flex h-11 items-center gap-2 self-start font-bold text-soft"><ArrowRight size={20} /> رجوع للمنيو</button>
       <h1 className="font-display text-3xl">كمّل طلبك</h1>
 
@@ -167,6 +175,8 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         <Textarea id="f-note" value={note} onChange={e => setNote(e.target.value)} maxLength={300} />
       </Field>
 
+    </div>
+    <aside className="mt-6 flex flex-col gap-3 lg:sticky lg:top-4 lg:mt-12">
       <section className="rounded-3xl bg-white p-4 shadow-[0_0_0_2px_var(--color-line)]">
         <h2 className="mb-2 font-bold">ملخص الطلب</h2>
         <ul className="flex flex-col gap-1 text-sm">
@@ -182,15 +192,11 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         </div>
         {mode === 'delivery' && <p className="mt-1 text-sm text-soft">+ التوصيل حسب المنطقة</p>}
       </section>
+      <div className="hidden flex-col gap-2 lg:flex">{alert}{submitButton}</div>
+    </aside>
 
-      <div className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 pt-3 backdrop-blur">
-        <div className="mx-auto flex max-w-lg flex-col gap-2">
-          {message && <p className="text-sm font-semibold text-brand-deep" role="alert">{message}{message === ERRORS.blocked && <> <a className="num underline" href={`tel:${contactPhone}`}>{contactPhone}</a></>}</p>}
-          <Button size="lg" className="w-full" onClick={submit} disabled={busy || cart.count === 0} aria-busy={busy}>
-            {state === 'sending' ? 'عم نبعت طلبك…' : state === 'checking' ? 'عم نتأكد من طلبك…' : state === 'failed' ? 'جرّب مرة ثانية'
-              : <>تأكيد الطلب · <span className="num">{money(cart.total)}</span> د.أ</>}
-          </Button>
-        </div>
+      <div className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 pt-3 backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-lg flex-col gap-2">{alert}{submitButton}</div>
       </div>
     </div>
   );

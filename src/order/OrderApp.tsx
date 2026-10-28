@@ -7,11 +7,12 @@ import { addonsFor, branchPaused, hourLabel, hoursOpen, isUnavailable, loadStore
 import { BranchPicker, type Mode } from './screens/BranchPicker';
 import { BranchChip, Menu } from './screens/Menu';
 import { ItemSheet } from './screens/ItemSheet';
-import { CartSheet } from './screens/CartSheet';
+import { CartPanel, CartSheet } from './screens/CartSheet';
 import { Checkout } from './screens/Checkout';
 import { Tracking } from './screens/Tracking';
 import { Sheet } from './ui/drawer';
 import { Button } from './ui/button';
+import { cn } from './ui/cn';
 
 type View = { name: 'menu' } | { name: 'checkout' } | { name: 'track'; token: string };
 const readView = (): View => {
@@ -92,14 +93,23 @@ export default function OrderApp() {
   };
 
   return (
-    <Shell header={<BranchChip label={`${mode === 'pickup' ? 'استلام' : 'توصيل'} · ${branch.name.replace('فرع ', '')}`} onClick={() => setPickerOpen(true)} />}>
-      {closedNote && <p className="mx-4 mt-3 rounded-2xl bg-mustard/30 px-4 py-3 text-sm font-bold" role="status">{closedNote}</p>}
-      <Menu categories={categories} unavailable={unavailable} onOpen={openItem} onQuickAdd={quickAdd} />
+    <Shell wide header={<BranchChip label={`${mode === 'pickup' ? 'استلام' : 'توصيل'} · ${branch.name.replace('فرع ', '')}`} onClick={() => setPickerOpen(true)} />}>
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8 lg:px-6">
+        <div className="min-w-0">
+          <Hero slogan={store.content.brand.slogan} note={closedNote || `مفتوح للطلب لحد ${hourLabel(s.last_order_time)}`} open={!closedNote}
+            where={`${mode === 'pickup' ? 'استلام من' : 'توصيل من'} ${branch.name}`} onChange={() => setPickerOpen(true)} />
+          <Menu categories={categories} unavailable={unavailable} onOpen={openItem} onQuickAdd={quickAdd} />
+        </div>
+        <div className="hidden pt-4 lg:block">
+          <CartPanel cart={cart} delivery={mode === 'delivery'} unavailable={unavailable}
+            onCheckout={() => { if (!canOrder) return toast(closedNote); go({ name: 'checkout' }); }} />
+        </div>
+      </div>
 
       {cart.count > 0 && (
-        <div className="pb-safe fixed inset-x-0 bottom-0 z-30 px-4 pt-2">
-          <button onClick={() => setCartOpen(true)}
-            className="mx-auto flex h-16 w-full max-w-lg items-center justify-between rounded-3xl bg-brand-deep px-5 text-white shadow-[0_12px_30px_rgb(178_16_23/0.35)] active:scale-[0.99]">
+        <div className="pb-safe fixed inset-x-0 bottom-0 z-30 px-4 pt-2 lg:hidden">
+          <button key={cart.count} onClick={() => setCartOpen(true)}
+            className="mx-auto flex h-16 w-full max-w-lg animate-[bump_0.35s_ease-out] items-center justify-between rounded-3xl bg-brand-deep px-5 text-white shadow-[0_12px_30px_rgb(178_16_23/0.35)] active:scale-[0.99]">
             <span className="flex items-center gap-3 font-bold">
               <span className="relative"><ShoppingBag size={24} /><span className="num absolute -top-2 -end-2 grid size-5 place-items-center rounded-full bg-mustard text-xs text-ink">{cart.count}</span></span>
               عرض السلة
@@ -128,11 +138,11 @@ export default function OrderApp() {
   );
 }
 
-function Shell({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
+function Shell({ children, header, wide }: { children: React.ReactNode; header?: React.ReactNode; wide?: boolean }) {
   return (
     <div className="min-h-dvh">
-      <header className="bg-brand px-4 pt-[max(12px,env(safe-area-inset-top))] pb-3">
-        <div className="mx-auto flex max-w-lg items-center justify-between gap-3">
+      <header className="bg-brand px-4 pt-[max(12px,env(safe-area-inset-top))] pb-3 lg:px-6">
+        <div className={cn('mx-auto flex items-center justify-between gap-3', wide ? 'max-w-6xl' : 'max-w-lg lg:max-w-5xl')}>
           <a href="/" className="flex shrink-0 items-center gap-2" aria-label="بروستد عالطريق، الصفحة الرئيسية">
             <img src="/img/logo-sm.png" alt="" className="h-11 w-auto drop-shadow" />
             <span className="font-display text-xl leading-none text-white">اطلب أونلاين</span>
@@ -140,7 +150,8 @@ function Shell({ children, header }: { children: React.ReactNode; header?: React
           {header}
         </div>
       </header>
-      <main className="mx-auto max-w-lg">{children}</main>
+      <div className="h-2.5 bg-[repeating-conic-gradient(var(--color-asphalt)_0_25%,#fff_0_50%)] bg-[length:10px_10px]" aria-hidden />
+      <main className={cn('mx-auto', wide ? 'max-w-lg lg:max-w-6xl' : 'max-w-lg lg:max-w-5xl')}>{children}</main>
     </div>
   );
 }
@@ -151,6 +162,31 @@ function MenuSkeleton() {
       <div className="h-12 animate-pulse rounded-2xl bg-white" />
       <div className="flex gap-2">{[0, 1, 2].map(i => <div key={i} className="h-10 w-24 animate-pulse rounded-full bg-white" />)}</div>
       {[0, 1, 2, 3].map(i => <div key={i} className="h-32 animate-pulse rounded-3xl bg-white" />)}
+    </div>
+  );
+}
+
+// Brand banner: food photo, slogan, ordering status and where the order goes
+function Hero({ slogan, note, open, where, onChange }: { slogan: string; note: string; open: boolean; where: string; onChange: () => void }) {
+  return (
+    <div className="px-4 pt-4 lg:px-0">
+      <div className="relative overflow-hidden rounded-[28px] bg-asphalt text-white">
+        <img src="/img/scene-12.webp" alt="" className="absolute inset-0 size-full object-cover object-[50%_40%]" />
+        <div className="absolute inset-0 bg-gradient-to-l from-black/80 via-black/50 to-black/5" />
+        <div className="relative flex min-h-48 flex-col justify-end gap-3 p-5 lg:min-h-60 lg:p-8">
+          <p className="font-display text-4xl leading-tight drop-shadow lg:text-6xl">{slogan}</p>
+          <p className="flex items-center gap-2 text-sm font-bold" role="status">
+            <span className={cn('size-2.5 rounded-full', open ? 'bg-emerald-400 shadow-[0_0_0_4px_rgb(52_211_153/0.25)]' : 'bg-mustard')} />{note}
+          </p>
+          <div className="flex flex-wrap gap-2 text-sm font-bold">
+            <button onClick={onChange} className="h-9 rounded-full bg-white/15 px-3 backdrop-blur transition-colors hover:bg-white/25">{where} · غيّر</button>
+            <span className="flex h-9 items-center rounded-full bg-mustard px-3 text-ink">الدفع عند الاستلام: كاش أو كليك</span>
+          </div>
+        </div>
+        <div className="relative h-4 bg-asphalt" aria-hidden>
+          <div className="absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 bg-[repeating-linear-gradient(to_left,var(--color-mustard)_0_28px,transparent_28px_48px)]" />
+        </div>
+      </div>
     </div>
   );
 }
