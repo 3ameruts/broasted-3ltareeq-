@@ -1,0 +1,10 @@
+// Cloudflare Workers static assets: serves the Vite build from ./dist.
+// Single-page-application mode sends unknown paths (like /admin) to index.html.
+{
+  "name": "broasted-3ltareeq",
+  "compatibility_date": "2025-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
