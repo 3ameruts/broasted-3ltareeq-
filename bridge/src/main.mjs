@@ -2,7 +2,7 @@
 // online orders of this branch every few seconds and prints each one on the receipt printer (LAN, port 9100).
 // Usage:  broasted-printer.exe            run (normally started hidden at Windows logon)
 //         broasted-printer.exe --test     print a test receipt and exit
-import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, renameSync } from 'node:fs';
+import { readFileSync, writeFileSync, appendFileSync, existsSync, statSync, renameSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { createServer, Socket } from 'node:net';
 import { spawn } from 'node:child_process';
@@ -59,7 +59,17 @@ async function main() {
       s.connect(cfg.printerPort, cfg.printerIp, () => s.end(bytes, () => setTimeout(resolve, 300)));
     });
   }
-  const print = async order => { const r = await renderTicket(order); await sendToPrinter(rasterCommands(r.rgba, r.width, r.height)); };
+  // printerIp "file": no printer yet, save each receipt as a picture in the "tickets" folder instead
+  const toFile = String(cfg.printerIp).toLowerCase() === 'file';
+  const print = async order => {
+    const r = await renderTicket(order);
+    if (!toFile) return sendToPrinter(rasterCommands(r.rgba, r.width, r.height));
+    const dir = join(here, 'tickets');
+    mkdirSync(dir, { recursive: true });
+    const file = join(dir, `order-${order.number}-${Date.now()}.png`);
+    writeFileSync(file, r.png());
+    if (process.platform === 'win32') spawn('explorer', [file], { stdio: 'ignore', detached: true }).on('error', () => {});
+  };
 
   // orders printed on this PC; protects against printing twice if the PC stops between printing and confirming
   const LEDGER = join(here, 'printed.json');
@@ -75,7 +85,7 @@ async function main() {
     process.exit(0);
   }
 
-  log(`اشتغل. الطابعة ${cfg.printerIp}:${cfg.printerPort}`);
+  log(toFile ? 'اشتغل بوضع التجربة: الفواتير بتنحفظ صور بمجلد tickets' : `اشتغل. الطابعة ${cfg.printerIp}:${cfg.printerPort}`);
   let failing = false; // printer_next also tells the server this PC is alive
   async function tick() {
     try {
