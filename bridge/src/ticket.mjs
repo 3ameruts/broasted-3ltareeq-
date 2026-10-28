@@ -21,7 +21,7 @@ function wrap(text, size, width) {
   return out.length ? out : [''];
 }
 
-// look: the "ticket" part of config.json — { title, footer, textSize, paper }, plus logoImage { data (png), width, height } when a logo is on
+// look: the "ticket" part of config.json — { title, footer, textSize, paper, badge }, plus logoImage { data (png), width, height } when a logo is on
 export function ticketLayout(look = {}) {
   const dots = PAPER_DOTS[look.paper] ?? PAPER_DOTS[80];
   return { dots, width: Math.round(dots / (SCALE[look.textSize] ?? 1)) };
@@ -86,6 +86,12 @@ export function ticketSvg(o, look = {}) {
   parts.push(`<rect x="${PAD}" y="${boxTop}" width="${WIDTH - PAD * 2}" height="${y - boxTop}" fill="none" stroke="#000" stroke-width="3" rx="6"/>`);
   if (o.note) { y += 6; para('ملاحظة: ' + o.note, 26); }
   if (look.footer) { y += 14; for (const l of String(look.footer).split('\n')) para(l, 24, { weight: 400 }); }
+  // system badge at the very bottom, e.g. { "name": "UTS", "tagline": "online order" }
+  if (look.badge?.name) {
+    y += 30; line(4, false);
+    y += 70; parts.push(ltr(look.badge.name, { size: 64, x: WIDTH / 2, anchor: 'middle' }).replace('<text ', '<text letter-spacing="6" '));
+    if (look.badge.tagline) { y += 32; parts.push(ltr(look.badge.tagline, { size: 24, x: WIDTH / 2, anchor: 'middle' }).replace('font-weight="700"', 'font-weight="400" letter-spacing="3"')); }
+  }
   y += 60;
   return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${WIDTH}" height="${Math.ceil(y)}" viewBox="0 0 ${WIDTH} ${Math.ceil(y)}"><rect width="100%" height="100%" fill="#fff"/>${parts.join('')}</svg>`, height: Math.ceil(y) };
 }

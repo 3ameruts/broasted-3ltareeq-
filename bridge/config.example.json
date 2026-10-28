@@ -11,6 +11,7 @@
     "title": "طلب أونلاين",
     "footer": "صحتين وعافية",
     "textSize": "medium",
-    "paper": 80
+    "paper": 80,
+    "badge": { "name": "UTS", "tagline": "online order" }
   }
 }
