@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Brand tokens, same values as the main site (src/styles.css). */
+@theme {
+  --color-brand: #e0263a;
+  --color-brand-deep: #b21017;
+  --color-mustard: #fcb712;
+  --color-asphalt: #363336;
+  --color-paper: #fbf5ea;
+  --color-ink: #2a2528;
+  --color-soft: #6b5f62;
+  --color-line: #eadfcd;
+  --font-display: 'Lalezar', 'Readex Pro', system-ui, sans-serif;
+  --font-sans: 'Readex Pro', Tahoma, system-ui, sans-serif;
+  --shadow-sticker: 0 0 0 3px #fff, 0 0 0 5px var(--color-asphalt), 0 10px 24px rgb(38 35 38 / 0.18);
+}
+
+html { -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
+body { background: var(--color-paper); color: var(--color-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+.num { font-variant-numeric: tabular-nums; direction: ltr; unicode-bidi: isolate; }
+.pb-safe { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
