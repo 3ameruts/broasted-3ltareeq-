@@ -5,7 +5,7 @@
 التركيب (مرة وحدة لكل فرع):
 1) اعمل نسخة من config.example.json وسمّيها config.json (بنفس المجلد).
 2) افتح config.json بالـ Notepad وعبّي:
-   - branchToken : رمز الفرع (بيطلع بنتيجة ملف 06-production-setup.sql على Supabase)
+   - branchToken : رمز الفرع (بيطلع بنتيجة ملف 07-move-site-here.sql على Supabase)
    - printerIp   : عنوان الطابعة على الشبكة، مثل 192.168.1.87
    خلي الباقي زي ما هو. احفظ.
 3) دبل كليك على install.bat

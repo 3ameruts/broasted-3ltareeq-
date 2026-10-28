@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Staff sign in on this device and stay signed in; row-level security limits every query to their branch.
-// Same project as the site (env vars can point a build at the test project).
-const url = import.meta.env.VITE_ORDERS_SUPABASE_URL || 'https://xiforwroabkgcjcfkltr.supabase.co';
-const key = import.meta.env.VITE_ORDERS_SUPABASE_KEY || 'sb_publishable_gT4u_I9M8_Fa25PJv00Ddg_TTXYAvre';
+// Same project as the site (env vars can point a build at another project).
+const url = import.meta.env.VITE_ORDERS_SUPABASE_URL || 'https://qzglmmkrnasgocuvtkut.supabase.co';
+const key = import.meta.env.VITE_ORDERS_SUPABASE_KEY || 'sb_publishable_crkSQ5p2ntixzGDK5WRx6Q_2LAfmZee';
 export const sb = createClient(url, key, { auth: { persistSession: true, storageKey: 'broasted-branch-auth' } });
 
 export type OrderItem = { id: number; name: string; qty: number; options: { name: string; qty: number; price: number }[]; note: string | null; line_total: number };
