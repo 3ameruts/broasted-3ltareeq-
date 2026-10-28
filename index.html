@@ -33,7 +33,11 @@
       .js #root > .seo-fallback { display: none; }
       .js #root:has(> .seo-fallback) { min-height: 100vh; background: #fbf5ea url(./img/logo-sm.png) center / 120px no-repeat; }
     </style>
-    <script>document.documentElement.classList.add('js');</script>
+    <script>
+      document.documentElement.classList.add('js');
+      // order.broasted3ltareeq.com opens the online ordering page
+      if (/^order\./.test(location.hostname) && !/^\/order\//.test(location.pathname)) location.replace('/order/' + location.search);
+    </script>
   </head>
   <body>
     <div id="root"><!--FALLBACK--></div>
