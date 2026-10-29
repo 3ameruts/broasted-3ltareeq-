@@ -109,6 +109,19 @@ export const rememberDevice = (phone: string, token: string | null) => {
   if (token) all[k] = token; else delete all[k];
   try { localStorage.setItem(DEVICES, JSON.stringify(all)); } catch { /* storage is optional */ }
 };
+// orders placed on this device, so a customer can get back to a recent one (tracking links stay on the device only)
+export type RecentOrder = { token: string; number: number; phone: string; at: number };
+const RECENT = 'broasted-order-recent-v1';
+const recent = (): RecentOrder[] => { try { return JSON.parse(localStorage.getItem(RECENT) || '[]'); } catch { return []; } };
+export const rememberOrder = (o: RecentOrder) => {
+  try { localStorage.setItem(RECENT, JSON.stringify([o, ...recent().filter(x => x.token !== o.token)].slice(0, 10))); } catch { /* storage is optional */ }
+};
+// the latest order from the last 3 hours (optionally for one phone)
+export const latestOrder = (phone?: string) => {
+  const p = phone ? normPhone(phone) : null;
+  return recent().find(x => Date.now() - x.at < 3 * 3600000 && (!p || x.phone === p)) ?? null;
+};
+
 export type OtpResult = { ok: boolean; error?: string; seconds?: number; left?: number; device?: string };
 export async function sendOtp(phone: string): Promise<OtpResult> {
   const { data, error } = await db.rpc('otp_send', { p_phone: phone });

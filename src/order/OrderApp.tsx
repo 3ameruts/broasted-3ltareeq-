@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { ShoppingBag } from 'lucide-react';
 import type { Category, Item } from '../lib/types';
 import { useCart, usePersisted } from './cart';
-import { addonsFor, branchPaused, hourLabel, hoursOpen, isUnavailable, loadStore, money, reloadAvailability, reloadBranches, watchStore, type Store } from './data';
+import { addonsFor, branchPaused, hourLabel, hoursOpen, isUnavailable, latestOrder, loadStore, money, reloadAvailability, reloadBranches, watchStore, type Store } from './data';
 import { BranchPicker, type Mode } from './screens/BranchPicker';
 import { BranchChip, Menu } from './screens/Menu';
 import { ItemSheet } from './screens/ItemSheet';
@@ -70,6 +70,7 @@ export default function OrderApp() {
     <Shell><div className="mx-auto max-w-lg px-4 pt-5 pb-10">
       <h1 className="mb-1 font-display text-3xl">أهلين 👋</h1>
       <p className="mb-6 text-soft">اختار طريقة الاستلام والفرع، وبعدين اطلب من المنيو. الدفع عند الاستلام.</p>
+      <RecentOrderBar onOpen={token => go({ name: 'track', token })} />
       <BranchPicker branches={store.branches} places={store.content.branches} branchId={branchId} mode={mode}
         onDone={(b, m) => {
           setBranchId(b); setMode(m); setPicked(true);
@@ -82,7 +83,7 @@ export default function OrderApp() {
       <Checkout cart={cart} branchId={branch.id} branchName={branch.name} mode={mode} onModeChange={setMode} contactPhone={s.phone} requireOtp={!!s.require_otp}
         onBack={() => history.back()}
         onUnavailable={() => reloadAvailability().then(u => setStore(st => st && { ...st, unavailable: u }))}
-        onPlaced={token => { cart.clear(); go({ name: 'track', token }, true); }} />
+        onPlaced={token => { cart.clear(); go({ name: 'track', token }, true); }} onTrack={token => go({ name: 'track', token })} />
     </Shell>
   );
 
@@ -100,6 +101,7 @@ export default function OrderApp() {
     <Shell wide header={<BranchChip label={`${mode === 'pickup' ? 'استلام' : 'توصيل'} · ${branch.name.replace('فرع ', '')}`} onClick={() => setPickerOpen(true)} />}>
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8 lg:px-6">
         <div className="min-w-0">
+          <div className="px-4 pt-3 lg:px-0"><RecentOrderBar onOpen={token => go({ name: 'track', token })} /></div>
           <Hero slogan={store.content.brand.slogan} note={closedNote || `مفتوح للطلب لحد ${hourLabel(s.last_order_time)}`} open={!closedNote}
             where={`${mode === 'pickup' ? 'استلام من' : 'توصيل من'} ${branch.name}`} onChange={() => setPickerOpen(true)} />
           <Menu categories={categories} unavailable={unavailable} onOpen={openItem} onQuickAdd={quickAdd} />
@@ -192,5 +194,17 @@ function Hero({ slogan, note, open, where, onChange }: { slogan: string; note: s
         </div>
       </div>
     </div>
+  );
+}
+
+// a recent order from this device: one tap back to its tracking page
+function RecentOrderBar({ onOpen }: { onOpen: (token: string) => void }) {
+  const o = latestOrder();
+  if (!o) return null;
+  return (
+    <button onClick={() => onOpen(o.token)} className="mb-4 flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-start font-bold shadow-[0_0_0_2px_var(--color-mustard)]">
+      <span>عندك طلب <span className="num">#{o.number}</span>. تابع حالته</span>
+      <span aria-hidden>←</span>
+    </button>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Banknote, LocateFixed, MapPin, Smartphone } from 'lucide-react';
 import { usePersisted, type Cart } from '../cart';
-import { createOrder, deviceFor, ERRORS, money, rememberDevice, type OrderPayload } from '../data';
+import { createOrder, deviceFor, ERRORS, latestOrder, money, normPhone, rememberDevice, rememberOrder, type OrderPayload } from '../data';
 import { PhoneCheck } from './PhoneCheck';
 import type { Mode } from './BranchPicker';
 import { Button } from '../ui/button';
@@ -15,9 +15,9 @@ const phoneOk = (p: string) => /^07[789]\d{7}$/.test(p.replace(/\D/g, '').replac
 
 // Checkout: details, address (manual, location optional), pay at receipt. One idempotency key per attempt,
 // kept until the order is confirmed, so a double tap or a retry after a dropped connection never makes two orders.
-export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBack, onPlaced, onUnavailable, contactPhone, requireOtp }: {
+export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBack, onPlaced, onTrack, onUnavailable, contactPhone, requireOtp }: {
   cart: Cart; branchId: string; branchName: string; mode: Mode; onModeChange: (m: Mode) => void; onBack: () => void;
-  onPlaced: (token: string) => void; onUnavailable: (names: string[]) => void; contactPhone: string; requireOtp?: boolean;
+  onPlaced: (token: string) => void; onTrack: (token: string) => void; onUnavailable: (names: string[]) => void; contactPhone: string; requireOtp?: boolean;
 }) {
   const [c, setC] = usePersisted<Customer>('broasted-order-customer-v1', EMPTY);
   const [note, setNote] = useState('');
@@ -29,6 +29,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
   const [state, setState] = useState<'idle' | 'sending' | 'checking' | 'failed'>('idle');
   const [message, setMessage] = useState('');
   const [checking, setChecking] = useState(false);
+  const [openToken, setOpenToken] = useState<string | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
   useEffect(() => { topRef.current?.scrollIntoView(); }, []);
   const set = (k: keyof Customer) => (e: React.ChangeEvent<HTMLInputElement>) => setC(p => ({ ...p, [k]: e.target.value }));
@@ -75,9 +76,14 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
       setState(attempt ? 'checking' : 'sending');
       try {
         const r = await createOrder(payload);
-        if (r.ok) { sessionStorage.removeItem(ATTEMPT); onPlaced(r.token); return; }
+        if (r.ok) {
+          sessionStorage.removeItem(ATTEMPT);
+          rememberOrder({ token: r.token, number: r.number, phone: normPhone(c.phone) ?? c.phone, at: Date.now() });
+          onPlaced(r.token); return;
+        }
         sessionStorage.removeItem(ATTEMPT);
         setState('idle');
+        setOpenToken(r.error === 'open_order' ? latestOrder(c.phone)?.token ?? null : null);
         if (r.error === 'verify_phone') { rememberDevice(c.phone, null); setChecking(true); }
         else if (r.error === 'unavailable') { onUnavailable(r.items ?? []); setMessage(`${ERRORS.unavailable} ${(r.items ?? []).join('، ')}`); }
         else if (r.error === 'bad_phone' || r.error === 'bad_name' || r.error === 'bad_address') { setMessage(ERRORS[r.error]); validate(); }
@@ -92,7 +98,8 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
   };
 
   const busy = state === 'sending' || state === 'checking';
-  const alert = message && <p className="text-sm font-semibold text-brand-deep" role="alert">{message}{(message === ERRORS.blocked || message === ERRORS.open_order) && <> <a className="num underline" href={`tel:${contactPhone}`}>{contactPhone}</a></>}</p>;
+  const alert = message && <div className="text-sm font-semibold text-brand-deep" role="alert">{message}{(message === ERRORS.blocked || message === ERRORS.open_order) && <> <a className="num underline" href={`tel:${contactPhone}`}>{contactPhone}</a></>}
+    {message === ERRORS.open_order && openToken && <Button variant="outline" className="mt-2 w-full" onClick={() => onTrack(openToken)}>شوف طلبك</Button>}</div>;
   const submitButton = (
     <Button size="lg" className="w-full" onClick={submit} disabled={busy || cart.count === 0} aria-busy={busy}>
       {state === 'sending' ? 'عم نبعت طلبك…' : state === 'checking' ? 'عم نتأكد من طلبك…' : state === 'failed' ? 'جرّب مرة ثانية'
