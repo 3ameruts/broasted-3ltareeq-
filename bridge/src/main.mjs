@@ -41,7 +41,8 @@ async function main() {
     lock.listen(45219, '127.0.0.1', resolve);
   });
 
-  await initRenderer({ wasm: asset('resvg.wasm', 'node_modules/@resvg/resvg-wasm/index_bg.wasm'), fonts: [asset('readex.ttf', 'assets/readex-700.ttf'), asset('lalezar.ttf', 'assets/lalezar.ttf')] });
+  await initRenderer({ wasm: asset('resvg.wasm', 'node_modules/@resvg/resvg-wasm/index_bg.wasm'), fonts: [asset('readex.ttf', 'assets/readex-700.ttf'), asset('lalezar.ttf', 'assets/lalezar.ttf'),
+    asset('inter-black.otf', 'assets/inter-display-black.otf'), asset('inter-medium.otf', 'assets/inter-display-medium.otf')] });
 
   // "logo": true prints the brand logo; "logo": "my-logo.png" prints a PNG placed next to the program
   if (cfg.ticket.logo) {
