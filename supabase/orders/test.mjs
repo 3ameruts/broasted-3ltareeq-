@@ -226,6 +226,7 @@ await db.exec(`update public.whatsapp_config set hourly_cap = 10; insert into pu
 ok('hourly cap protects the bill', (await send('0795050505')).error === 'busy');
 await db.exec('select public.cleanup_otp()');
 ok('otp cleanup runs', true);
-await db.exec(`update public.order_settings set require_otp = false`);
-ok('with verification off, ordering works as before', (await order({ ...pV, phone: '0796060606', idempotency_key: key() })).ok);
+await db.exec(`update public.order_settings set require_otp = false; update public.whatsapp_config set test_phones = '{0797070707}'`);
+ok('verification off: a test phone still needs a code', (await order({ ...pV, phone: '0797070707', idempotency_key: key() })).error === 'verify_phone');
+ok('verification off, ordering works as before', (await order({ ...pV, phone: '0796060606', idempotency_key: key() })).ok);
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

@@ -18,6 +18,8 @@ create table if not exists public.whatsapp_config (
   hourly_cap int not null default 300 check (hourly_cap between 10 and 5000)  -- سقف الأكواد بالساعة (حماية من الفواتير)
 );
 insert into public.whatsapp_config (id) values (1) on conflict (id) do nothing;
+-- تجربة بدون ما يتأثر الزباين: لحد ما تشغّل التأكيد للكل، بيشتغل بس على هالأرقام
+alter table public.whatsapp_config add column if not exists test_phones text[] not null default '{}';
 alter table public.whatsapp_config enable row level security;
 revoke all on public.whatsapp_config from anon, authenticated;
 grant select, update on public.whatsapp_config to authenticated;
@@ -138,7 +140,8 @@ begin
   ) then
     return jsonb_build_object('ok', false, 'error', 'open_order');
   end if;
-  if v_phone is not null and (select require_otp from public.order_settings where id = 1)
+  if v_phone is not null and ((select require_otp from public.order_settings where id = 1)
+       or v_phone = any (select unnest(test_phones) from public.whatsapp_config where id = 1))
      and not exists (select 1 from public.orders where idempotency_key = v_key) then
     v_hash := public.otp_hash(v_phone, coalesce(p->>'device', ''));
     if not exists (select 1 from public.phone_devices where token_hash = v_hash) then
