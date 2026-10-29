@@ -33,6 +33,8 @@ export default function OrderApp() {
   const [view, setView] = useState<View>(readView);
   const [branchId, setBranchId] = usePersisted<string | null>('broasted-order-branch-v1', null);
   const [mode, setMode] = usePersisted<Mode>('broasted-order-mode-v1', 'pickup');
+  // the branch is asked again on every new visit (last choice preselected); a refresh in the same tab keeps it
+  const [picked, setPicked] = useState(() => { try { return sessionStorage.getItem('broasted-order-picked') === '1'; } catch { return false; } });
   const [pickerOpen, setPickerOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [sheet, setSheet] = useState<{ item: Item; cat: Category } | null>(null);
@@ -64,12 +66,15 @@ export default function OrderApp() {
     : !open ? `الطلب الأونلاين من ${hourLabel(s.open_time)} لـ ${hourLabel(s.last_order_time)}.`
     : branchPaused(branch) ? 'هالفرع موقّف الطلبات شوي. جرّب فرع ثاني.' : '';
 
-  if (!branch) return (
+  if (!branch || !picked) return (
     <Shell><div className="mx-auto max-w-lg px-4 pt-5 pb-10">
       <h1 className="mb-1 font-display text-3xl">أهلين 👋</h1>
       <p className="mb-6 text-soft">اختار طريقة الاستلام والفرع، وبعدين اطلب من المنيو. الدفع عند الاستلام.</p>
       <BranchPicker branches={store.branches} places={store.content.branches} branchId={branchId} mode={mode}
-        onDone={(b, m) => { setBranchId(b); setMode(m); }} />
+        onDone={(b, m) => {
+          setBranchId(b); setMode(m); setPicked(true);
+          try { sessionStorage.setItem('broasted-order-picked', '1'); } catch { /* private mode: ask again next load */ }
+        }} />
     </div></Shell>
   );
 
