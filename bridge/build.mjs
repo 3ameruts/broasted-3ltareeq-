@@ -10,7 +10,8 @@ mkdirSync('dist', { recursive: true });
 await build({ entryPoints: ['src/main.mjs'], bundle: true, platform: 'node', format: 'cjs', target: 'node22', outfile: 'dist/bridge.cjs', logLevel: 'warning' });
 writeFileSync('dist/sea-config.json', JSON.stringify({
   main: 'dist/bridge.cjs', output: 'dist/sea-prep.blob', disableExperimentalSEAWarning: true, useCodeCache: false,
-  assets: { 'resvg.wasm': 'node_modules/@resvg/resvg-wasm/index_bg.wasm', 'readex.ttf': 'assets/readex-700.ttf', 'lalezar.ttf': 'assets/lalezar.ttf', 'logo.png': 'assets/logo.png' },
+  assets: { 'resvg.wasm': 'node_modules/@resvg/resvg-wasm/index_bg.wasm', 'readex.ttf': 'assets/readex-700.ttf', 'lalezar.ttf': 'assets/lalezar.ttf', 'logo.png': 'assets/logo.png',
+    'inter-black.otf': 'assets/inter-display-black.otf', 'inter-medium.otf': 'assets/inter-display-medium.otf' },
 }));
 execFileSync(process.execPath, ['--experimental-sea-config', 'dist/sea-config.json'], { stdio: 'inherit' });
 

@@ -33,7 +33,10 @@ async function main() {
   const cfgPath = join(here, 'config.json');
   if (!existsSync(cfgPath)) { log('config.json مش موجود جنب البرنامج'); process.exit(1); }
   const cfg = { printerPort: 9100, pollSeconds: 3, ticket: {}, copies: 1, ...JSON.parse(readFileSync(cfgPath, 'utf8').replace(/^﻿/, '')) };
-  for (const k of ['branchToken', 'printerIp', 'supabaseUrl', 'supabaseKey']) if (!cfg[k]) { log(`config.json: ناقص ${k}`); process.exit(1); }
+  // one branch ("branchToken") or several on one printer, e.g. a call center ("branchTokens": [...])
+  const tokens = [...new Set([cfg.branchToken, ...(Array.isArray(cfg.branchTokens) ? cfg.branchTokens : [])].map(t => typeof t === 'string' ? t.trim() : '').filter(t => t.length === 40))];
+  if (!tokens.length) { log('config.json: ناقص رمز الفرع (branchToken أو branchTokens)'); process.exit(1); }
+  for (const k of ['printerIp', 'supabaseUrl', 'supabaseKey']) if (!cfg[k]) { log(`config.json: ناقص ${k}`); process.exit(1); }
 
   // one copy only: a second start exits quietly
   await new Promise(resolve => {
@@ -41,7 +44,8 @@ async function main() {
     lock.listen(45219, '127.0.0.1', resolve);
   });
 
-  await initRenderer({ wasm: asset('resvg.wasm', 'node_modules/@resvg/resvg-wasm/index_bg.wasm'), fonts: [asset('readex.ttf', 'assets/readex-700.ttf'), asset('lalezar.ttf', 'assets/lalezar.ttf')] });
+  await initRenderer({ wasm: asset('resvg.wasm', 'node_modules/@resvg/resvg-wasm/index_bg.wasm'), fonts: [asset('readex.ttf', 'assets/readex-700.ttf'), asset('lalezar.ttf', 'assets/lalezar.ttf'),
+    asset('inter-black.otf', 'assets/inter-display-black.otf'), asset('inter-medium.otf', 'assets/inter-display-medium.otf')] });
 
   // "logo": true prints the brand logo; "logo": "my-logo.png" prints a PNG placed next to the program
   if (cfg.ticket.logo) {
@@ -97,26 +101,34 @@ async function main() {
     process.exit(0);
   }
 
-  log(toFile ? 'اشتغل بوضع التجربة: الفواتير بتنحفظ صور بمجلد tickets' : `اشتغل. الطابعة ${cfg.printerIp}:${cfg.printerPort}`);
+  log((toFile ? 'اشتغل بوضع التجربة: الفواتير بتنحفظ صور بمجلد tickets' : `اشتغل. الطابعة ${cfg.printerIp}:${cfg.printerPort}`) + ` (عدد الفروع: ${tokens.length})`);
   let failing = false; // printer_next also tells the server this PC is alive
+  const badTokens = new Set();
+  // print whatever is waiting for one branch; returns true if it printed something (more may be waiting)
+  async function pull(token) {
+    const r = await rpc('printer_next', { p_token: token });
+    if (!r.ok) {
+      if (!badTokens.has(token)) { badTokens.add(token); log(`رمز فرع غلط أو انلغى (رقم ${tokens.indexOf(token) + 1} بالملف):`, r.error); beep(2); }
+      return false;
+    }
+    badTokens.delete(token);
+    if (!r.order) return false;
+    const o = r.order;
+    if (!printed.includes(o.id)) { await print(o); remember(o.id); log(`انطبع طلب #${o.number} (${o.branch})`); }
+    await rpc('printer_done', { p_token: token, p_order: o.id });
+    return true;
+  }
   async function tick() {
+    let more = false;
     try {
-      const r = await rpc('printer_next', { p_token: cfg.branchToken });
-      if (!r.ok) { log('رمز الفرع غلط أو انلغى:', r.error); beep(2); return; }
-      if (r.order) {
-        const o = r.order;
-        if (!printed.includes(o.id)) { await print(o); remember(o.id); log(`انطبع طلب #${o.number}`); }
-        await rpc('printer_done', { p_token: cfg.branchToken, p_order: o.id });
-        if (failing) { failing = false; log('رجعت الأمور طبيعية'); }
-        return setTimeout(tick, 300); // more may be waiting
-      }
+      for (const t of tokens) if (await pull(t)) more = true;
       if (failing) { failing = false; log('رجعت الأمور طبيعية'); }
     } catch (e) {
       log('خطأ:', e.message);
       if (!failing) beep(3);
       failing = true;
     }
-    setTimeout(tick, cfg.pollSeconds * 1000);
+    setTimeout(tick, more ? 300 : cfg.pollSeconds * 1000);
   }
   tick();
 }
