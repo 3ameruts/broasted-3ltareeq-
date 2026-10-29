@@ -170,4 +170,18 @@ ok('inactive agent sees nothing', (await A1(`select count(*)::int n from public.
 await db.exec(`update public.order_settings set keep_days = 7; update public.orders set created_at = now() - interval '8 days' where id = '${ccId}'`);
 await db.exec('select public.cleanup_orders()');
 ok('cleanup follows keep_days', (await db.query(`select count(*)::int n from public.orders where id = $1`, [ccId])).rows[0].n === 0);
+
+// ── one open order per phone (10-one-open-order.sql) ──
+await db.exec(readFileSync(dir + '/10-one-open-order.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/10-one-open-order.sql', 'utf8')); // running it twice is safe
+const ko = key();
+const op1 = await order({ ...base0, branch_id: 'b2', phone: '0797777777', idempotency_key: ko, items: [{ item_id: 'broasted-1', qty: 1 }] });
+ok('first order from a phone goes through', op1.ok, JSON.stringify(op1));
+ok('second order while the first is unconfirmed is stopped', (await order({ ...base0, branch_id: 'b2', phone: '0797777777', idempotency_key: key(), items: [{ item_id: 'tender-1', qty: 1 }] })).error === 'open_order');
+ok('same phone written differently is still caught', (await order({ ...base0, branch_id: 'b1', phone: '+962 79 777 7777', idempotency_key: key(), items: [{ item_id: 'tender-1', qty: 1 }] })).error === 'open_order');
+ok('resending the same order still returns it', (await order({ ...base0, branch_id: 'b2', phone: '0797777777', idempotency_key: ko, items: [{ item_id: 'broasted-1', qty: 1 }] })).repeat === true);
+const opId = (await BOSS(`select id from public.orders where customer_phone='0797777777'`)).rows[0].id;
+await A2(`select public.cc_claim($1)`, [opId]); await A2(`select public.cc_confirm($1, null)`, [opId]);
+ok('after it is confirmed the customer can order again', (await order({ ...base0, branch_id: 'b2', phone: '0797777777', idempotency_key: key(), items: [{ item_id: 'tender-1', qty: 1 }] })).ok);
+ok('anon cannot call the inner function directly', !!(await anon(`select public.create_order_core('{}'::jsonb)`)).error);
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

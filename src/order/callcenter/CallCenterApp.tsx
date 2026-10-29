@@ -175,7 +175,10 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
   }, [unclaimed, online]);
   useEffect(() => { document.title = (unclaimed.length ? `(${unclaimed.length}) ` : '') + 'الكول سنتر | بروستد عالطريق'; }, [unclaimed.length]);
 
-  const card = (o: CcOrder) => <OrderCard key={o.id} o={o} userId={userId} admin={admin} branchName={branchName(o.branch_id)} tone={tone.get(o.branch_id) ?? TONES[0]} onChange={refresh} />;
+  // other orders from the same phone within an hour, so nobody keys the same order into the POS twice
+  const twins = (o: CcOrder) => orders.filter(x => x.id !== o.id && x.customer_phone === o.customer_phone
+    && Math.abs(new Date(x.created_at).getTime() - new Date(o.created_at).getTime()) < 3600000);
+  const card = (o: CcOrder) => <OrderCard key={o.id} o={o} twins={twins(o)} userId={userId} admin={admin} branchName={branchName(o.branch_id)} tone={tone.get(o.branch_id) ?? TONES[0]} onChange={refresh} />;
   return (
     <div className="min-h-dvh pb-10">
       {unclaimed.length > 0 && <div className="pointer-events-none fixed inset-0 z-50 animate-pulse shadow-[inset_0_0_0_8px_var(--color-brand)]" aria-hidden />}
@@ -254,7 +257,10 @@ function posText(o: CcOrder, branchName: string) {
 
 const REASONS = ['ما ردّ على الاتصال', 'طلب وهمي', 'صنف خلص', 'خارج منطقة التوصيل', 'الفرع مضغوط'];
 
-function OrderCard({ o, userId, admin, branchName, tone, onChange }: { o: CcOrder; userId: string; admin: boolean; branchName: string; tone: string; onChange: () => void }) {
+const itemsKey = (o: CcOrder) => o.order_items.map(i => `${i.name}×${i.qty}`).sort().join('|');
+const STATUS: Record<CcOrder['status'], string> = { new: 'لسا جديد', accepted: 'انأكّد', ready: 'جاهز', delivered: 'انسلّم', rejected: 'انلغى', no_show: 'ما انستلم' };
+
+function OrderCard({ o, twins, userId, admin, branchName, tone, onChange }: { o: CcOrder; twins: CcOrder[]; userId: string; admin: boolean; branchName: string; tone: string; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
   const [sheet, setSheet] = useState<null | 'reject' | 'cancel'>(null);
   const [pos, setPos] = useState('');
@@ -298,6 +304,12 @@ function OrderCard({ o, userId, admin, branchName, tone, onChange }: { o: CcOrde
       </div>
 
       {bad > 0 && <p className="flex items-center gap-2 rounded-2xl bg-mustard/30 px-3 py-2 text-sm font-bold"><AlertTriangle size={18} /> هالرقم إله {bad} طلب مرفوض أو ما انستلم قبل. اتصل تأكد.</p>}
+      {o.status === 'new' && twins.map(t => (
+        <p key={t.id} className="flex items-center gap-2 rounded-2xl bg-brand/10 px-3 py-2 text-sm font-bold text-brand-deep">
+          <AlertTriangle size={18} className="shrink-0" />
+          نفس الرقم إله طلب #{t.number} {minsAgo(t.created_at) < 1 ? 'هسّا' : `قبل ${minsAgo(t.created_at)} د`}{itemsKey(t) === itemsKey(o) ? ' بنفس الأصناف' : ''} ({STATUS[t.status]}). تأكد إنه مش مكرر.
+        </p>
+      ))}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-bold">{o.customer_name}</p>

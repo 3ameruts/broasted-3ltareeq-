@@ -86,7 +86,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
   };
 
   const busy = state === 'sending' || state === 'checking';
-  const alert = message && <p className="text-sm font-semibold text-brand-deep" role="alert">{message}{message === ERRORS.blocked && <> <a className="num underline" href={`tel:${contactPhone}`}>{contactPhone}</a></>}</p>;
+  const alert = message && <p className="text-sm font-semibold text-brand-deep" role="alert">{message}{(message === ERRORS.blocked || message === ERRORS.open_order) && <> <a className="num underline" href={`tel:${contactPhone}`}>{contactPhone}</a></>}</p>;
   const submitButton = (
     <Button size="lg" className="w-full" onClick={submit} disabled={busy || cart.count === 0} aria-busy={busy}>
       {state === 'sending' ? 'عم نبعت طلبك…' : state === 'checking' ? 'عم نتأكد من طلبك…' : state === 'failed' ? 'جرّب مرة ثانية'
