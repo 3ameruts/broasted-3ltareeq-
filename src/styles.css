@@ -506,7 +506,7 @@ p { margin: 0; }
 .admin__brand small { color: var(--yellow); }
 .admin__actions { display: flex; gap: 8px; }
 .admin__note { max-width: 880px; margin: 18px auto 0; padding: 14px 18px; margin-inline: max(16px, calc((100% - 880px) / 2)); background: #fff4d6; border: 2px solid var(--yellow); border-radius: 14px; font-size: 0.95rem; }
-.admin__tabs { display: flex; gap: 8px; overflow-x: auto; max-width: 880px; margin: 18px auto 0; padding-left: var(--gutter-l); padding-right: var(--gutter-r); scrollbar-width: none; }
+.admin__tabs { display: flex; flex-wrap: wrap; gap: 8px; max-width: 880px; margin: 18px auto 0; padding-left: var(--gutter-l); padding-right: var(--gutter-r); scrollbar-width: none; }
 .atab { flex: none; border: 2px solid var(--asphalt); background: #fff; border-radius: 999px; padding: 0.4em 1.1em; font-weight: 700; }
 .atab.is-active { background: var(--asphalt); color: var(--yellow); }
 .admin__body { max-width: 880px; margin: 18px auto 0; padding-left: var(--gutter-l); padding-right: var(--gutter-r); display: grid; gap: 14px; }
