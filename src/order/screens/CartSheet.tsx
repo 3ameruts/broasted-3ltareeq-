@@ -24,8 +24,8 @@ function CartLines({ cart, unavailable, onEmpty }: Pick<Props, 'cart' | 'unavail
           <li key={l.key} className="flex flex-col gap-2 py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-bold">{l.name}</p>
-                {l.options.length > 0 && <p className="text-sm text-soft">+ {l.options.map(o => o.name).join('، ')}</p>}
+                <p className="font-bold">{l.name} {l.options.length > 0 && <span className="num font-normal text-soft">({money(l.price * l.qty)})</span>}</p>
+                {l.options.map(o => <p key={o.id} className="text-sm text-soft">+ {o.name}{o.qty > 1 ? ` ×${o.qty}` : ''} <span className="num">({money(o.price * o.qty * l.qty)})</span></p>)}
                 {l.note && <p className="text-sm text-soft">«{l.note}»</p>}
                 {out && <p className="text-sm font-bold text-brand-deep">خلص هسّا بهالفرع</p>}
               </div>

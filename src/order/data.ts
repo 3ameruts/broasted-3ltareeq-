@@ -59,6 +59,7 @@ export const hourLabel = (hhmm: string) => {
 
 export const imgUrl = (p?: string) => (!p ? undefined : /^https?:/.test(p) ? p : '/' + p.replace(/^\.?\//, ''));
 export const money = (n: number) => n.toFixed(2);
+export { splitLine } from './split';
 
 // Which add-ons a menu item can take: sauces on everything except sauces/sides, cheese on sandwiches
 export function addonsFor(cat: Category, content: Content, s: Settings) {
@@ -87,7 +88,7 @@ export type Tracked = {
   number: number; code: string; branch: string; status: 'new' | 'accepted' | 'ready' | 'delivered' | 'rejected' | 'no_show';
   type: 'pickup' | 'delivery'; name: string; phone: string; pay_method: 'cash' | 'cliq'; subtotal: number; reject_reason: string | null;
   created_at: string; printed_at: string | null; contact_phone: string; cliq_alias: string | null; cliq_name: string | null;
-  items: { name: string; qty: number; options: { name: string; qty: number }[]; note: string | null; line_total: number }[];
+  items: { name: string; qty: number; options: { name: string; qty: number; price?: number }[]; note: string | null; line_total: number }[];
 };
 export async function getOrder(token: string): Promise<Tracked | null> {
   const { data, error } = await db.rpc('get_order', { p_token: token });

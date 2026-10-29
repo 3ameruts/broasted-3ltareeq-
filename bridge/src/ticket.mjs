@@ -66,12 +66,20 @@ export function ticketSvg(o, look = {}) {
   line(20);
 
   for (const it of o.items) {
+    // the item's own price on its line, each add-on's price on its own line (all times the quantity)
+    const extras = (it.options ?? []).map(x => ({ ...x, total: Math.round(Number(x.price ?? 0) * (x.qty ?? 1) * it.qty * 100) / 100 }));
+    const base = Number(it.line_total) - extras.reduce((s, x) => s + x.total, 0);
     // long names wrap before the price column, so they never run into it on narrow paper
     wrap(`${it.qty} × ${it.name}`, 28, WIDTH - PAD * 2 - 100).forEach((l, i) => {
       y += i ? 28 * 1.3 : 36; parts.push(text(l, { size: 28 }));
-      if (!i) parts.push(ltr(money(it.line_total), { size: 26 }));
+      if (!i) parts.push(ltr(money(base), { size: 26 }));
     });
-    for (const x of it.options ?? []) para(`+ ${x.name}${x.qty > 1 ? ' ×' + x.qty : ''}`, 22, { indent: 22, weight: 400 });
+    for (const x of extras) {
+      wrap(`+ ${x.name}${x.qty > 1 ? ' ×' + x.qty : ''}`, 22, WIDTH - PAD * 2 - 122).forEach((l, i) => {
+        y += 22 * 1.35; parts.push(text(l, { size: 22, weight: 400, x: right - 22 }));
+        if (!i) parts.push(ltr(money(x.total), { size: 22 }));
+      });
+    }
     if (it.note) para(`ملاحظة: ${it.note}`, 24, { indent: 22 });
     y += 6;
   }

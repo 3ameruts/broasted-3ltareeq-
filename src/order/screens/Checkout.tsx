@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Banknote, LocateFixed, MapPin, Smartphone } from 'lucide-react';
-import { lineTotal, usePersisted, type Cart } from '../cart';
+import { usePersisted, type Cart } from '../cart';
 import { createOrder, ERRORS, money, type OrderPayload } from '../data';
 import type { Mode } from './BranchPicker';
 import { Button } from '../ui/button';
@@ -181,9 +181,13 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         <h2 className="mb-2 font-bold">ملخص الطلب</h2>
         <ul className="flex flex-col gap-1 text-sm">
           {cart.lines.map(l => (
-            <li key={l.key} className="flex justify-between gap-2">
-              <span><span className="num">{l.qty}×</span> {l.name}{l.options.length ? ` + ${l.options.map(o => o.name).join('، ')}` : ''}</span>
-              <span className="num shrink-0">{money(lineTotal(l))}</span>
+            <li key={l.key}>
+              <div className="flex justify-between gap-2"><span><span className="num">{l.qty}×</span> {l.name}</span><span className="num shrink-0">{money(l.price * l.qty)}</span></div>
+              {l.options.map(o => (
+                <div key={o.id} className="flex justify-between gap-2 ps-5 text-soft">
+                  <span>+ {o.name}{o.qty > 1 ? ` ×${o.qty}` : ''}</span><span className="num shrink-0">{money(o.price * o.qty * l.qty)}</span>
+                </div>
+              ))}
             </li>
           ))}
         </ul>

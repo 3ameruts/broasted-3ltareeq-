@@ -7,6 +7,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/field';
 import { Sheet } from '../ui/drawer';
 import { cn } from '../ui/cn';
+import { splitLine } from '../split';
 import { acceptOrder, loadOrders, markPaid, pauseBranch, phoneHistory, rejectOrder, reprintOrder, sb, setAvailability, setStatus, type Order } from './api';
 import { keepAwake, ring, unlockAudio } from './alarm';
 import { printTicket, ticketHtml } from './print';
@@ -291,13 +292,20 @@ function OrderCard({ o, branch, cliqAlias, onChange }: { o: Order; branch: Branc
       )}
 
       <ul className="flex flex-col gap-1.5 border-y border-line py-3">
-        {o.order_items.map(i => (
+        {o.order_items.map(i => {
+          const { base, extras } = splitLine(i.line_total, i.qty, i.options);
+          return (
           <li key={i.id}>
-            <div className="flex justify-between gap-2 font-bold"><span><span className="num">{i.qty}×</span> {i.name}</span><span className="num">{money(i.line_total)}</span></div>
-            {i.options.length > 0 && <p className="ps-5 text-sm text-soft">+ {i.options.map(x => x.name).join('، ')}</p>}
+            <div className="flex justify-between gap-2 font-bold"><span><span className="num">{i.qty}×</span> {i.name}</span><span className="num">{money(base)}</span></div>
+            {extras.map((x, j) => (
+              <div key={j} className="flex justify-between gap-2 ps-5 text-sm text-soft">
+                <span>+ {x.name}{x.qty > 1 ? ` ×${x.qty}` : ''}</span><span className="num">{money(x.total)}</span>
+              </div>
+            ))}
             {i.note && <p className="ps-5 text-sm font-bold text-brand-deep">«{i.note}»</p>}
           </li>
-        ))}
+          );
+        })}
       </ul>
       {o.note && <p className="rounded-2xl bg-mustard/25 px-3 py-2 text-sm font-semibold">ملاحظة: {o.note}</p>}
       <div className="flex items-baseline justify-between">

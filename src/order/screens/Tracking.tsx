@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy, Phone, RotateCcw } from 'lucide-react';
-import { getOrder, money, type Tracked } from '../data';
+import { getOrder, money, splitLine, type Tracked } from '../data';
 import { Button } from '../ui/button';
 import { cn } from '../ui/cn';
 
@@ -90,12 +90,21 @@ export function Tracking({ token, onNewOrder }: { token: string; onNewOrder: () 
 
       <div className="rounded-3xl bg-white p-5 shadow-[0_0_0_2px_var(--color-line)]">
         <ul className="flex flex-col gap-1 text-sm">
-          {o.items.map((it, i) => (
-            <li key={i} className="flex justify-between gap-2">
-              <span><span className="num">{it.qty}×</span> {it.name}{it.options.length ? ` + ${it.options.map(x => x.name).join('، ')}` : ''}{it.note ? ` («${it.note}»)` : ''}</span>
-              <span className="num shrink-0">{money(it.line_total)}</span>
-            </li>
-          ))}
+          {o.items.map((it, i) => {
+            const { base, extras } = splitLine(it.line_total, it.qty, it.options);
+            return (
+              <li key={i}>
+                <div className="flex justify-between gap-2">
+                  <span><span className="num">{it.qty}×</span> {it.name}{it.note ? ` («${it.note}»)` : ''}</span><span className="num shrink-0">{money(base)}</span>
+                </div>
+                {extras.map((x, j) => (
+                  <div key={j} className="flex justify-between gap-2 ps-5 text-soft">
+                    <span>+ {x.name}{x.qty > 1 ? ` ×${x.qty}` : ''}</span><span className="num shrink-0">{money(x.total)}</span>
+                  </div>
+                ))}
+              </li>
+            );
+          })}
         </ul>
         <div className="mt-3 flex justify-between border-t border-line pt-3 font-bold">
           <span>المجموع</span><span className="num">{money(o.subtotal)} د.أ</span>
