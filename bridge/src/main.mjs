@@ -32,7 +32,7 @@ async function main() {
   // settings live in config.json next to the program
   const cfgPath = join(here, 'config.json');
   if (!existsSync(cfgPath)) { log('config.json مش موجود جنب البرنامج'); process.exit(1); }
-  const cfg = { printerPort: 9100, pollSeconds: 3, ...JSON.parse(readFileSync(cfgPath, 'utf8').replace(/^﻿/, '')) };
+  const cfg = { printerPort: 9100, pollSeconds: 3, ticket: {}, copies: 1, ...JSON.parse(readFileSync(cfgPath, 'utf8').replace(/^﻿/, '')) };
   for (const k of ['branchToken', 'printerIp', 'supabaseUrl', 'supabaseKey']) if (!cfg[k]) { log(`config.json: ناقص ${k}`); process.exit(1); }
 
   // one copy only: a second start exits quietly
@@ -42,6 +42,14 @@ async function main() {
   });
 
   await initRenderer({ wasm: asset('resvg.wasm', 'node_modules/@resvg/resvg-wasm/index_bg.wasm'), fonts: [asset('readex.ttf', 'assets/readex-700.ttf'), asset('lalezar.ttf', 'assets/lalezar.ttf')] });
+
+  // "logo": true prints the brand logo; "logo": "my-logo.png" prints a PNG placed next to the program
+  if (cfg.ticket.logo) {
+    const custom = typeof cfg.ticket.logo === 'string' && join(here, cfg.ticket.logo);
+    const data = custom ? (existsSync(custom) ? readFileSync(custom) : null) : asset('logo.png', 'assets/logo.png');
+    if (data && data.toString('ascii', 1, 4) === 'PNG') cfg.ticket.logoImage = { data, width: data.readUInt32BE(16), height: data.readUInt32BE(20) };
+    else log('اللوغو مش موجود أو مش PNG، الفاتورة رح تنطبع بدونه:', cfg.ticket.logo);
+  }
 
   const rpc = async (fn, body) => {
     const res = await fetch(`${cfg.supabaseUrl}/rest/v1/rpc/${fn}`, {
@@ -62,8 +70,12 @@ async function main() {
   // printerIp "file": no printer yet, save each receipt as a picture in the "tickets" folder instead
   const toFile = String(cfg.printerIp).toLowerCase() === 'file';
   const print = async order => {
-    const r = await renderTicket(order);
-    if (!toFile) return sendToPrinter(rasterCommands(r.rgba, r.width, r.height));
+    const r = await renderTicket(order, cfg.ticket);
+    if (!toFile) {
+      const bytes = rasterCommands(r.rgba, r.width, r.height);
+      for (let i = 0; i < Math.min(3, Math.max(1, cfg.copies | 0)); i++) await sendToPrinter(bytes);
+      return;
+    }
     const dir = join(here, 'tickets');
     mkdirSync(dir, { recursive: true });
     const file = join(dir, `order-${order.number}-${Date.now()}.png`);

@@ -4,5 +4,14 @@
   "printerPort": 9100,
   "supabaseUrl": "https://qzglmmkrnasgocuvtkut.supabase.co",
   "supabaseKey": "sb_publishable_crkSQ5p2ntixzGDK5WRx6Q_2LAfmZee",
-  "pollSeconds": 3
+  "pollSeconds": 3,
+  "copies": 1,
+  "ticket": {
+    "logo": true,
+    "title": "طلب أونلاين",
+    "footer": "صحتين وعافية",
+    "textSize": "medium",
+    "paper": 80,
+    "badge": { "name": "UTS", "tagline": "online order" }
+  }
 }
