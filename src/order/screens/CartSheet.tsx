@@ -1,11 +1,12 @@
-import { ShoppingBag } from 'lucide-react';
+import { Plus, ShoppingBag } from 'lucide-react';
 import { lineTotal, type Cart } from '../cart';
 import { money } from '../data';
+import type { Item } from '../../lib/types';
 import { Sheet } from '../ui/drawer';
 import { Button } from '../ui/button';
 import { Stepper } from '../ui/stepper';
 
-type Props = { cart: Cart; delivery: boolean; unavailable: (itemId: string) => boolean; onCheckout: () => void };
+type Props = { cart: Cart; delivery: boolean; unavailable: (itemId: string) => boolean; onCheckout: () => void; suggestions?: Item[]; onSuggest?: (item: Item) => void };
 const blockedBy = (cart: Cart, unavailable: Props['unavailable']) => cart.lines.some(l => unavailable(l.item_id) || l.options.some(o => unavailable(o.id)));
 
 function CartLines({ cart, unavailable, onEmpty }: Pick<Props, 'cart' | 'unavailable'> & { onEmpty?: () => void }) {
@@ -39,10 +40,29 @@ function CartLines({ cart, unavailable, onEmpty }: Pick<Props, 'cart' | 'unavail
   );
 }
 
-function CartFooter({ cart, delivery, unavailable, onCheckout }: Props) {
+// «بتحب تزيد؟»: sides the order doesn't have yet (a drink, fries, coleslaw), at their normal price
+function Suggestions({ items, onAdd }: { items: Item[]; onAdd: (item: Item) => void }) {
+  if (!items.length) return null;
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-sm font-bold">بتحب تزيد؟</p>
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+        {items.map(i => (
+          <button key={i.id} onClick={() => onAdd(i)} className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-paper ps-2 pe-4 text-sm font-bold shadow-[0_0_0_2px_var(--color-line)] active:scale-95">
+            <span className="grid size-7 place-items-center rounded-full bg-mustard"><Plus size={16} /></span>
+            {i.name.replace(/\s+/g, ' ')} <span className="num font-normal text-soft">{money(i.price)}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CartFooter({ cart, delivery, unavailable, onCheckout, suggestions, onSuggest }: Props) {
   const blocked = blockedBy(cart, unavailable);
   return (
     <div className="flex flex-col gap-2">
+      {onSuggest && <Suggestions items={suggestions ?? []} onAdd={onSuggest} />}
       <div className="flex items-baseline justify-between">
         <span className="font-bold">المجموع</span>
         <span className="num text-xl font-bold">{money(cart.total)} <span className="text-sm text-soft">د.أ</span></span>

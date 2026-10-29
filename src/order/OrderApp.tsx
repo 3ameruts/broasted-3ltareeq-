@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { ShoppingBag } from 'lucide-react';
 import type { Category, Item } from '../lib/types';
 import { useCart, usePersisted } from './cart';
-import { addonsFor, branchPaused, hourLabel, hoursOpen, isUnavailable, latestOrder, loadStore, money, reloadAvailability, reloadBranches, watchStore, type Store } from './data';
+import { addonsFor, branchPaused, hourLabel, hoursOpen, isUnavailable, lastOrder, latestOrder, loadStore, orderFor, money, reloadAvailability, reloadBranches, watchStore, type Store } from './data';
 import { BranchPicker, type Mode } from './screens/BranchPicker';
 import { BranchChip, Menu } from './screens/Menu';
 import { ItemSheet } from './screens/ItemSheet';
@@ -39,6 +39,7 @@ export default function OrderApp() {
   const [cartOpen, setCartOpen] = useState(false);
   const [sheet, setSheet] = useState<{ item: Item; cat: Category } | null>(null);
   const [, tick] = useState(0);
+  const [reorder, setReorder] = useState<string | null>(null);
   const cart = useCart();
 
   const load = useCallback(() => { setLoadError(false); loadStore().then(setStore).catch(() => setLoadError(true)); }, []);
@@ -55,7 +56,46 @@ export default function OrderApp() {
   const unavailable = useCallback((id: string) => !!store && isUnavailable(store.unavailable, branchId, id), [store, branchId]);
   const categories = useMemo(() => store?.content.categories.filter(c => c.items.length) ?? [], [store]);
 
-  if (view.name === 'track') return <Shell><Tracking token={view.token} onNewOrder={() => go({ name: 'menu' })} /></Shell>;
+  // «اطلب نفس الطلب»: rebuild the cart from an earlier order with today's menu and prices
+  useEffect(() => {
+    if (!store || !reorder) return;
+    const saved = orderFor(reorder);
+    setReorder(null);
+    if (!saved?.lines?.length) return;
+    const find = (id: string) => { for (const c of categories) { const i = c.items.find(x => x.id === id); if (i) return { item: i, cat: c }; } return null; };
+    const missing: string[] = [];
+    cart.clear();
+    for (const l of saved.lines) {
+      const f = find(l.item_id);
+      if (!f) { missing.push('صنف ما عاد موجود'); continue; }
+      if (unavailable(f.item.id)) { missing.push(f.item.name); continue; }
+      const options = l.options.flatMap(o => {
+        const x = find(o.id);
+        return x && !unavailable(x.item.id) ? [{ id: x.item.id, name: x.item.name, price: x.item.price, qty: o.qty }] : [];
+      });
+      cart.add({ item_id: f.item.id, name: f.item.name, price: f.item.price, image: f.item.image || f.cat.image, qty: l.qty, options, note: l.note });
+    }
+    toast.success(missing.length ? `رجّعنا طلبك للسلة، بس في إشي مش متوفر هسّا: ${missing.join('، ')}` : 'رجّعنا طلبك للسلة بأسعار اليوم. راجعه وكمّل', { duration: 4000 });
+    setCartOpen(true);
+  }, [store, reorder]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // «بتحب تزيد؟»: a drink, fries and coleslaw when the cart has a meal but not these yet
+  const suggestions = useMemo(() => {
+    if (!store) return [];
+    const sides = categories.find(c => c.id === 'sides')?.items ?? [];
+    const catOf = new Map(categories.flatMap(c => c.items.map(i => [i.id, c.id] as const)));
+    const names = cart.lines.map(l => l.name);
+    if (!cart.lines.some(l => !['sides', store.settings.sauce_category].includes(catOf.get(l.item_id) ?? 'sides'))) return [];
+    const pick = (want: RegExp, has: RegExp) => names.some(n => has.test(n)) ? null
+      : sides.find(i => want.test(i.name) && i.id !== store.settings.cheese_item_id && !unavailable(i.id)) ?? null;
+    return [pick(/مشروب غازي علبة/, /مشروب|ماء|عصير/), pick(/بطاطا/, /بطاطا/), pick(/كول سلو صغير/, /كول سلو/)].filter((x): x is Item => !!x);
+  }, [store, categories, cart.lines, unavailable]);
+  const addSuggestion = (item: Item) => {
+    cart.add({ item_id: item.id, name: item.name, price: item.price, image: item.image, qty: 1, options: [], note: '' });
+    toast.success(`انضاف ${item.name.replace(/\s+/g, ' ')}`, { duration: 1500 });
+  };
+
+  if (view.name === 'track') return <Shell><Tracking token={view.token} onNewOrder={() => go({ name: 'menu' })} onReorder={() => { setReorder(view.token); go({ name: 'menu' }); }} /></Shell>;
   if (loadError) return <Shell><div className="flex flex-col items-center gap-4 px-4 py-24 text-center"><p className="font-bold">ما قدرنا نحمّل المنيو. تأكد من الإنترنت.</p><Button onClick={load}>جرّب مرة ثانية</Button></div></Shell>;
   if (!store) return <Shell><MenuSkeleton /></Shell>;
 
@@ -70,7 +110,7 @@ export default function OrderApp() {
     <Shell><div className="mx-auto max-w-lg px-4 pt-5 pb-10">
       <h1 className="mb-1 font-display text-3xl">أهلين 👋</h1>
       <p className="mb-6 text-soft">اختار طريقة الاستلام والفرع، وبعدين اطلب من المنيو. الدفع عند الاستلام.</p>
-      <RecentOrderBar onOpen={token => go({ name: 'track', token })} />
+      <RecentOrderBar onOpen={token => go({ name: 'track', token })} onRepeat={setReorder} />
       <BranchPicker branches={store.branches} places={store.content.branches} branchId={branchId} mode={mode}
         onDone={(b, m) => {
           setBranchId(b); setMode(m); setPicked(true);
@@ -101,13 +141,13 @@ export default function OrderApp() {
     <Shell wide header={<BranchChip label={`${mode === 'pickup' ? 'استلام' : 'توصيل'} · ${branch.name.replace('فرع ', '')}`} onClick={() => setPickerOpen(true)} />}>
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8 lg:px-6">
         <div className="min-w-0">
-          <div className="px-4 pt-3 lg:px-0"><RecentOrderBar onOpen={token => go({ name: 'track', token })} /></div>
+          <div className="px-4 pt-3 lg:px-0"><RecentOrderBar onOpen={token => go({ name: 'track', token })} onRepeat={setReorder} /></div>
           <Hero slogan={store.content.brand.slogan} note={closedNote || `مفتوح للطلب لحد ${hourLabel(s.last_order_time)}`} open={!closedNote}
             where={`${mode === 'pickup' ? 'استلام من' : 'توصيل من'} ${branch.name}`} onChange={() => setPickerOpen(true)} />
           <Menu categories={categories} unavailable={unavailable} onOpen={openItem} onQuickAdd={quickAdd} />
         </div>
         <div className="hidden pt-4 lg:block">
-          <CartPanel cart={cart} delivery={mode === 'delivery'} unavailable={unavailable}
+          <CartPanel cart={cart} delivery={mode === 'delivery'} unavailable={unavailable} suggestions={suggestions} onSuggest={addSuggestion}
             onCheckout={() => { if (!canOrder) return toast(closedNote); go({ name: 'checkout' }); }} />
         </div>
       </div>
@@ -134,7 +174,7 @@ export default function OrderApp() {
           toast.success(`انضاف ${sheet.item.name}`, { duration: 1500 });
           setSheet(null);
         }} />
-      <CartSheet open={cartOpen} onOpenChange={setCartOpen} cart={cart} delivery={mode === 'delivery'} unavailable={unavailable}
+      <CartSheet open={cartOpen} onOpenChange={setCartOpen} cart={cart} delivery={mode === 'delivery'} unavailable={unavailable} suggestions={suggestions} onSuggest={addSuggestion}
         onCheckout={() => { if (!canOrder) return toast(closedNote); setCartOpen(false); go({ name: 'checkout' }); }} />
       <Sheet open={pickerOpen} onOpenChange={setPickerOpen} title="الفرع وطريقة الاستلام">
         <BranchPicker branches={store.branches} places={store.content.branches} branchId={branchId} mode={mode}
@@ -197,14 +237,22 @@ function Hero({ slogan, note, open, where, onChange }: { slogan: string; note: s
   );
 }
 
-// a recent order from this device: one tap back to its tracking page
-function RecentOrderBar({ onOpen }: { onOpen: (token: string) => void }) {
+// a recent order from this device: one tap back to its tracking page; an older one: order it again
+function RecentOrderBar({ onOpen, onRepeat }: { onOpen: (token: string) => void; onRepeat: (token: string) => void }) {
   const o = latestOrder();
-  if (!o) return null;
-  return (
-    <button onClick={() => onOpen(o.token)} className="mb-4 flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-start font-bold shadow-[0_0_0_2px_var(--color-mustard)]">
+  const last = o ? null : lastOrder();
+  const cls = 'mb-4 flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-start font-bold shadow-[0_0_0_2px_var(--color-mustard)]';
+  if (o) return (
+    <button onClick={() => onOpen(o.token)} className={cls}>
       <span>عندك طلب <span className="num">#{o.number}</span>. تابع حالته</span>
       <span aria-hidden>←</span>
     </button>
   );
+  if (last?.lines?.length) return (
+    <button onClick={() => onRepeat(last.token)} className={cls}>
+      <span>اطلب طلبك الأخير مرة ثانية</span>
+      <span aria-hidden>↻</span>
+    </button>
+  );
+  return null;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy, Phone, RotateCcw } from 'lucide-react';
-import { getOrder, money, splitLine, type Tracked } from '../data';
+import { getOrder, money, orderFor, splitLine, type Tracked } from '../data';
 import { Button } from '../ui/button';
 import { cn } from '../ui/cn';
 
@@ -12,7 +12,7 @@ const STEPS = {
 const stepOf = (o: Tracked) => ({ new: o.printed_at ? 1 : 0, accepted: 1, ready: 2, delivered: 3, rejected: -1, no_show: -1 }[o.status]);
 
 // Order status page (tracking link). Refreshes every 10 seconds until the order is finished.
-export function Tracking({ token, onNewOrder }: { token: string; onNewOrder: () => void }) {
+export function Tracking({ token, onNewOrder, onReorder }: { token: string; onNewOrder: () => void; onReorder: () => void }) {
   const [o, setO] = useState<Tracked | null | undefined>(undefined);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
@@ -112,6 +112,9 @@ export function Tracking({ token, onNewOrder }: { token: string; onNewOrder: () 
         <p className="mt-1 text-sm text-soft">الدفع عند الاستلام: {o.pay_method === 'cash' ? 'كاش' : 'كليك'}{o.type === 'delivery' ? ' · + التوصيل' : ''}</p>
       </div>
 
+      {!!orderFor(token)?.lines?.length && ['delivered', 'accepted', 'ready'].includes(o.status) && (
+        <Button size="lg" className="w-full" onClick={onReorder}><RotateCcw size={18} /> اطلب نفس الطلب مرة ثانية</Button>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <a href={`tel:${o.contact_phone}`} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white font-bold shadow-[0_0_0_2px_var(--color-line)]">
           <Phone size={18} /> اتصل فينا

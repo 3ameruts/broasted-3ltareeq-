@@ -78,7 +78,8 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         const r = await createOrder(payload);
         if (r.ok) {
           sessionStorage.removeItem(ATTEMPT);
-          rememberOrder({ token: r.token, number: r.number, phone: normPhone(c.phone) ?? c.phone, at: Date.now() });
+          rememberOrder({ token: r.token, number: r.number, phone: normPhone(c.phone) ?? c.phone, at: Date.now(),
+            lines: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })) });
           onPlaced(r.token); return;
         }
         sessionStorage.removeItem(ATTEMPT);

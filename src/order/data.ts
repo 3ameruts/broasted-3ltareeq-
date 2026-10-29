@@ -110,7 +110,11 @@ export const rememberDevice = (phone: string, token: string | null) => {
   try { localStorage.setItem(DEVICES, JSON.stringify(all)); } catch { /* storage is optional */ }
 };
 // orders placed on this device, so a customer can get back to a recent one (tracking links stay on the device only)
-export type RecentOrder = { token: string; number: number; phone: string; at: number };
+export type RecentOrder = { token: string; number: number; phone: string; at: number;
+  lines?: { item_id: string; qty: number; note: string; options: { id: string; qty: number }[] }[] };
+export const orderFor = (token: string) => recent().find(x => x.token === token) ?? null;
+// the last order on this device, any age (for «اطلب نفس الطلب»)
+export const lastOrder = () => recent()[0] ?? null;
 const RECENT = 'broasted-order-recent-v1';
 const recent = (): RecentOrder[] => { try { return JSON.parse(localStorage.getItem(RECENT) || '[]'); } catch { return []; } };
 export const rememberOrder = (o: RecentOrder) => {
