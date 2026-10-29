@@ -110,7 +110,7 @@ function PhotoCard({ item, cat, out, onOpen, onQuickAdd }: CardProps) {
   return (
     <div className={cn('group relative flex h-full flex-col overflow-hidden rounded-3xl bg-white shadow-[0_0_0_2px_var(--color-line)] transition-shadow lg:hover:shadow-[0_0_0_2px_var(--color-asphalt)]', out && 'opacity-55')}>
       <OpenArea item={item} cat={cat} out={out} onOpen={onOpen} />
-      <div className="relative aspect-[4/3] bg-white">
+      <div className="pointer-events-none relative aspect-[4/3] bg-white">
         <img src={imgUrl(item.image)} alt="" loading="lazy" className="size-full object-contain p-2 transition-transform duration-300 lg:group-hover:scale-105" />
       </div>
       <div className="flex flex-1 flex-col gap-1 px-3 pb-3">
@@ -136,8 +136,8 @@ function ListCard({ item, cat, out, onOpen, onQuickAdd }: CardProps) {
         <p className="mt-auto pt-1"><Price item={item} out={out} /></p>
       </div>
       <div className="relative shrink-0 self-center">
-        {img ? <img src={img} alt="" loading="lazy" className={cn('h-24 w-28 rounded-2xl bg-paper', item.image ? 'object-contain' : 'object-cover')} />
-          : <div className="grid h-24 w-28 place-items-center rounded-2xl bg-paper"><img src="/img/logo-sm.png" alt="" className="h-12 opacity-40 grayscale" /></div>}
+        {img ? <img src={img} alt="" loading="lazy" className={cn('pointer-events-none h-24 w-28 rounded-2xl bg-paper', item.image ? 'object-contain' : 'object-cover')} />
+          : <div className="pointer-events-none grid h-24 w-28 place-items-center rounded-2xl bg-paper"><img src="/img/logo-sm.png" alt="" className="h-12 opacity-40 grayscale" /></div>}
         {!out && <AddButton item={item} cat={cat} onQuickAdd={onQuickAdd} className="absolute -bottom-2 -end-2" />}
       </div>
     </div>
