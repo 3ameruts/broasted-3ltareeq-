@@ -1,5 +1,6 @@
 -- بروستد عالطريق: الكول سنتر. بيعتمد على 02-orders.sql. آمن تشغّله أكثر من مرة.
--- الـ Agent بيشوف طلبات كل الفروع، بيستلم الطلب (بينقفل باسمه)، بيأكّده على POS الفرع وبيكتب رقم فاتورة الـ POS، أو بيرفضه.
+-- الـ Agent بيشوف طلبات كل الفروع، بيستلم الطلب (بينقفل باسمه)، وبعدها لازم يا يأكّده على POS الفرع (مع رقم فاتورة الـ POS)
+-- يا يلغيه. ما بيقدر يرجّعه للقائمة؛ المدير بس بيقدر يفك القفل (مثلاً إذا الـ Agent روّح وطلبه معلّق).
 
 -- ───────────── حسابات الـ Agents ─────────────
 create table if not exists public.call_center_agents (
@@ -78,27 +79,27 @@ returns text language sql stable security definer set search_path = public as $$
   select coalesce((select name from public.call_center_agents where user_id = auth.uid()), 'المدير');
 $$;
 
--- استلام الطلب: بينقفل باسم الـ Agent. إذا حدا ثاني ماسكه من أقل من 15 دقيقة بيرجع «مع فلان».
+-- استلام الطلب: بينقفل باسم الـ Agent. إذا حدا ثاني ماسكه بيرجع «مع فلان».
 create or replace function public.cc_claim(p_order uuid)
 returns jsonb language plpgsql volatile security definer set search_path = public as $$
 declare o public.orders;
 begin
   o := public.agent_order(p_order);
   if o.status <> 'new' then return jsonb_build_object('ok', false, 'error', 'bad_status', 'status', o.status); end if;
-  if o.claimed_by is not null and o.claimed_by <> auth.uid() and o.claimed_at > now() - interval '15 minutes' then
+  if o.claimed_by is not null and o.claimed_by <> auth.uid() then
     return jsonb_build_object('ok', false, 'error', 'taken', 'name', o.claimed_name);
   end if;
   update public.orders set claimed_by = auth.uid(), claimed_name = public.agent_name(), claimed_at = now() where id = o.id;
   return jsonb_build_object('ok', true);
 end $$;
 
--- إرجاع الطلب للقائمة (بس اللي ماسكه أو المدير)
+-- فك القفل ورجوع الطلب للقائمة: المدير بس
 create or replace function public.cc_release(p_order uuid)
 returns jsonb language plpgsql volatile security definer set search_path = public as $$
 declare o public.orders;
 begin
   o := public.agent_order(p_order);
-  if o.claimed_by is distinct from auth.uid() and not public.is_admin() then return jsonb_build_object('ok', false, 'error', 'not_yours'); end if;
+  if not public.is_admin() then return jsonb_build_object('ok', false, 'error', 'not_allowed'); end if;
   update public.orders set claimed_by = null, claimed_name = null, claimed_at = null where id = o.id and status = 'new';
   return jsonb_build_object('ok', true);
 end $$;
@@ -111,7 +112,7 @@ begin
   o := public.agent_order(p_order);
   if o.status = 'accepted' and o.confirmed_at is not null then return jsonb_build_object('ok', true, 'repeat', true); end if;
   if o.status <> 'new' then return jsonb_build_object('ok', false, 'error', 'bad_status', 'status', o.status); end if;
-  if o.claimed_by is not null and o.claimed_by <> auth.uid() and o.claimed_at > now() - interval '15 minutes' then
+  if o.claimed_by is not null and o.claimed_by <> auth.uid() then
     return jsonb_build_object('ok', false, 'error', 'taken', 'name', o.claimed_name);
   end if;
   update public.orders set status = 'accepted', accepted_at = now(), accepted_by = auth.uid(),
@@ -121,9 +122,30 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
+-- إلغاء الطلب من الكول سنتر (الزبون لغى، أو رفض بسبب): بس اللي ماسكه أو المدير
+create or replace function public.cc_cancel(p_order uuid, p_reason text, p_block boolean default false)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare o public.orders;
+begin
+  o := public.agent_order(p_order);
+  if o.status <> 'new' then return jsonb_build_object('ok', false, 'error', 'bad_status', 'status', o.status); end if;
+  if o.claimed_by is not null and o.claimed_by <> auth.uid() and not public.is_admin() then
+    return jsonb_build_object('ok', false, 'error', 'taken', 'name', o.claimed_name);
+  end if;
+  update public.orders set status = 'rejected', reject_reason = left(nullif(btrim(p_reason), ''), 120),
+    claimed_by = coalesce(claimed_by, auth.uid()), claimed_name = coalesce(claimed_name, public.agent_name()), claimed_at = coalesce(claimed_at, now()),
+    confirmed_name = public.agent_name(), confirmed_at = now()
+  where id = o.id;
+  if p_block then
+    insert into public.blocked_phones (phone, reason, branch_id, blocked_by)
+    values (o.customer_phone, left(p_reason, 120), o.branch_id, auth.uid()) on conflict (phone) do nothing;
+  end if;
+  return jsonb_build_object('ok', true);
+end $$;
+
 revoke execute on function public.agent_order(uuid), public.agent_name(), public.cc_claim(uuid), public.cc_release(uuid),
-  public.cc_confirm(uuid, text) from public, anon, authenticated;
-grant execute on function public.cc_claim(uuid), public.cc_release(uuid), public.cc_confirm(uuid, text) to authenticated;
+  public.cc_confirm(uuid, text), public.cc_cancel(uuid, text, boolean) from public, anon, authenticated;
+grant execute on function public.cc_claim(uuid), public.cc_release(uuid), public.cc_confirm(uuid, text), public.cc_cancel(uuid, text, boolean) to authenticated;
 
 -- ───────────── مدة الاحتفاظ بالطلبات (توفير مساحة) ─────────────
 -- الطلبات الأقدم من keep_days بتنحذف كل يوم الصبح، وبيضل ملخص المبيعات اليومي لكل فرع.

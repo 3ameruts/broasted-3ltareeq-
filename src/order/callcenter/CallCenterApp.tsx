@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { AlertTriangle, Bike, Check, ClipboardCopy, Headset, LogOut, MapPin, MessageCircle, Phone, Play, Store as StoreIcon, Undo2, Wifi, WifiOff, X } from 'lucide-react';
+import { AlertTriangle, Bike, Check, ClipboardCopy, Headset, LogOut, MapPin, MessageCircle, Phone, Play, Store as StoreIcon, Unlock, UserX, Wifi, WifiOff, X } from 'lucide-react';
 import type { Order } from '../branch/api';
 import { keepAwake, ring, unlockAudio } from '../branch/alarm';
 import { Button } from '../ui/button';
@@ -20,11 +20,11 @@ type CcOrder = Order & { claimed_by: string | null; claimed_name: string | null;
 type Branch = { id: string; code: string; name: string };
 type Res = { ok: boolean; error?: string; name?: string; repeat?: boolean };
 
-const CLAIM_MINUTES = 15; // same as the database: an older claim can be taken over
 const money = (n: number) => Number(n).toFixed(2);
 const clock = (iso: string) => new Intl.DateTimeFormat('ar-JO-u-nu-latn', { timeZone: 'Asia/Amman', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 const minsAgo = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
-const heldBy = (o: CcOrder) => (o.claimed_by && o.claimed_at && minsAgo(o.claimed_at) < CLAIM_MINUTES ? o.claimed_by : null);
+// a taken order stays with that agent until they confirm or cancel it (only an admin can unlock it)
+const heldBy = (o: CcOrder) => o.claimed_by;
 // one colour per branch so agents never enter an order on the wrong POS
 const TONES = ['bg-sky-100 text-sky-900 ring-sky-300', 'bg-amber-100 text-amber-900 ring-amber-300', 'bg-emerald-100 text-emerald-900 ring-emerald-300', 'bg-fuchsia-100 text-fuchsia-900 ring-fuchsia-300'];
 const waLink = (phone: string) => 'https://wa.me/' + phone.replace(/\D/g, '').replace(/^0/, '962');
@@ -79,12 +79,14 @@ function Login() {
 
 function Shift({ userId }: { userId: string }) {
   const [name, setName] = useState<string | null>(null);
+  const [admin, setAdmin] = useState(false);
   const [roleError, setRoleError] = useState(false);
   const [started, setStarted] = useState(false);
   useEffect(() => {
     (async () => {
       const [agent, admin] = await Promise.all([sb.rpc('is_agent'), sb.rpc('is_admin')]);
       if (!agent.data && !admin.data) return setRoleError(true);
+      setAdmin(!!admin.data);
       const me = await sb.from('call_center_agents').select('name').eq('user_id', userId).maybeSingle();
       setName((me.data?.name as string) ?? 'المدير');
     })().catch(() => setRoleError(true));
@@ -108,10 +110,10 @@ function Shift({ userId }: { userId: string }) {
       </div>
     </Center>
   );
-  return <Board userId={userId} name={name} />;
+  return <Board userId={userId} name={name} admin={admin} />;
 }
 
-function Board({ userId, name }: { userId: string; name: string }) {
+function Board({ userId, name, admin }: { userId: string; name: string; admin: boolean }) {
   const [orders, setOrders] = useState<CcOrder[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [filter, setFilter] = useState<string>('all');
@@ -173,7 +175,7 @@ function Board({ userId, name }: { userId: string; name: string }) {
   }, [unclaimed, online]);
   useEffect(() => { document.title = (unclaimed.length ? `(${unclaimed.length}) ` : '') + 'الكول سنتر | بروستد عالطريق'; }, [unclaimed.length]);
 
-  const card = (o: CcOrder) => <OrderCard key={o.id} o={o} userId={userId} branchName={branchName(o.branch_id)} tone={tone.get(o.branch_id) ?? TONES[0]} onChange={refresh} />;
+  const card = (o: CcOrder) => <OrderCard key={o.id} o={o} userId={userId} admin={admin} branchName={branchName(o.branch_id)} tone={tone.get(o.branch_id) ?? TONES[0]} onChange={refresh} />;
   return (
     <div className="min-h-dvh pb-10">
       {unclaimed.length > 0 && <div className="pointer-events-none fixed inset-0 z-50 animate-pulse shadow-[inset_0_0_0_8px_var(--color-brand)]" aria-hidden />}
@@ -250,11 +252,11 @@ function posText(o: CcOrder, branchName: string) {
   return lines.join('\n');
 }
 
-const REASONS = ['ما ردّ على الاتصال', 'طلب وهمي', 'الزبون لغى الطلب', 'صنف خلص', 'خارج منطقة التوصيل', 'الفرع مضغوط'];
+const REASONS = ['ما ردّ على الاتصال', 'طلب وهمي', 'صنف خلص', 'خارج منطقة التوصيل', 'الفرع مضغوط'];
 
-function OrderCard({ o, userId, branchName, tone, onChange }: { o: CcOrder; userId: string; branchName: string; tone: string; onChange: () => void }) {
+function OrderCard({ o, userId, admin, branchName, tone, onChange }: { o: CcOrder; userId: string; admin: boolean; branchName: string; tone: string; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
-  const [rejecting, setRejecting] = useState(false);
+  const [sheet, setSheet] = useState<null | 'reject' | 'cancel'>(null);
   const [pos, setPos] = useState('');
   const [bad, setBad] = useState(0);
   useEffect(() => { if (o.status === 'new') sb.rpc('phone_history', { p_order: o.id }).then(({ data }) => setBad((data as { bad: number } | null)?.bad ?? 0)); }, [o.id, o.status]);
@@ -342,7 +344,10 @@ function OrderCard({ o, userId, branchName, tone, onChange }: { o: CcOrder; user
         <Button size="lg" onClick={() => act(() => rpc('cc_claim', { p_order: o.id }), 'الطلب معك')} disabled={busy}><Headset size={20} /> استلمت الطلب</Button>
       )}
       {o.status === 'new' && holder && !isMine && (
-        <p className="rounded-2xl bg-paper px-3 py-2 text-center text-sm font-bold">مع {o.claimed_name} من {minsAgo(o.claimed_at!)} د</p>
+        <div className="flex items-center justify-between gap-2 rounded-2xl bg-paper px-3 py-2 text-sm font-bold">
+          <span>مع {o.claimed_name} من {minsAgo(o.claimed_at!)} د</span>
+          {admin && <Button size="sm" variant="outline" onClick={() => act(() => rpc('cc_release', { p_order: o.id }), 'انفك القفل ورجع للقائمة')} disabled={busy}><Unlock size={16} /> فك القفل</Button>}
+        </div>
       )}
       {o.status === 'new' && isMine && (
         <div className="flex flex-col gap-2 rounded-2xl bg-paper p-3">
@@ -354,8 +359,8 @@ function OrderCard({ o, userId, branchName, tone, onChange }: { o: CcOrder; user
             <Check size={20} /> أكّدته على POS {branchName.replace('فرع ', '').replace('دوار ', '')}
           </Button>
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" onClick={() => act(() => rpc('cc_release', { p_order: o.id }), 'رجع للقائمة')} disabled={busy}><Undo2 size={18} /> رجّعه</Button>
-            <Button variant="outline" onClick={() => setRejecting(true)} disabled={busy}><X size={18} /> رفض</Button>
+            <Button variant="outline" onClick={() => setSheet('cancel')} disabled={busy}><UserX size={18} /> الزبون لغى</Button>
+            <Button variant="outline" onClick={() => setSheet('reject')} disabled={busy}><X size={18} /> رفض</Button>
           </div>
         </div>
       )}
@@ -364,11 +369,18 @@ function OrderCard({ o, userId, branchName, tone, onChange }: { o: CcOrder; user
       )}
       {o.status === 'accepted' && !o.confirmed_name && <p className="text-sm font-bold text-emerald-700">✓ انقبل من الفرع</p>}
       {['ready', 'delivered'].includes(o.status) && <p className="text-sm font-bold text-emerald-700">✓ {o.status === 'ready' ? 'جاهز' : 'انسلّم'}</p>}
-      {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">انرفض{o.reject_reason ? `: ${o.reject_reason}` : ''}</p>}
+      {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">انلغى{o.reject_reason ? `: ${o.reject_reason}` : ''}{o.confirmed_name ? ` · ${o.confirmed_name}` : ''}</p>}
       {o.status === 'no_show' && <p className="text-sm font-bold text-brand-deep">ما انستلم</p>}
 
-      <RejectSheet open={rejecting} onClose={() => setRejecting(false)}
-        onSubmit={async (reason, block) => { if (await act(() => rpc('reject_order', { p_order: o.id, p_reason: reason, p_block: block }), block ? 'انرفض وانحظر الرقم' : 'انرفض الطلب')) setRejecting(false); }} />
+      <RejectSheet open={sheet === 'reject'} onClose={() => setSheet(null)}
+        onSubmit={async (reason, block) => { if (await act(() => rpc('cc_cancel', { p_order: o.id, p_reason: reason, p_block: block }), block ? 'انرفض وانحظر الرقم' : 'انرفض الطلب')) setSheet(null); }} />
+      <Sheet open={sheet === 'cancel'} onOpenChange={x => !x && setSheet(null)} title="الزبون لغى الطلب؟">
+        <div className="flex flex-col gap-3 pb-4">
+          <p className="text-soft">الطلب بيطلع من الطابور، والزبون بيشوف إنه انلغى.</p>
+          <Button size="lg" onClick={async () => { if (await act(() => rpc('cc_cancel', { p_order: o.id, p_reason: 'الزبون لغى الطلب', p_block: false }), 'انلغى الطلب')) setSheet(null); }} disabled={busy}>آه، الغيه</Button>
+          <Button size="lg" variant="outline" onClick={() => setSheet(null)}>لا، رجوع</Button>
+        </div>
+      </Sheet>
     </article>
   );
 }
