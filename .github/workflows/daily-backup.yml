@@ -1,0 +1,35 @@
+# Daily copy of the site content (menu, texts, images list), ordering settings and branches,
+# kept outside Supabase as a downloadable artifact for 90 days. Actions → Daily backup → a run → Artifacts.
+# Only data that is already public on the site; no customer orders.
+name: Daily backup
+
+on:
+  schedule:
+    - cron: '17 3 * * *'   # 06:17 Amman
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      URL: https://qzglmmkrnasgocuvtkut.supabase.co/rest/v1
+      KEY: sb_publishable_crkSQ5p2ntixzGDK5WRx6Q_2LAfmZee
+    steps:
+      - name: Download
+        run: |
+          set -euo pipefail
+          mkdir backup
+          get() { curl -fsS "$URL/$1" -H "apikey: $KEY" -o "backup/$2"; }
+          get 'site_content?select=*&id=eq.1' site_content.json
+          get 'order_settings?select=*&id=eq.1' order_settings.json
+          get 'order_branches?select=*' order_branches.json
+          # a backup with an empty menu means something went wrong; fail so it shows up red
+          python3 -c "import json,sys; c=json.load(open('backup/site_content.json'))[0]['content']; sys.exit(0 if c.get('categories') else 1)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: broasted-backup-${{ github.run_number }}
+          path: backup/
+          retention-days: 90

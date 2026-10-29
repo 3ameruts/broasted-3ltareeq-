@@ -229,4 +229,29 @@ ok('otp cleanup runs', true);
 await db.exec(`update public.order_settings set require_otp = false; update public.whatsapp_config set test_phones = '{0797070707}'`);
 ok('verification off: a test phone still needs a code', (await order({ ...pV, phone: '0797070707', idempotency_key: key() })).error === 'verify_phone');
 ok('verification off, ordering works as before', (await order({ ...pV, phone: '0796060606', idempotency_key: key() })).ok);
+
+// ── admin tools (12-admin-tools.sql) ──
+await db.exec(readFileSync(dir + '/12-admin-tools.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/12-admin-tools.sql', 'utf8'));
+const hist = async () => (await db.query('select count(*)::int n from public.site_content_history')).rows[0].n;
+const h0 = await hist();
+ok('current content saved as the first version', h0 === 1, String(h0));
+await BOSS(`update public.site_content set content = jsonb_set(content, '{brand,slogan}', '"تجربة"') where id = 1`);
+ok('each save keeps a version with who saved it', (await hist()) === 2 && (await db.query('select saved_by from public.site_content_history order by id desc limit 1')).rows[0].saved_by === 'boss@x.jo');
+await BOSS(`update public.site_content set updated_at = now() where id = 1`);
+ok('saving without changes adds no version', (await hist()) === 2);
+ok('admin sees versions', (await BOSS('select count(*)::int n from public.site_content_history')).rows[0].n === 2);
+ok('others cannot see versions', (await A2('select count(*)::int n from public.site_content_history')).rows[0].n === 0 && !!(await anon('select * from public.site_content_history')).error);
+await db.exec(`insert into auth.users values ('66666666-6666-6666-6666-666666666666','new.agent@x.jo')`);
+ok('admin adds an agent by email', (await BOSS(`select public.admin_add_agent(' New.Agent@x.jo ', 'رنا') r`)).rows[0].r.ok);
+ok('unknown email is reported', (await BOSS(`select public.admin_add_agent('nobody@x.jo', 'س') r`)).rows[0].r.error === 'no_user');
+const ag = (await BOSS('select * from public.admin_agents()')).rows;
+ok('agents list has emails, names and today counts', ag.some(x => x.email === 'new.agent@x.jo' && x.name === 'رنا' && typeof x.today === 'number'), JSON.stringify(ag[0]));
+ok('admin stops an agent', (await BOSS(`select public.admin_update_agent('66666666-6666-6666-6666-666666666666', 'رنا', false) r`)).rows[0].r.ok
+  && (await db.query(`select active from public.call_center_agents where user_id = '66666666-6666-6666-6666-666666666666'`)).rows[0].active === false);
+ok('agents cannot manage agents', !!(await A2(`select public.admin_add_agent('a2@x.jo','x')`)).error && !!(await A2('select * from public.admin_agents()')).error);
+await A2(`select public.cc_cancel(id, 'طلب وهمي', true) from public.orders where status = 'new' limit 1`);
+const bl = (await BOSS('select * from public.admin_blocked()')).rows;
+ok('blocked list shows who blocked and why', bl.length > 0 && bl.some(x => x.blocked_by === 'سارة'), JSON.stringify(bl.slice(0, 2)));
+ok('agents cannot read the blocked list', !!(await A2('select * from public.admin_blocked()')).error);
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

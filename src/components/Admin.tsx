@@ -5,6 +5,7 @@ import {
   type Content, type Item, type Category, type Stat,
 } from '../lib/content';
 import OrderingPanel from './OrderingPanel';
+import AdminTools from './AdminTools';
 import { supabase, IMAGE_BUCKET } from '../lib/supabase';
 import { trackingValid, type Tracking } from '../lib/tracking';
 import { offerState, daysLeft, todayInJordan, type Offer } from '../lib/offers';
@@ -103,7 +104,7 @@ function Login() {
   );
 }
 
-type Tab = 'offers' | 'brand' | 'menu' | 'branches' | 'gallery' | 'order';
+type Tab = 'offers' | 'brand' | 'menu' | 'branches' | 'gallery' | 'order' | 'manage';
 
 function Editor({ email }: { email: string }) {
   const { content, setContent, loaded } = useContent();
@@ -179,7 +180,7 @@ function Editor({ email }: { email: string }) {
       )}
 
       <nav className="admin__tabs" aria-label="أقسام لوحة التحكم">
-        {([['menu', 'المنيو والأسعار'], ['offers', 'العروض'], ['order', 'الطلب الأونلاين'], ['brand', 'المعلومات والواجهة'], ['branches', 'الفروع'], ['gallery', 'الصور']] as [Tab, string][]).map(([k, label]) => (
+        {([['menu', 'المنيو والأسعار'], ['offers', 'العروض'], ['order', 'الطلب الأونلاين'], ['brand', 'المعلومات والواجهة'], ['branches', 'الفروع'], ['gallery', 'الصور'], ['manage', 'الإدارة والنسخ']] as [Tab, string][]).map(([k, label]) => (
           <button key={k} className={'atab' + (tab === k ? ' is-active' : '')} onClick={() => setTab(k)}>{label}</button>
         ))}
       </nav>
@@ -191,6 +192,7 @@ function Editor({ email }: { email: string }) {
         {tab === 'gallery' && <GalleryEditor draft={draft} up={up} />}
         {tab === 'offers' && <OffersEditor draft={draft} up={up} />}
         {tab === 'order' && <OrderingPanel flash={flash} />}
+        {tab === 'manage' && <AdminTools flash={flash} onRestore={c => setDraft(mergeContent(c))} />}
 
         <section className="apanel apanel--danger">
           <h3>رجّع كل إشي للأصل</h3>
