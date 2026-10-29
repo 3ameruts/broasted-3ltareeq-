@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Banknote, LocateFixed, MapPin, Smartphone } from 'lucide-react';
 import { usePersisted, type Cart } from '../cart';
-import { createOrder, ERRORS, money, type OrderPayload } from '../data';
+import { createOrder, deviceFor, ERRORS, money, rememberDevice, type OrderPayload } from '../data';
+import { PhoneCheck } from './PhoneCheck';
 import type { Mode } from './BranchPicker';
 import { Button } from '../ui/button';
 import { Field, Input, Textarea } from '../ui/field';
@@ -14,9 +15,9 @@ const phoneOk = (p: string) => /^07[789]\d{7}$/.test(p.replace(/\D/g, '').replac
 
 // Checkout: details, address (manual, location optional), pay at receipt. One idempotency key per attempt,
 // kept until the order is confirmed, so a double tap or a retry after a dropped connection never makes two orders.
-export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBack, onPlaced, onUnavailable, contactPhone }: {
+export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBack, onPlaced, onUnavailable, contactPhone, requireOtp }: {
   cart: Cart; branchId: string; branchName: string; mode: Mode; onModeChange: (m: Mode) => void; onBack: () => void;
-  onPlaced: (token: string) => void; onUnavailable: (names: string[]) => void; contactPhone: string;
+  onPlaced: (token: string) => void; onUnavailable: (names: string[]) => void; contactPhone: string; requireOtp?: boolean;
 }) {
   const [c, setC] = usePersisted<Customer>('broasted-order-customer-v1', EMPTY);
   const [note, setNote] = useState('');
@@ -27,6 +28,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
   const [errors, setErrors] = useState<Partial<Record<keyof Customer, string>>>({});
   const [state, setState] = useState<'idle' | 'sending' | 'checking' | 'failed'>('idle');
   const [message, setMessage] = useState('');
+  const [checking, setChecking] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   useEffect(() => { topRef.current?.scrollIntoView(); }, []);
   const set = (k: keyof Customer) => (e: React.ChangeEvent<HTMLInputElement>) => setC(p => ({ ...p, [k]: e.target.value }));
@@ -55,6 +57,8 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
 
   const submit = async () => {
     if (state === 'sending' || state === 'checking' || !validate()) return;
+    // first order from this phone on this device: confirm it with a WhatsApp code
+    if (requireOtp && !deviceFor(c.phone)) { setChecking(true); return; }
     let key = sessionStorage.getItem(ATTEMPT);
     if (!key) { key = crypto.randomUUID(); sessionStorage.setItem(ATTEMPT, key); }
     const payload: OrderPayload = {
@@ -62,6 +66,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
       change_for: pay === 'cash' ? change : null, note: note.trim() || undefined,
       address: mode === 'delivery' ? { area: c.area, street: c.street, building: c.building, floor: c.floor, landmark: c.landmark } : undefined,
       location: mode === 'delivery' ? loc : null,
+      device: requireOtp ? deviceFor(c.phone) : undefined,
       items: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note || undefined, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })),
     };
     setMessage('');
@@ -73,7 +78,8 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         if (r.ok) { sessionStorage.removeItem(ATTEMPT); onPlaced(r.token); return; }
         sessionStorage.removeItem(ATTEMPT);
         setState('idle');
-        if (r.error === 'unavailable') { onUnavailable(r.items ?? []); setMessage(`${ERRORS.unavailable} ${(r.items ?? []).join('، ')}`); }
+        if (r.error === 'verify_phone') { rememberDevice(c.phone, null); setChecking(true); }
+        else if (r.error === 'unavailable') { onUnavailable(r.items ?? []); setMessage(`${ERRORS.unavailable} ${(r.items ?? []).join('، ')}`); }
         else if (r.error === 'bad_phone' || r.error === 'bad_name' || r.error === 'bad_address') { setMessage(ERRORS[r.error]); validate(); }
         else setMessage(ERRORS[r.error] ?? 'صار خطأ، جرّب مرة ثانية.');
         return;
@@ -202,6 +208,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
       <div className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 pt-3 backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-lg flex-col gap-2">{alert}{submitButton}</div>
       </div>
+      <PhoneCheck open={checking} phone={c.phone} onClose={() => setChecking(false)} onVerified={() => { setChecking(false); setTimeout(submit, 0); }} />
     </div>
   );
 }

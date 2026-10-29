@@ -10,7 +10,7 @@ export const db = createClient(url, key, { auth: { persistSession: false, autoRe
 export type Settings = {
   enabled: boolean; open_time: string; last_order_time: string; phone: string;
   cliq_alias: string | null; cliq_name: string | null;
-  sauce_category: string; cheese_item_id: string | null; cheese_category: string;
+  sauce_category: string; cheese_item_id: string | null; cheese_category: string; require_otp?: boolean;
 };
 export type OrderBranch = { id: string; code: string; name: string; accepting: boolean; paused_until: string | null };
 export type Unavailable = { branch_id: string; item_id: string; until: string | null };
@@ -73,7 +73,7 @@ export function addonsFor(cat: Category, content: Content, s: Settings) {
 export type OrderPayload = {
   idempotency_key: string; branch_id: string; type: 'pickup' | 'delivery'; name: string; phone: string;
   address?: { area: string; street: string; building: string; floor?: string; landmark?: string };
-  location?: { lat: number; lng: number } | null; note?: string; pay_method: 'cash' | 'cliq'; change_for?: number | null;
+  location?: { lat: number; lng: number } | null; note?: string; pay_method: 'cash' | 'cliq'; change_for?: number | null; device?: string;
   items: { item_id: string; qty: number; note?: string; options: { id: string; qty: number }[] }[];
 };
 export type CreateResult = { ok: true; token: string; number: number; subtotal: number; repeat?: boolean } | { ok: false; error: string; items?: string[] };
@@ -94,6 +94,31 @@ export async function getOrder(token: string): Promise<Tracked | null> {
   const { data, error } = await db.rpc('get_order', { p_token: token });
   if (error) throw error;
   return data as Tracked | null;
+}
+
+// WhatsApp phone check: a 6-digit code once per phone on each device; the device then keeps a token for that phone
+export const normPhone = (p: string) => {
+  const d = p.replace(/\D/g, '').replace(/^00962/, '0').replace(/^962/, '0').replace(/^7(\d{8})$/, '07$1');
+  return /^07[789]\d{7}$/.test(d) ? d : null;
+};
+const DEVICES = 'broasted-order-devices-v1';
+const devices = (): Record<string, string> => { try { return JSON.parse(localStorage.getItem(DEVICES) || '{}'); } catch { return {}; } };
+export const deviceFor = (phone: string) => devices()[normPhone(phone) ?? ''];
+export const rememberDevice = (phone: string, token: string | null) => {
+  const all = devices(), k = normPhone(phone); if (!k) return;
+  if (token) all[k] = token; else delete all[k];
+  try { localStorage.setItem(DEVICES, JSON.stringify(all)); } catch { /* storage is optional */ }
+};
+export type OtpResult = { ok: boolean; error?: string; seconds?: number; left?: number; device?: string };
+export async function sendOtp(phone: string): Promise<OtpResult> {
+  const { data, error } = await db.rpc('otp_send', { p_phone: phone });
+  if (error) throw error;
+  return data as OtpResult;
+}
+export async function verifyOtp(phone: string, code: string): Promise<OtpResult> {
+  const { data, error } = await db.rpc('otp_verify', { p_phone: phone, p_code: code });
+  if (error) throw error;
+  return data as OtpResult;
 }
 
 export const ERRORS: Record<string, string> = {

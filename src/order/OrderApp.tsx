@@ -79,7 +79,7 @@ export default function OrderApp() {
 
   if (view.name === 'checkout' && cart.count > 0) return (
     <Shell>
-      <Checkout cart={cart} branchId={branch.id} branchName={branch.name} mode={mode} onModeChange={setMode} contactPhone={s.phone}
+      <Checkout cart={cart} branchId={branch.id} branchName={branch.name} mode={mode} onModeChange={setMode} contactPhone={s.phone} requireOtp={!!s.require_otp}
         onBack={() => history.back()}
         onUnavailable={() => reloadAvailability().then(u => setStore(st => st && { ...st, unavailable: u }))}
         onPlaced={token => { cart.clear(); go({ name: 'track', token }, true); }} />

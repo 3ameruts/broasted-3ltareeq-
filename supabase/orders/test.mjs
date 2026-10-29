@@ -184,4 +184,48 @@ const opId = (await BOSS(`select id from public.orders where customer_phone='079
 await A2(`select public.cc_claim($1)`, [opId]); await A2(`select public.cc_confirm($1, null)`, [opId]);
 ok('after it is confirmed the customer can order again', (await order({ ...base0, branch_id: 'b2', phone: '0797777777', idempotency_key: key(), items: [{ item_id: 'tender-1', qty: 1 }] })).ok);
 ok('anon cannot call the inner function directly', !!(await anon(`select public.create_order_core('{}'::jsonb)`)).error);
+
+// ── WhatsApp code (11-whatsapp-otp.sql): pg_net, vault and cron stubbed; the stub keeps what would be sent ──
+await db.exec(`create schema if not exists net; create table net.sent (body jsonb, url text);
+create function net.http_post(url text, headers jsonb, body jsonb) returns bigint language sql as $$ insert into net.sent values (body, url); select 1::bigint $$;
+create schema if not exists vault; create table vault.secrets (name text, secret text);
+create view vault.decrypted_secrets as select name, secret as decrypted_secret from vault.secrets;`);
+await db.exec(readFileSync(dir + '/11-whatsapp-otp.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/11-whatsapp-otp.sql', 'utf8'));
+const send = async ph => (await anon('select public.otp_send($1) r', [ph])).rows[0].r;
+const verify = async (ph, c) => (await anon('select public.otp_verify($1,$2) r', [ph, c])).rows[0].r;
+const lastCode = async () => (await db.query(`select body->'template'->'components'->0->'parameters'->0->>'text' c, body->>'to' t from net.sent order by ctid desc limit 1`)).rows[0];
+ok('not configured yet = clear error', (await send('0791010101')).error === 'not_configured');
+await db.exec(`update public.whatsapp_config set phone_number_id = '123456789'; insert into vault.secrets values ('whatsapp_token', 'secret-token');
+update public.order_settings set require_otp = true`);
+const pV = { ...base0, branch_id: 'b2', phone: '0791010101', items: [{ item_id: 'broasted-1', qty: 1 }] };
+ok('with verification on, an order without a verified device is stopped', (await order({ ...pV, idempotency_key: key() })).error === 'verify_phone');
+ok('code is sent', (await send('0791010101')).ok);
+const sent1 = await lastCode();
+ok('sent to the international number with a 6-digit code', sent1.t === '962791010101' && /^[0-9]{6}$/.test(sent1.c), JSON.stringify(sent1));
+ok('the code is not stored in plain text', !(await db.query(`select 1 from public.otp_requests where code_hash = $1`, [sent1.c])).rows.length);
+ok('anon cannot read codes or devices', !!(await anon('select * from public.otp_requests')).error && !!(await anon('select * from public.phone_devices')).error);
+ok('resend within a minute waits', (await send('0791010101')).error === 'wait');
+const wrong = await verify('0791010101', sent1.c === '000000' ? '111111' : '000000');
+ok('wrong code says how many tries are left', wrong.error === 'wrong_code' && wrong.left === 4, JSON.stringify(wrong));
+const good = await verify('0791010101', sent1.c);
+ok('right code gives a device token', good.ok && /^[0-9a-f]{32}$/.test(good.device));
+ok('the same code cannot be used twice', (await verify('0791010101', sent1.c)).ok === false);
+ok('device check works', (await anon('select public.otp_device_ok($1,$2) r', ['+962791010101', good.device])).rows[0].r === true);
+ok('verified device can order', (await order({ ...pV, idempotency_key: key(), device: good.device })).ok);
+await db.exec(`update public.orders set status = 'accepted' where customer_phone = '0791010101'`);
+ok('a device token for one phone does not work for another', (await order({ ...pV, phone: '0792020202', idempotency_key: key(), device: good.device })).error === 'verify_phone');
+await db.exec(`update public.otp_requests set sent_at = now() - interval '2 minutes'`);
+for (let i = 0; i < 5; i++) { await db.exec(`update public.otp_requests set sent_at = now() - interval '2 minutes'`); await send('0793030303'); }
+await db.exec(`update public.otp_requests set sent_at = now() - interval '2 minutes'`);
+ok('5 codes per hour per phone', (await send('0793030303')).error === 'too_many');
+await send('0794040404'); const c4 = (await lastCode()).c;
+for (let i = 0; i < 5; i++) await verify('0794040404', c4 === '000000' ? '111111' : '000000');
+ok('5 wrong tries lock the code', (await verify('0794040404', c4)).error === 'too_many');
+await db.exec(`update public.whatsapp_config set hourly_cap = 10; insert into public.otp_log select now() from generate_series(1, 10)`);
+ok('hourly cap protects the bill', (await send('0795050505')).error === 'busy');
+await db.exec('select public.cleanup_otp()');
+ok('otp cleanup runs', true);
+await db.exec(`update public.order_settings set require_otp = false`);
+ok('with verification off, ordering works as before', (await order({ ...pV, phone: '0796060606', idempotency_key: key() })).ok);
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

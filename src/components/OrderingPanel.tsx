@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 // CliQ details shown to customers, and whether each branch's printer PC is connected.
 type Settings = { enabled: boolean; show_button: boolean; order_url: string; open_time: string; last_order_time: string; cliq_alias: string | null; cliq_name: string | null };
 type Printer = { branch_id: string; last_seen: string | null };
+type WhatsApp = { phone_number_id: string; template: string; template_lang: string; require_otp: boolean };
 const SPLIT_URL = 'https://order.broasted3ltareeq.com/';
 
 const ago = (iso: string | null) => {
@@ -80,6 +81,7 @@ export default function OrderingPanel({ flash }: { flash: (text: string, bad?: b
           </div>
         </div>
       </section>
+      <WhatsAppPanel flash={flash} />
       <section className="apanel">
         <h3>طابعات الفروع</h3>
         <div className="apanel__body">
@@ -92,5 +94,58 @@ export default function OrderingPanel({ flash }: { flash: (text: string, bad?: b
         </div>
       </section>
     </>
+  );
+}
+
+// WhatsApp code check for a customer's first order on a device. The Meta key itself lives in Supabase Vault, never here.
+function WhatsAppPanel({ flash }: { flash: (text: string, bad?: boolean) => void }) {
+  const [w, setW] = useState<WhatsApp | null>(null);
+  const [saved, setSaved] = useState<WhatsApp | null>(null);
+  const [ready, setReady] = useState(false);
+  const [missing, setMissing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    (async () => {
+      const [c, o, r] = await Promise.all([
+        supabase.from('whatsapp_config').select('phone_number_id, template, template_lang').eq('id', 1).maybeSingle(),
+        supabase.from('order_settings').select('require_otp').eq('id', 1).maybeSingle(),
+        supabase.rpc('whatsapp_ready'),
+      ]);
+      if (c.error || !c.data || o.error) return setMissing(true);
+      const v = { phone_number_id: c.data.phone_number_id ?? '', template: c.data.template, template_lang: c.data.template_lang, require_otp: !!o.data?.require_otp };
+      setW(v); setSaved(v); setReady(!!r.data);
+    })();
+  }, []);
+  if (missing) return <section className="apanel"><h3>تأكيد الرقم بالواتساب</h3><div className="apanel__body"><p>شغّل ملف 11-whatsapp-otp.sql بـ Supabase عشان يظهر هالقسم.</p></div></section>;
+  if (!w) return null;
+  const set = (patch: Partial<WhatsApp>) => setW({ ...w, ...patch });
+  const configured = ready && /^\d{6,20}$/.test(w.phone_number_id);
+  const save = async () => {
+    if (w.require_otp && !configured) return flash('عبّي Phone number ID وحط المفتاح بـ Vault قبل ما تشغّل التأكيد.', true);
+    setSaving(true);
+    const a = await supabase.from('whatsapp_config').update({ phone_number_id: w.phone_number_id.trim() || null, template: w.template.trim(), template_lang: w.template_lang.trim() }).eq('id', 1);
+    const b = a.error ? a : await supabase.from('order_settings').update({ require_otp: w.require_otp }).eq('id', 1);
+    setSaving(false);
+    if (b.error) return flash(`ما انحفظت إعدادات الواتساب (${b.error.message})`, true);
+    setSaved(w);
+    flash(w.require_otp ? 'تأكيد الرقم بالواتساب شغّال' : 'تأكيد الرقم بالواتساب مطفي');
+  };
+  return (
+    <section className="apanel">
+      <h3>تأكيد الرقم بالواتساب</h3>
+      <div className="apanel__body">
+        <p className="afield__hint">أول طلب من رقم على جهاز جديد: بيوصل الزبون كود من 6 أرقام على الواتساب وبيكتبه. بعدها الجهاز بيتذكّر الرقم.</p>
+        <p><strong>مفتاح Meta بـ Vault:</strong> <span style={{ color: ready ? '#1a7f37' : '#b21017' }}>{ready ? 'موجود ✓' : 'مش موجود (Supabase ← Vault ← whatsapp_token)'}</span></p>
+        <div className="arow">
+          <label className="afield"><span>Phone number ID</span><input dir="ltr" inputMode="numeric" value={w.phone_number_id} onChange={e => set({ phone_number_id: e.target.value.replace(/\D/g, '') })} /></label>
+          <label className="afield"><span>اسم القالب</span><input dir="ltr" value={w.template} onChange={e => set({ template: e.target.value })} /></label>
+          <label className="afield"><span>لغة القالب</span><input dir="ltr" value={w.template_lang} onChange={e => set({ template_lang: e.target.value })} /></label>
+        </div>
+        <label className="acheck"><input type="checkbox" checked={w.require_otp} onChange={e => set({ require_otp: e.target.checked })} /> شغّل تأكيد الرقم بالواتساب</label>
+        <div className="arow">
+          <button className="abtn abtn--primary" onClick={save} disabled={JSON.stringify(w) === JSON.stringify(saved) || saving}>{saving ? 'بنحفظ…' : 'احفظ إعدادات الواتساب'}</button>
+        </div>
+      </div>
+    </section>
   );
 }
