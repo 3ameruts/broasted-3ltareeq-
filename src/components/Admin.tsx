@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import {
   useContent, publishContent, mergeContent, readLegacyEdits, clearLegacyEdits, DEFAULT_CONTENT, formatPrice,
@@ -106,6 +106,36 @@ function Login() {
 
 type Tab = 'offers' | 'brand' | 'menu' | 'branches' | 'gallery' | 'order' | 'manage';
 
+// One row of tabs that scrolls: swipe with a finger, drag with the mouse, or use the arrows when some are hidden
+function Tabs({ tab, tabs, onPick }: { tab: Tab; tabs: [Tab, string][]; onPick: (t: Tab) => void }) {
+  const row = useRef<HTMLElement>(null);
+  const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
+  const measure = () => {
+    const el = row.current; if (!el) return;
+    const left = Math.abs(el.scrollLeft), max = el.scrollWidth - el.clientWidth;
+    setEdges({ start: left > 4, end: left < max - 4 });
+  };
+  useEffect(() => { measure(); addEventListener('resize', measure); return () => removeEventListener('resize', measure); }, []);
+  useEffect(() => { row.current?.querySelector('.is-active')?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' }); }, [tab]);
+  const by = (dir: 1 | -1) => row.current?.scrollBy({ left: dir * 220, behavior: 'smooth' });
+  return (
+    <div className="admin__tabsWrap">
+      {edges.start && <button className="atabs__arrow atabs__arrow--start" onClick={() => by(1)} aria-label="التبويبات اللي قبل">›</button>}
+      <nav ref={row} className="admin__tabs" aria-label="أقسام لوحة التحكم" onScroll={measure}
+        onPointerDown={e => { if (e.pointerType === 'mouse') drag.current = { x: e.clientX, left: e.currentTarget.scrollLeft, moved: false }; }}
+        onPointerMove={e => { const d = drag.current; if (!d) return; const dx = e.clientX - d.x; if (Math.abs(dx) > 4) d.moved = true; e.currentTarget.scrollLeft = d.left - dx; }}
+        onPointerUp={() => { setTimeout(() => { drag.current = null; }, 0); }} onPointerLeave={() => { drag.current = null; }}
+        onClickCapture={e => { if (drag.current?.moved) { e.stopPropagation(); e.preventDefault(); } }}>
+        {tabs.map(([k, label]) => (
+          <button key={k} className={'atab' + (tab === k ? ' is-active' : '')} onClick={() => onPick(k)}>{label}</button>
+        ))}
+      </nav>
+      {edges.end && <button className="atabs__arrow atabs__arrow--end" onClick={() => by(-1)} aria-label="التبويبات اللي بعد">‹</button>}
+    </div>
+  );
+}
+
 function Editor({ email }: { email: string }) {
   const { content, setContent, loaded } = useContent();
   const [draft, setDraft] = useState<Content>(() => structuredClone(content));
@@ -179,11 +209,7 @@ function Editor({ email }: { email: string }) {
         </div>
       )}
 
-      <nav className="admin__tabs" aria-label="أقسام لوحة التحكم">
-        {([['menu', 'المنيو والأسعار'], ['offers', 'العروض'], ['order', 'الطلب الأونلاين'], ['brand', 'المعلومات والواجهة'], ['branches', 'الفروع'], ['gallery', 'الصور'], ['manage', 'الإدارة والنسخ']] as [Tab, string][]).map(([k, label]) => (
-          <button key={k} className={'atab' + (tab === k ? ' is-active' : '')} onClick={() => setTab(k)}>{label}</button>
-        ))}
-      </nav>
+      <Tabs tab={tab} onPick={setTab} tabs={[['menu', 'المنيو والأسعار'], ['offers', 'العروض'], ['order', 'الطلب الأونلاين'], ['brand', 'المعلومات والواجهة'], ['branches', 'الفروع'], ['gallery', 'الصور'], ['manage', 'الإدارة والنسخ']]} />
 
       <div className="admin__body">
         {tab === 'menu' && <MenuEditor draft={draft} up={up} />}

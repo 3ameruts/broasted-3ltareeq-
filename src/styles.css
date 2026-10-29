@@ -506,7 +506,12 @@ p { margin: 0; }
 .admin__brand small { color: var(--yellow); }
 .admin__actions { display: flex; gap: 8px; }
 .admin__note { max-width: 880px; margin: 18px auto 0; padding: 14px 18px; margin-inline: max(16px, calc((100% - 880px) / 2)); background: #fff4d6; border: 2px solid var(--yellow); border-radius: 14px; font-size: 0.95rem; }
-.admin__tabs { display: flex; flex-wrap: wrap; gap: 8px; max-width: 880px; margin: 18px auto 0; padding-left: var(--gutter-l); padding-right: var(--gutter-r); scrollbar-width: none; }
+.admin__tabsWrap { position: relative; max-width: 880px; margin: 18px auto 0; }
+.admin__tabs { display: flex; gap: 8px; overflow-x: auto; padding-left: var(--gutter-l); padding-right: var(--gutter-r); scrollbar-width: none; cursor: grab; user-select: none; -webkit-overflow-scrolling: touch; }
+.admin__tabs::-webkit-scrollbar { display: none; }
+.atabs__arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 1; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--asphalt); background: #fff; font-size: 1.3rem; font-weight: 700; line-height: 1; box-shadow: 0 2px 8px rgb(0 0 0 / 0.15); }
+.atabs__arrow--start { right: 4px; }
+.atabs__arrow--end { left: 4px; }
 .atab { flex: none; border: 2px solid var(--asphalt); background: #fff; border-radius: 999px; padding: 0.4em 1.1em; font-weight: 700; }
 .atab.is-active { background: var(--asphalt); color: var(--yellow); }
 .admin__body { max-width: 880px; margin: 18px auto 0; padding-left: var(--gutter-l); padding-right: var(--gutter-r); display: grid; gap: 14px; }
