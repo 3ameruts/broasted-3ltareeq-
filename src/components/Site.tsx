@@ -161,7 +161,9 @@ function Hero() {
             ))}
           </h1>
           <p className="hero__sub">{hero.subtitle}</p>
-          {ordering.visible && <p className="hero__new"><span>جديد</span> صار فيك تطلب من الموقع: استلام أو توصيل، والدفع عند الاستلام</p>}
+          {ordering.visible && (ordering.open
+            ? <p className="hero__new"><span>جديد</span> صار بتقدر تطلب من الموقع: استلام أو توصيل، والدفع عند الاستلام</p>
+            : <p className="hero__new"><span>قريباً</span> الطلب من الموقع: استلام أو توصيل، والدفع عند الاستلام</p>)}
           <div className="hero__actions">
             {ordering.visible ? (
               <>

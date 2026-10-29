@@ -66,7 +66,7 @@ export default function OrderApp() {
 
   if (!branch) return (
     <Shell><div className="mx-auto max-w-lg px-4 pt-5 pb-10">
-      <h1 className="mb-1 font-display text-3xl">أهلاً فيك 👋</h1>
+      <h1 className="mb-1 font-display text-3xl">أهلين 👋</h1>
       <p className="mb-6 text-soft">اختار طريقة الاستلام والفرع، وبعدين اطلب من المنيو. الدفع عند الاستلام.</p>
       <BranchPicker branches={store.branches} places={store.content.branches} branchId={branchId} mode={mode}
         onDone={(b, m) => { setBranchId(b); setMode(m); }} />

@@ -55,4 +55,4 @@ node render.mjs about 30   # فيديو قصتنا
 
 لإضافة شخص تاني يعدّل: ضيف إيميله بجدول `admins` واعمله حساب من Authentication.
 
-رابط Supabase والمفتاح العام موجودين بـ `src/lib/supabase.ts`، وفيك تغيّرهم بمتغيّرات `VITE_SUPABASE_URL` و `VITE_SUPABASE_ANON_KEY` على Vercel.
+رابط Supabase والمفتاح العام موجودين بـ `src/lib/supabase.ts`، وبتقدر تغيّرهم بمتغيّرات `VITE_SUPABASE_URL` و `VITE_SUPABASE_ANON_KEY` على Vercel.
