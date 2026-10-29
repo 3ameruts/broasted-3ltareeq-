@@ -26,7 +26,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss(), seo()],
   build: {
     rollupOptions: {
-      input: { main: 'index.html', order: 'order/index.html', branch: 'order/branch/index.html' },
+      input: { main: 'index.html', order: 'order/index.html', branch: 'order/branch/index.html', callcenter: 'order/callcenter/index.html' },
     },
   },
 });
