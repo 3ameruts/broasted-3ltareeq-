@@ -48,7 +48,7 @@ export default function OrderingPanel({ flash }: { flash: (text: string, bad?: b
     setSaving(false);
     if (error) return flash(`ما انحفظت إعدادات الطلب (${error.message})`, true);
     setSaved(s);
-    flash(s.enabled ? (s.show_button ? 'الطلب الأونلاين شغّال، والزر ظاهر بالموقع' : 'الطلب الأونلاين شغّال، والزر مخفي') : 'الطلب الأونلاين متوقف');
+    flash(`الطلب الأونلاين ${s.enabled ? 'شغّال' : 'متوقف'}، والزر ${s.show_button ? 'ظاهر بالموقع' : 'مخفي'}`);
   };
 
   return (
@@ -59,7 +59,7 @@ export default function OrderingPanel({ flash }: { flash: (text: string, bad?: b
           <label className="acheck"><input type="checkbox" checked={s.enabled} onChange={e => set({ enabled: e.target.checked })} /> الطلب الأونلاين شغّال</label>
           <p className="afield__hint">لما يكون مطفي، صفحة الطلب بتعرض «متوقف حالياً» وما حدا بيقدر يطلب.</p>
           <label className="acheck"><input type="checkbox" checked={s.show_button} onChange={e => set({ show_button: e.target.checked })} /> أظهر زر «اطلب أونلاين» بالموقع</label>
-          <p className="afield__hint">الزر بيطلع بالهيدر وبأول الصفحة وتحت على الجوال، بس لما الطلب الأونلاين شغّال. شيل الصح لتخفيه وتضل تجرّب الطلب برابطه.</p>
+          <p className="afield__hint">الزر بيطلع بالهيدر وبأول الصفحة وتحت على الجوال. إذا الطلب الأونلاين متوقف، الزر بيضل ظاهر وصفحة الطلب بتحكي للزبون إنو الطلب متوقف حالياً. شيل الصح لتخفيه وتضل تجرّب الطلب برابطه.</p>
           <div className="afield">
             <span>وين بيوديك الزر؟</span>
             <label className="acheck"><input type="radio" name="ourl" checked={s.order_url === '/order/'} onChange={() => set({ order_url: '/order/' })} /> صفحة الطلب على نفس الموقع (broasted3ltareeq.com/order)</label>
