@@ -6,7 +6,7 @@ const url = import.meta.env.VITE_ORDERS_SUPABASE_URL || 'https://qzglmmkrnasgocu
 const key = import.meta.env.VITE_ORDERS_SUPABASE_KEY || 'sb_publishable_crkSQ5p2ntixzGDK5WRx6Q_2LAfmZee';
 export const sb = createClient(url, key, { auth: { persistSession: true, storageKey: 'broasted-branch-auth' } });
 
-export type OrderItem = { id: number; name: string; qty: number; options: { name: string; qty: number; price: number }[]; note: string | null; line_total: number };
+export type OrderItem = { id: number; item_id: string; name: string; qty: number; options: { id: string; name: string; qty: number; price: number }[]; note: string | null; line_total: number };
 export type Order = {
   id: string; branch_id: string; number: number; business_date: string; status: 'new' | 'accepted' | 'ready' | 'delivered' | 'rejected' | 'no_show';
   type: 'pickup' | 'delivery'; customer_name: string; customer_phone: string;

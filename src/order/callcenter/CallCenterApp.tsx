@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { AlertTriangle, Bike, Check, ClipboardCopy, Headset, Search, LogOut, MapPin, MessageCircle, Pause, Phone, Play, Store as StoreIcon, Unlock, UserX, Wifi, WifiOff, X } from 'lucide-react';
-import type { Content } from '../../lib/types';
+import { AlertTriangle, Bike, Check, ClipboardCopy, Headset, Minus, Pencil, Plus, Search, Trash2, LogOut, MapPin, MessageCircle, Pause, Phone, Play, Store as StoreIcon, Unlock, UserX, Wifi, WifiOff, X } from 'lucide-react';
+import type { Content, Item } from '../../lib/types';
 import type { Order } from '../branch/api';
 import { keepAwake, ring, unlockAudio } from '../branch/alarm';
 import { Button } from '../ui/button';
@@ -17,7 +17,8 @@ const url = import.meta.env.VITE_ORDERS_SUPABASE_URL || 'https://qzglmmkrnasgocu
 const key = import.meta.env.VITE_ORDERS_SUPABASE_KEY || 'sb_publishable_crkSQ5p2ntixzGDK5WRx6Q_2LAfmZee';
 const sb = createClient(url, key, { auth: { persistSession: true, storageKey: 'broasted-cc-auth' } });
 
-type CcOrder = Order & { fee_set_by?: string | null; claimed_by: string | null; claimed_name: string | null; claimed_at: string | null; confirmed_name: string | null; confirmed_at: string | null; pos_ref: string | null };
+type MenuInfo = { content: Content; sauce: string; cheese: string | null; cheeseCat: string };
+type CcOrder = Order & { edited_by?: string | null; fee_set_by?: string | null; claimed_by: string | null; claimed_name: string | null; claimed_at: string | null; confirmed_name: string | null; confirmed_at: string | null; pos_ref: string | null };
 type Branch = { id: string; code: string; name: string; accepting: boolean; paused_until: string | null };
 type Unavail = { branch_id: string; item_id: string; until: string | null; updated_by: string | null };
 type Res = { ok: boolean; error?: string; name?: string; repeat?: boolean };
@@ -119,6 +120,12 @@ function Shift({ userId }: { userId: string }) {
 function Board({ userId, name, admin }: { userId: string; name: string; admin: boolean }) {
   const [orders, setOrders] = useState<CcOrder[]>([]);
   const [ratings, setRatings] = useState<Map<string, { stars: number; comment: string | null }>>(new Map());
+  // the menu and add-on rules, for editing an order when a customer calls back
+  const [menu, setMenu] = useState<MenuInfo | null>(null);
+  useEffect(() => {
+    Promise.all([sb.from('site_content').select('content').eq('id', 1).single(), sb.from('order_settings').select('sauce_category, cheese_item_id, cheese_category').eq('id', 1).single()])
+      .then(([c, s]) => { if (c.data && s.data) setMenu({ content: c.data.content as Content, sauce: s.data.sauce_category, cheese: s.data.cheese_item_id, cheeseCat: s.data.cheese_category }); });
+  }, []);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [filter, setFilter] = useState<string>('all');
   const [view, setView] = useState<'orders' | 'menu'>('orders');
@@ -209,7 +216,7 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
   // other orders from the same phone within an hour, so nobody keys the same order into the POS twice
   const twins = (o: CcOrder) => orders.filter(x => x.id !== o.id && x.customer_phone === o.customer_phone
     && Math.abs(new Date(x.created_at).getTime() - new Date(o.created_at).getTime()) < 3600000);
-  const card = (o: CcOrder) => <OrderCard key={o.id} o={o} rating={ratings.get(o.id)} twins={twins(o)} userId={userId} admin={admin} branchName={branchName(o.branch_id)} tone={tone.get(o.branch_id) ?? TONES[0]} onChange={refresh} />;
+  const card = (o: CcOrder) => <OrderCard key={o.id} o={o} menu={menu} rating={ratings.get(o.id)} twins={twins(o)} userId={userId} admin={admin} branchName={branchName(o.branch_id)} tone={tone.get(o.branch_id) ?? TONES[0]} onChange={refresh} />;
   return (
     <div className="min-h-dvh pb-10">
       {unclaimed.length > 0 && <div className="pointer-events-none fixed inset-0 z-50 animate-pulse shadow-[inset_0_0_0_8px_var(--color-brand)]" aria-hidden />}
@@ -430,9 +437,9 @@ const REASONS = ['ما ردّ على الاتصال', 'طلب وهمي', 'صنف
 const itemsKey = (o: CcOrder) => o.order_items.map(i => `${i.name}×${i.qty}`).sort().join('|');
 const STATUS: Record<CcOrder['status'], string> = { new: 'لسا جديد', accepted: 'انأكّد', ready: 'جاهز', delivered: 'انسلّم', rejected: 'انلغى', no_show: 'ما انستلم' };
 
-function OrderCard({ o, rating, twins, userId, admin, branchName, tone, onChange }: { o: CcOrder; rating?: { stars: number; comment: string | null }; twins: CcOrder[]; userId: string; admin: boolean; branchName: string; tone: string; onChange: () => void }) {
+function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, onChange }: { o: CcOrder; menu: MenuInfo | null; rating?: { stars: number; comment: string | null }; twins: CcOrder[]; userId: string; admin: boolean; branchName: string; tone: string; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
-  const [sheet, setSheet] = useState<null | 'reject' | 'cancel'>(null);
+  const [sheet, setSheet] = useState<null | 'reject' | 'cancel' | 'edit'>(null);
   const [pos, setPos] = useState('');
   const [bad, setBad] = useState(0);
   useEffect(() => { if (o.status === 'new') sb.rpc('phone_history', { p_order: o.id }).then(({ data }) => setBad((data as { bad: number } | null)?.bad ?? 0)); }, [o.id, o.status]);
@@ -555,12 +562,17 @@ function OrderCard({ o, rating, twins, userId, admin, branchName, tone, onChange
         <p className="text-sm font-bold text-emerald-700">✓ أكّده {o.confirmed_name} {o.confirmed_at && `الساعة ${clock(o.confirmed_at)}`}{o.pos_ref ? <> · POS <span className="num">#{o.pos_ref}</span></> : null}</p>
       )}
       {o.status === 'accepted' && !o.confirmed_name && <p className="text-sm font-bold text-emerald-700">✓ انقبل من الفرع</p>}
+      {o.edited_by && <p className="text-xs font-bold text-soft">✏️ عدّله {o.edited_by}</p>}
+      {menu && ((o.status === 'new' && isMine) || (o.status === 'accepted' && (o.claimed_by === userId || admin))) && (
+        <Button variant="outline" onClick={() => setSheet('edit')}><Pencil size={16} /> عدّل الطلب (الزبون غيّر)</Button>
+      )}
       {rating && <p className={cn('rounded-2xl px-3 py-2 text-sm font-bold', rating.stars <= 2 ? 'bg-brand/10 text-brand-deep' : 'bg-mustard/25')}>
         تقييم الزبون: {'★'.repeat(rating.stars)}{'☆'.repeat(5 - rating.stars)}{rating.comment ? ` «${rating.comment}»` : ''}</p>}
       {['ready', 'delivered'].includes(o.status) && <p className="text-sm font-bold text-emerald-700">✓ {o.status === 'ready' ? 'جاهز' : 'انسلّم'}</p>}
       {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">انلغى{o.reject_reason ? `: ${o.reject_reason}` : ''}{o.confirmed_name ? ` · ${o.confirmed_name}` : ''}</p>}
       {o.status === 'no_show' && <p className="text-sm font-bold text-brand-deep">ما انستلم</p>}
 
+      {menu && sheet === 'edit' && <EditOrder o={o} menu={menu} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); onChange(); }} />}
       <RejectSheet open={sheet === 'reject'} onClose={() => setSheet(null)}
         onSubmit={async (reason, block) => { if (await act(() => rpc('cc_cancel', { p_order: o.id, p_reason: reason, p_block: block }), block ? 'انرفض وانحظر الرقم' : 'انرفض الطلب')) setSheet(null); }} />
       <Sheet open={sheet === 'cancel'} onOpenChange={x => !x && setSheet(null)} title="الزبون لغى الطلب؟">
@@ -571,6 +583,81 @@ function OrderCard({ o, rating, twins, userId, admin, branchName, tone, onChange
         </div>
       </Sheet>
     </article>
+  );
+}
+
+type EditLine = { key: string; item_id: string; name: string; price: number; qty: number; note: string; options: { id: string; name: string; price: number; qty: number }[] };
+
+// edit an order on the phone: change quantities, remove or add items and add-ons; the database prices it from the menu
+function EditOrder({ o, menu, onClose, onSaved }: { o: CcOrder; menu: MenuInfo; onClose: () => void; onSaved: () => void }) {
+  const items = useMemo(() => menu.content.categories.flatMap(c => c.items.map(i => ({ ...i, cat: c.id }))), [menu]);
+  const byId = (id: string) => items.find(i => i.id === id);
+  const [lines, setLines] = useState<EditLine[]>(() => o.order_items.map((l, n) => ({
+    key: String(n), item_id: l.item_id, name: l.name, qty: l.qty, note: l.note ?? '',
+    price: byId(l.item_id)?.price ?? 0, options: l.options.map(x => ({ id: x.id, name: x.name, price: Number(x.price), qty: x.qty })),
+  })));
+  const [find, setFind] = useState('');
+  const [busy, setBusy] = useState(false);
+  const addonsFor = (itemId: string): Item[] => {
+    const it = byId(itemId); if (!it || it.cat === menu.sauce || it.cat === 'sides') return [];
+    const sauces = menu.content.categories.find(c => c.id === menu.sauce)?.items ?? [];
+    const cheese = it.cat === menu.cheeseCat && menu.cheese ? byId(menu.cheese) : undefined;
+    return [...(cheese ? [cheese] : []), ...sauces];
+  };
+  const upd = (key: string, fn: (l: EditLine) => EditLine | null) => setLines(ls => ls.flatMap(l => (l.key === key ? (fn(l) ? [fn(l)!] : []) : [l])));
+  const total = lines.reduce((s, l) => s + (l.price + l.options.reduce((a, x) => a + x.price * x.qty, 0)) * l.qty, 0);
+  const results = find.trim() ? items.filter(i => i.name.includes(find.trim())).slice(0, 8) : [];
+  const save = async () => {
+    setBusy(true);
+    const payload = lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note.trim() || undefined, options: l.options.map(x => ({ id: x.id, qty: x.qty })) }));
+    const r = await rpc('cc_edit_order', { p_order: o.id, p_items: payload }).catch(e => { failed(e); return null; });
+    setBusy(false);
+    if (!r) return;
+    if (r.ok) { toast.success('انعدّل الطلب'); onSaved(); return; }
+    const err = r as Res & { items?: string[] };
+    toast.error(err.error === 'unavailable' ? `خالص هسّا: ${(err.items ?? []).join('، ')}` : err.error === 'bad_items' ? 'الطلب لازم يكون فيه صنف واحد على الأقل' : err.error === 'taken' ? `الطلب مع ${err.name}` : 'ما زبط التعديل');
+  };
+  return (
+    <Sheet open onOpenChange={x => !x && onClose()} title={`تعديل طلب #${o.number}`}
+      footer={<div className="flex items-center gap-3"><span className="num flex-1 text-lg font-bold">{money(total)} د.أ</span><Button size="lg" onClick={save} disabled={busy || !lines.length}>{busy ? 'لحظة…' : 'احفظ التعديل'}</Button></div>}>
+      <div className="flex flex-col gap-3 pb-2">
+        {lines.map(l => {
+          const addons = addonsFor(l.item_id).filter(a => !l.options.some(x => x.id === a.id));
+          return (
+            <div key={l.key} className="flex flex-col gap-2 rounded-2xl bg-paper p-3">
+              <div className="flex items-center gap-2">
+                <span className="flex-1 font-bold">{l.name}</span>
+                <button className="grid size-9 place-items-center rounded-full bg-white" aria-label="نقّص" onClick={() => upd(l.key, x => (x.qty > 1 ? { ...x, qty: x.qty - 1 } : x))}><Minus size={16} /></button>
+                <span className="num w-6 text-center font-bold">{l.qty}</span>
+                <button className="grid size-9 place-items-center rounded-full bg-white" aria-label="زيد" onClick={() => upd(l.key, x => ({ ...x, qty: Math.min(20, x.qty + 1) }))}><Plus size={16} /></button>
+                <button className="grid size-9 place-items-center rounded-full bg-white text-brand-deep" aria-label="شيل" onClick={() => upd(l.key, () => null)}><Trash2 size={16} /></button>
+              </div>
+              {l.options.length > 0 && <div className="flex flex-wrap gap-1">{l.options.map(x => (
+                <button key={x.id} onClick={() => upd(l.key, y => ({ ...y, options: y.options.filter(z => z.id !== x.id) }))} className="rounded-full bg-white px-3 py-1 text-sm">+ {x.name} ×</button>
+              ))}</div>}
+              {addons.length > 0 && (
+                <select className="h-10 rounded-xl border-2 border-line bg-white px-2 text-sm" value="" aria-label="زيد إضافة"
+                  onChange={e => { const a = byId(e.target.value); if (a) upd(l.key, y => ({ ...y, options: [...y.options, { id: a.id, name: a.name, price: a.price, qty: 1 }] })); }}>
+                  <option value="">+ زيد إضافة (صوص، جبنة)</option>
+                  {addons.map(a => <option key={a.id} value={a.id}>{a.name} ({money(a.price)})</option>)}
+                </select>
+              )}
+              <Input value={l.note} onChange={e => upd(l.key, x => ({ ...x, note: e.target.value }))} placeholder="ملاحظة على الصنف" maxLength={120} />
+            </div>
+          );
+        })}
+        <div className="flex flex-col gap-2">
+          <Input value={find} onChange={e => setFind(e.target.value)} placeholder="+ زيد صنف: اكتب اسمه…" />
+          {results.map(i => (
+            <button key={i.id} onClick={() => { setLines(ls => [...ls, { key: crypto.randomUUID(), item_id: i.id, name: i.name, price: i.price, qty: 1, note: '', options: [] }]); setFind(''); }}
+              className="flex min-h-11 items-center justify-between rounded-xl bg-white px-3 text-start shadow-[0_0_0_2px_var(--color-line)]">
+              <span className="font-semibold">{i.name}</span><span className="num text-sm text-soft">{money(i.price)}</span>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-soft">السعر النهائي بينحسب من المنيو لما تحفظ. لا تنسى تعدّله على الـ POS كمان.</p>
+      </div>
+    </Sheet>
   );
 }
 

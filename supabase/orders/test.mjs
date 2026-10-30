@@ -333,4 +333,28 @@ ok('an account with no role cannot pause a branch', !!(await NOBODY(`select publ
 ok('an account with no role cannot reject orders', !!(await NOBODY(`select public.reject_order($1, 'x', false)`, [anyOrder])).error);
 ok('an account with no role cannot see phone history', !!(await NOBODY(`select public.phone_history($1)`, [anyOrder])).error);
 ok('an account with no role cannot mark orders paid or ready', !!(await NOBODY(`select public.set_order_status($1, 'ready')`, [anyOrder])).error);
+
+// ── editing an order (16-edit-order.sql) ──
+await db.exec(readFileSync(dir + '/16-edit-order.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/16-edit-order.sql', 'utf8'));
+await db.exec(`update public.call_center_agents set active = true; delete from public.item_availability`);
+const eo = await order({ ...base0, branch_id: 'b2', phone: '0799292929', idempotency_key: key(), items: [{ item_id: 'broasted-1', qty: 1 }, { item_id: 'sides-1', qty: 1 }] });
+const eid = (await BOSS(`select id from public.orders where tracking_token = $1`, [eo.token])).rows[0].id;
+const edit = async (who, items) => (await who(`select public.cc_edit_order($1, $2::jsonb) r`, [eid, JSON.stringify(items)])).rows?.[0]?.r;
+ok('an agent who has not taken the order cannot edit it', (await edit(A1, [{ item_id: 'broasted-1', qty: 2 }])).error === 'taken');
+await A1(`select public.cc_claim($1)`, [eid]);
+const e1 = await edit(A1, [{ item_id: 'broasted-1', qty: 2, note: 'حار' }, { item_id: 'sandwiches-1', qty: 1, options: [{ id: 'sauces-1', qty: 1 }, { id: 'sides-13', qty: 1 }] }]);
+ok('the agent holding it edits items, quantities and add-ons', e1.ok, JSON.stringify(e1));
+const its = (await BOSS(`select item_id, qty, note, line_total from public.order_items where order_id = $1 order by id`, [eid])).rows;
+const sub = Number((await BOSS(`select subtotal from public.orders where id = $1`, [eid])).rows[0].subtotal);
+ok('prices recalculated from the menu', its.length === 2 && its[0].qty === 2 && its[0].note === 'حار' && Math.abs(sub - its.reduce((a, x) => a + Number(x.line_total), 0)) < 0.001, JSON.stringify({ its, sub }));
+ok('edit records who did it', (await BOSS(`select edited_by from public.orders where id = $1`, [eid])).rows[0].edited_by === 'أحمد');
+ok('tracking shows the new items', (await anon('select public.get_order($1) r', [eo.token])).rows[0].r.items.length === 2);
+ok('cheese not allowed on a meal when editing', (await edit(A1, [{ item_id: 'broasted-1', qty: 1, options: [{ id: 'sides-13' }] }])).error === 'bad_options');
+await A1(`select public.set_item_availability('tender-1', 'hour', 'b2')`);
+ok('an item that ran out cannot be added', (await edit(A1, [{ item_id: 'tender-1', qty: 1 }])).error === 'unavailable');
+ok('an empty order is refused', (await edit(A1, [])).error === 'bad_items');
+await A1(`select public.cc_confirm($1, '55')`, [eid]);
+ok('a confirmed order can still be edited (customer called back)', (await edit(A1, [{ item_id: 'broasted-1', qty: 1 }])).ok);
+ok('customers cannot edit orders', !!(await anon(`select public.cc_edit_order($1, '[]'::jsonb)`, [eid])).error);
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);
