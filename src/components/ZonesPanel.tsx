@@ -30,6 +30,7 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
   const [missing, setMissing] = useState(false);
   const [paste, setPaste] = useState('');
   const [busy, setBusy] = useState(false);
+  const [enabled, setEnabled] = useState<boolean | null>(null);
 
   const refresh = useCallback(async () => {
     const { data, error } = await supabase.from('delivery_zones').select('*').order('name');
@@ -37,6 +38,7 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
     setZones((data ?? []).map(z => ({ ...z, fee: Number(z.fee), fee_max: z.fee_max == null ? null : Number(z.fee_max) })) as Zone[]);
   }, []);
   useEffect(() => {
+    supabase.from('order_settings').select('zones_enabled').eq('id', 1).single().then(({ data }) => setEnabled(!!data?.zones_enabled));
     supabase.from('order_branches').select('id, name').order('id').then(({ data }) => { setBranches(data ?? []); setBranch(b => b || data?.[0]?.id || ''); });
     refresh();
   }, [refresh]);
@@ -60,6 +62,12 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
     if (error) return flash(`ما انحفظ (${error.message})`, true);
     flash('انحفظ'); refresh();
   };
+  const toggle = async (on: boolean) => {
+    const { error } = await supabase.from('order_settings').update({ zones_enabled: on }).eq('id', 1);
+    if (error) return flash(`ما انحفظ (${error.message})`, true);
+    setEnabled(on);
+    flash(on ? 'حساب التوصيل حسب المنطقة شغّال' : 'رجع التوصيل بالاتصال زي قبل');
+  };
   const remove = async (z: Zone) => {
     if (!confirm(`تمسح منطقة «${z.name}»؟`)) return;
     const { error } = await supabase.from('delivery_zones').delete().eq('id', z.id);
@@ -71,7 +79,9 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
     <section className="apanel">
       <h3>مناطق التوصيل</h3>
       <div className="apanel__body">
-        <p className="afield__hint">الزبون بيختار منطقته وبيشوف سعر التوصيل والمجموع. إذا الفرع ما إله مناطق، أو الزبون كبس «منطقتي مش بالقائمة»، التوصيل بيتحدد بالاتصال.</p>
+        <label className="acheck"><input type="checkbox" checked={!!enabled} disabled={enabled === null} onChange={e => toggle(e.target.checked)} /> شغّل حساب التوصيل حسب المنطقة</label>
+        <p className="afield__hint">لما يكون مطفي، كل إشي زي قبل: الزبون بيكتب منطقته والتوصيل بيتحدد بالاتصال. بتقدر تجهّز المناطق تحت وهو مطفي، وتشغّله لما تخلص.</p>
+        <p className="afield__hint">لما يكون شغّال: الزبون بيختار منطقته وبيشوف سعر التوصيل والمجموع. إذا الفرع ما إله مناطق، أو الزبون كبس «منطقتي مش بالقائمة»، التوصيل بيتحدد بالاتصال.</p>
         <div className="arow">
           {branches.map(b => (
             <button key={b.id} className={'abtn abtn--small' + (branch === b.id ? ' abtn--primary' : '')} onClick={() => setBranch(b.id)}>

@@ -26,6 +26,9 @@ create policy "zones public" on public.delivery_zones for select using (active o
 drop policy if exists "admins manage zones" on public.delivery_zones;
 create policy "admins manage zones" on public.delivery_zones for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
+-- مفتاح بلوحة التحكم: مطفي = زي قبل (التوصيل بالاتصال)، شغّال = الزبون بيختار منطقته وبيشوف السعر
+alter table public.order_settings add column if not exists zones_enabled boolean not null default false;
+
 alter table public.orders add column if not exists delivery_zone text;
 alter table public.orders add column if not exists delivery_fee numeric(6,2) check (delivery_fee between 0 and 50);
 alter table public.orders add column if not exists fee_set_by text;
@@ -55,7 +58,8 @@ begin
   end if;
 
   r := public.create_order_core(p);
-  if (r->>'ok')::boolean and p->>'type' = 'delivery' and coalesce((r->>'repeat')::boolean, false) = false then
+  if (r->>'ok')::boolean and p->>'type' = 'delivery' and coalesce((r->>'repeat')::boolean, false) = false
+     and (select zones_enabled from public.order_settings where id = 1) then
     begin v_zone := (p->>'zone_id')::bigint; exception when others then v_zone := null; end;
     select * into z from public.delivery_zones where id = v_zone and branch_id = p->>'branch_id' and active;
     if found and z.fee_max is null then

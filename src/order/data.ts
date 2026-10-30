@@ -10,7 +10,7 @@ export const db = createClient(url, key, { auth: { persistSession: false, autoRe
 export type Settings = {
   enabled: boolean; open_time: string; last_order_time: string; phone: string;
   cliq_alias: string | null; cliq_name: string | null;
-  sauce_category: string; cheese_item_id: string | null; cheese_category: string; require_otp?: boolean;
+  sauce_category: string; cheese_item_id: string | null; cheese_category: string; require_otp?: boolean; zones_enabled?: boolean;
 };
 export type OrderBranch = { id: string; code: string; name: string; accepting: boolean; paused_until: string | null };
 export type Unavailable = { branch_id: string; item_id: string; until: string | null };

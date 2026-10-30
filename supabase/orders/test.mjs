@@ -259,6 +259,10 @@ ok('agents cannot read the blocked list', !!(await A2('select * from public.admi
 await db.exec(readFileSync(dir + '/13-delivery-zones.sql', 'utf8'));
 await db.exec(readFileSync(dir + '/13-delivery-zones.sql', 'utf8'));
 await BOSS(`insert into public.delivery_zones (branch_id, name, aliases, fee) values ('b2', 'الحصن', '{حصن}', 1), ('b2', 'الحي الشرقي', '{}', 0.75), ('b1', 'المخيم', '{}', 0.5)`);
+const zoff = await order({ ...base0, branch_id: 'b2', type: 'delivery', phone: '0798080800', idempotency_key: key(), address: { area: 'الحصن', street: 'شارع 1', building: '3' }, items: [{ item_id: 'broasted-1', qty: 1 }],
+  zone_id: (await anon(`select id from public.delivery_zones where name = 'الحصن'`)).rows[0].id });
+ok('zones switched off: fee by phone like before', zoff.ok && zoff.delivery_fee === undefined);
+await db.exec('update public.order_settings set zones_enabled = true');
 ok('admin adds zones', (await anon('select count(*)::int n from public.delivery_zones')).rows[0].n === 3);
 ok('customers cannot add zones', !!(await anon(`insert into public.delivery_zones (branch_id, name, fee) values ('b1','x',1)`)).error);
 const zid = (await anon(`select id from public.delivery_zones where name = 'الحصن'`)).rows[0].id;
