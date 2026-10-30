@@ -1,0 +1,17 @@
+{
+  "name": "بروستد عالطريق: اطلب أونلاين",
+  "short_name": "بروستد عالطريق",
+  "description": "اطلب من بروستد عالطريق: استلام من الفرع أو توصيل، والدفع عند الاستلام.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/order/?source=app",
+  "scope": "/order/",
+  "display": "standalone",
+  "background_color": "#fbf5ea",
+  "theme_color": "#e0263a",
+  "icons": [
+    { "src": "/order/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/order/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/order/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

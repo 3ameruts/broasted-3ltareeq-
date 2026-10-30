@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Check, Copy, Phone, RotateCcw } from 'lucide-react';
 import { getOrder, money, orderFor, splitLine, type Tracked } from '../data';
 import { Button } from '../ui/button';
+import { InstallPrompt } from './InstallPrompt';
 import { cn } from '../ui/cn';
 
 const STEPS = {
@@ -121,6 +122,7 @@ export function Tracking({ token, onNewOrder, onReorder }: { token: string; onNe
         </a>
         <Button variant="accent" onClick={onNewOrder}><RotateCcw size={18} /> طلب جديد</Button>
       </div>
+      <InstallPrompt />
       <p className="text-center text-sm text-soft">احفظ هالرابط عشان تتابع طلبك.</p>
     </div>
   );
