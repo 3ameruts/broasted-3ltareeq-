@@ -379,7 +379,7 @@ returns public.orders language plpgsql volatile security definer set search_path
 declare o public.orders;
 begin
   select * into o from public.orders where id = p_order for update;
-  if not found or not (public.is_admin() or o.branch_id = public.my_branch()) then
+  if not found or not coalesce(public.is_admin() or o.branch_id = public.my_branch(), false) then
     raise exception 'not_allowed' using errcode = '42501';
   end if;
   return o;
@@ -464,7 +464,7 @@ create or replace function public.set_item_availability(p_item text, p_mode text
 returns jsonb language plpgsql volatile security definer set search_path = public as $$
 declare v_branch text := coalesce(p_branch, public.my_branch()); v_until timestamptz; s public.order_settings;
 begin
-  if v_branch is null or not (public.is_admin() or v_branch = public.my_branch()) then
+  if v_branch is null or not coalesce(public.is_admin() or v_branch = public.my_branch(), false) then
     raise exception 'not_allowed' using errcode = '42501';
   end if;
   if not exists (select 1 from public.menu_items() where item_id = p_item) then
@@ -492,7 +492,7 @@ create or replace function public.pause_branch(p_minutes int, p_branch text defa
 returns jsonb language plpgsql volatile security definer set search_path = public as $$
 declare v_branch text := coalesce(p_branch, public.my_branch());
 begin
-  if v_branch is null or not (public.is_admin() or v_branch = public.my_branch()) then
+  if v_branch is null or not coalesce(public.is_admin() or v_branch = public.my_branch(), false) then
     raise exception 'not_allowed' using errcode = '42501';
   end if;
   update public.order_branches set paused_until = case when p_minutes is null then null
@@ -523,7 +523,7 @@ returns jsonb language plpgsql stable security definer set search_path = public 
 declare o public.orders;
 begin
   select * into o from public.orders where id = p_order;
-  if not found or not (public.is_admin() or o.branch_id = public.my_branch()) then
+  if not found or not coalesce(public.is_admin() or o.branch_id = public.my_branch(), false) then
     raise exception 'not_allowed' using errcode = '42501';
   end if;
   return jsonb_build_object('bad', (select count(*) from public.orders

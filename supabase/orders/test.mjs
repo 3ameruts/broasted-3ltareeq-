@@ -309,4 +309,28 @@ ok('only admin gets the summary', !!(await A2('select * from public.admin_rating
 await db.exec(`update public.orders set created_at = now() - interval '100 days' where tracking_token = '${ro.token}'`);
 await db.exec('select public.cleanup_orders()');
 ok('the rating stays after the old order is cleaned up', (await db.query('select count(*)::int n from public.order_ratings')).rows[0].n === 1);
+
+// ── call center availability (15-agent-availability.sql) ──
+await db.exec(readFileSync(dir + '/15-agent-availability.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/15-agent-availability.sql', 'utf8'));
+await db.exec(`update public.call_center_agents set active = true`);
+ok('agent switches an item off at any branch', (await A1(`select public.set_item_availability('tender-1', 'hour', 'b3') r`)).rows[0].r.ok);
+const av = (await anon(`select * from public.item_availability where branch_id = 'b3' and item_id = 'tender-1'`)).rows[0];
+ok('the change records who did it', av && av.updated_by === 'أحمد', JSON.stringify(av));
+ok('ordering it is stopped', (await order({ ...base0, branch_id: 'b3', phone: '0799191919', idempotency_key: key(), items: [{ item_id: 'tender-1', qty: 1 }] })).error === 'unavailable');
+ok('agent switches it back on', (await A1(`select public.set_item_availability('tender-1', 'on', 'b3') r`)).rows[0].r.ok
+  && !(await anon(`select 1 from public.item_availability where branch_id = 'b3' and item_id = 'tender-1'`)).rows.length);
+ok('agent pauses a branch', (await A1(`select public.pause_branch(15, 'b1') r`)).rows[0].r.ok);
+ok('agent resumes it', (await A1(`select public.pause_branch(null, 'b1') r`)).rows[0].r.ok);
+ok('branch staff still only their own branch', !!(await B1(`select public.set_item_availability('tender-1', 'hour', 'b2')`)).error);
+await db.exec(`update public.call_center_agents set active = false where name = 'سارة'`);
+ok('a stopped agent cannot change availability', !!(await A2(`select public.set_item_availability('tender-1', 'hour', 'b2')`)).error);
+// a signed-in account with no role at all (e.g. someone who signed up) gets nothing
+const NOBODY = (sql, p) => as('authenticated', '77777777-7777-7777-7777-777777777777', 'nobody@x.jo', sql, p);
+const anyOrder = (await BOSS(`select id from public.orders where status in ('new','accepted') limit 1`)).rows[0].id;
+ok('an account with no role cannot switch items off', !!(await NOBODY(`select public.set_item_availability('tender-1', 'hour', 'b2')`)).error);
+ok('an account with no role cannot pause a branch', !!(await NOBODY(`select public.pause_branch(30, 'b2')`)).error);
+ok('an account with no role cannot reject orders', !!(await NOBODY(`select public.reject_order($1, 'x', false)`, [anyOrder])).error);
+ok('an account with no role cannot see phone history', !!(await NOBODY(`select public.phone_history($1)`, [anyOrder])).error);
+ok('an account with no role cannot mark orders paid or ready', !!(await NOBODY(`select public.set_order_status($1, 'ready')`, [anyOrder])).error);
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

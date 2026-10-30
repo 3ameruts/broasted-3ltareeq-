@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { AlertTriangle, Bike, Check, ClipboardCopy, Headset, LogOut, MapPin, MessageCircle, Phone, Play, Store as StoreIcon, Unlock, UserX, Wifi, WifiOff, X } from 'lucide-react';
+import { AlertTriangle, Bike, Check, ClipboardCopy, Headset, LogOut, MapPin, MessageCircle, Pause, Phone, Play, Store as StoreIcon, Unlock, UserX, Wifi, WifiOff, X } from 'lucide-react';
+import type { Content } from '../../lib/types';
 import type { Order } from '../branch/api';
 import { keepAwake, ring, unlockAudio } from '../branch/alarm';
 import { Button } from '../ui/button';
@@ -17,7 +18,8 @@ const key = import.meta.env.VITE_ORDERS_SUPABASE_KEY || 'sb_publishable_crkSQ5p2
 const sb = createClient(url, key, { auth: { persistSession: true, storageKey: 'broasted-cc-auth' } });
 
 type CcOrder = Order & { fee_set_by?: string | null; claimed_by: string | null; claimed_name: string | null; claimed_at: string | null; confirmed_name: string | null; confirmed_at: string | null; pos_ref: string | null };
-type Branch = { id: string; code: string; name: string };
+type Branch = { id: string; code: string; name: string; accepting: boolean; paused_until: string | null };
+type Unavail = { branch_id: string; item_id: string; until: string | null; updated_by: string | null };
 type Res = { ok: boolean; error?: string; name?: string; repeat?: boolean };
 
 const money = (n: number) => Number(n).toFixed(2);
@@ -118,6 +120,7 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
   const [ratings, setRatings] = useState<Map<string, { stars: number; comment: string | null }>>(new Map());
   const [branches, setBranches] = useState<Branch[]>([]);
   const [filter, setFilter] = useState<string>('all');
+  const [view, setView] = useState<'orders' | 'menu'>('orders');
   const [online, setOnline] = useState(navigator.onLine);
   const [live, setLive] = useState(false);
   const [, tick] = useState(0);
@@ -145,10 +148,12 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
 
   useEffect(() => {
     refresh();
-    sb.from('order_branches').select('id, code, name').order('id').then(({ data }) => setBranches((data ?? []) as Branch[]));
+    const loadBranches = () => sb.from('order_branches').select('*').order('id').then(({ data }) => setBranches((data ?? []) as Branch[]));
+    loadBranches();
     // live updates; a poll every 15 s and a reload when the connection comes back make sure nothing is missed
     const ch = sb.channel('call-center')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_branches' }, loadBranches)
       .subscribe(status => { setLive(status === 'SUBSCRIBED'); if (status === 'SUBSCRIBED') refresh(); });
     const poll = setInterval(refresh, 15000);
     const up = () => { setOnline(true); refresh(); };
@@ -196,6 +201,12 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
               {connected ? <><Wifi size={14} /> متصل</> : <><WifiOff size={14} /> مش متصل</>}
             </p>
           </div>
+          <div className="grid grid-cols-2 gap-1 rounded-full bg-white/10 p-1" role="tablist" aria-label="الشاشة">
+            {([['orders', 'الطلبات'], ['menu', 'التوفّر والفروع']] as const).map(([v, l]) => (
+              <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
+                className={cn('h-9 rounded-full px-4 text-sm font-bold', view === v ? 'bg-white text-ink' : 'text-white')}>{l}</button>
+            ))}
+          </div>
           <span className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-bold">بانتظار حدا: <span className="num">{unclaimed.length}</span></span>
           <button onClick={() => sb.auth.signOut()} className="grid size-10 place-items-center rounded-full bg-white/10" aria-label="خروج"><LogOut size={18} /></button>
         </div>
@@ -218,6 +229,7 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
         </div>
       )}
 
+      {view === 'menu' ? <Availability branches={branches} filter={filter} branchName={branchName} tone={tone} /> : <>
       {/* three columns on a desk screen: waiting for someone, with me, with colleagues and done */}
       <main className="mx-auto grid max-w-7xl items-start gap-6 px-4 pt-4 lg:grid-cols-3">
         <Group title="طلبات جديدة" empty="ما في طلبات جديدة. أول ما يوصل طلب الشاشة رح تزمّر.">{open.map(card)}</Group>
@@ -227,7 +239,123 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
           <Group title="خلصت اليوم" empty="لسا ما خلص ولا طلب اليوم.">{done.map(card)}</Group>
         </div>
       </main>
+      </>}
     </div>
+  );
+}
+
+const until = (iso: string) => new Intl.DateTimeFormat('ar-JO-u-nu-latn', { timeZone: 'Asia/Amman', weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+
+// «التوفّر والفروع»: switch menu items off at one branch or all of them, and pause a branch, the same tools the branch screen has
+function Availability({ branches, filter, branchName, tone }: { branches: Branch[]; filter: string; branchName: (id: string) => string; tone: Map<string, string> }) {
+  const [content, setContent] = useState<Content | null>(null);
+  const [unavail, setUnavail] = useState<Unavail[]>([]);
+  const [pick, setPick] = useState<{ id: string; name: string } | null>(null);
+  const [find, setFind] = useState('');
+  const [busy, setBusy] = useState(false);
+  const targets = filter === 'all' ? branches.map(b => b.id) : [filter];
+  const load = useCallback(async () => {
+    const { data } = await sb.from('item_availability').select('*');
+    setUnavail((data ?? []) as Unavail[]);
+  }, []);
+  useEffect(() => {
+    sb.from('site_content').select('content').eq('id', 1).single().then(({ data }) => data && setContent(data.content as Content));
+    load();
+    const ch = sb.channel('cc-availability').on('postgres_changes', { event: '*', schema: 'public', table: 'item_availability' }, load).subscribe();
+    return () => { sb.removeChannel(ch); };
+  }, [load]);
+
+  const offAt = (item: string, branch: string) => unavail.find(u => u.item_id === item && u.branch_id === branch && (!u.until || new Date(u.until) > new Date()));
+  const run = async (fn: (b: string) => PromiseLike<{ error: unknown }>, ok: string) => {
+    setBusy(true);
+    const results = await Promise.all(targets.map(b => fn(b)));
+    setBusy(false);
+    if (results.some(r => r.error)) failed(results.find(r => r.error)!.error); else toast.success(ok);
+    load();
+  };
+  const set = (item: string, mode: 'on' | 'hour' | 'tomorrow' | 'manual') =>
+    run(b => sb.rpc('set_item_availability', { p_item: item, p_mode: mode, p_branch: b }), mode === 'on' ? 'رجع متوفر' : 'صار غير متوفر').then(() => setPick(null));
+  const pause = (b: string, minutes: number | null) => {
+    setBusy(true);
+    sb.rpc('pause_branch', { p_minutes: minutes, p_branch: b }).then(({ error }) => { setBusy(false); if (error) failed(error); else toast.success(minutes ? `${branchName(b)} انوقف ${minutes} دقيقة` : `${branchName(b)} رجع يستقبل`); });
+  };
+  const q = find.trim();
+
+  return (
+    <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 pt-4">
+      <section className="flex flex-col gap-3">
+        <h2 className="font-display text-2xl">الفروع</h2>
+        <div className="grid gap-3 md:grid-cols-3">
+          {branches.filter(b => filter === 'all' || b.id === filter).map(b => {
+            const paused = !!b.paused_until && new Date(b.paused_until) > new Date();
+            return (
+              <div key={b.id} className={cn('flex flex-col gap-2 rounded-3xl bg-white p-4 shadow-[0_0_0_2px_var(--color-line)]', paused && 'shadow-[0_0_0_3px_var(--color-brand)]')}>
+                <span className={cn('self-start rounded-full px-3 py-1 text-sm font-bold ring-2', tone.get(b.id))}>{b.name}</span>
+                {paused ? <>
+                  <p className="text-sm font-bold text-brand-deep">موقّف الطلبات لحد {until(b.paused_until!)}</p>
+                  <Button size="sm" onClick={() => pause(b.id, null)} disabled={busy}><Play size={16} /> شغّل الطلبات هسّا</Button>
+                </> : <>
+                  <p className="text-sm text-soft">بيستقبل طلبات</p>
+                  <div className="grid grid-cols-3 gap-1">
+                    {[15, 30, 60].map(m => <Button key={m} size="sm" variant="outline" onClick={() => pause(b.id, m)} disabled={busy}><Pause size={14} /> <span className="num">{m}</span>د</Button>)}
+                  </div>
+                </>}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-display text-2xl">الأصناف</h2>
+        <p className="rounded-2xl bg-white p-3 text-sm text-soft shadow-[0_0_0_2px_var(--color-line)]">
+          {filter === 'all' ? 'التغيير هون بيمشي على كل الفروع مع بعض. لفرع واحد، اختاره من فوق.' : `التغيير هون لـ ${branchName(filter)} بس، وبيتحدّث عند الزبون فوراً.`}
+        </p>
+        <Input value={find} onChange={e => setFind(e.target.value)} placeholder="دوّر على صنف…" />
+        {!content ? <p className="text-soft">…</p> : content.categories.filter(c => c.items.length).map(c => {
+          const items = c.items.filter(i => !q || i.name.includes(q));
+          if (!items.length) return null;
+          return (
+            <div key={c.id}>
+              <h3 className="mb-2 font-bold">{c.name}</h3>
+              <ul className="grid gap-2 md:grid-cols-2">
+                {items.map(i => {
+                  const offs = targets.map(b => ({ b, u: offAt(i.id, b) })).filter(x => x.u);
+                  const allOff = offs.length === targets.length;
+                  return (
+                    <li key={i.id}>
+                      <button disabled={busy} onClick={() => (offs.length ? set(i.id, 'on') : setPick({ id: i.id, name: i.name }))} role="switch" aria-checked={!offs.length}
+                        className={cn('flex min-h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 py-2 text-start shadow-[0_0_0_2px_var(--color-line)]', offs.length && 'bg-brand/5 shadow-[0_0_0_2px_var(--color-brand)]')}>
+                        <span className="flex-1">
+                          <span className="block font-bold">{i.name}</span>
+                          {offs.map(({ b, u }) => (
+                            <span key={b} className="block text-xs font-semibold text-brand-deep">
+                              {filter === 'all' ? `${branchName(b).replace('فرع ', '')}: ` : ''}غير متوفر{u!.until ? ` لحد ${until(u!.until)}` : ''}{u!.updated_by ? ` · ${u!.updated_by}` : ''}
+                            </span>
+                          ))}
+                          {offs.length > 0 && !allOff && <span className="block text-xs text-soft">متوفر بباقي الفروع</span>}
+                        </span>
+                        <span className={cn('relative h-8 w-14 shrink-0 rounded-full transition-colors', offs.length ? 'bg-ink/20' : 'bg-emerald-500')}>
+                          <span className={cn('absolute top-1 size-6 rounded-full bg-white shadow transition-all', offs.length ? 'end-1' : 'start-1')} />
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
+      </section>
+
+      <Sheet open={!!pick} onOpenChange={x => !x && setPick(null)} title={pick ? `«${pick.name}» غير متوفر${filter === 'all' ? ' بكل الفروع' : ` بـ ${branchName(filter)}`}` : ''}>
+        <div className="flex flex-col gap-3 pb-4">
+          <Button size="lg" variant="outline" onClick={() => pick && set(pick.id, 'hour')} disabled={busy}>لمدة ساعة</Button>
+          <Button size="lg" variant="outline" onClick={() => pick && set(pick.id, 'tomorrow')} disabled={busy}>لبكرة (برجع لحاله مع الفتح)</Button>
+          <Button size="lg" onClick={() => pick && set(pick.id, 'manual')} disabled={busy}>لحد ما أرجّعه</Button>
+        </div>
+      </Sheet>
+    </main>
   );
 }
 

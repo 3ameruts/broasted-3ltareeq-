@@ -47,7 +47,7 @@ returns public.orders language plpgsql volatile security definer set search_path
 declare o public.orders;
 begin
   select * into o from public.orders where id = p_order for update;
-  if not found or not (public.is_admin() or public.is_agent() or o.branch_id = public.my_branch()) then
+  if not found or not coalesce(public.is_admin() or public.is_agent() or o.branch_id = public.my_branch(), false) then
     raise exception 'not_allowed' using errcode = '42501';
   end if;
   return o;
@@ -58,7 +58,7 @@ returns jsonb language plpgsql stable security definer set search_path = public 
 declare o public.orders;
 begin
   select * into o from public.orders where id = p_order;
-  if not found or not (public.is_admin() or public.is_agent() or o.branch_id = public.my_branch()) then
+  if not found or not coalesce(public.is_admin() or public.is_agent() or o.branch_id = public.my_branch(), false) then
     raise exception 'not_allowed' using errcode = '42501';
   end if;
   return jsonb_build_object('bad', (select count(*) from public.orders
