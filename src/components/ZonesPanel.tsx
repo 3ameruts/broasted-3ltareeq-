@@ -90,16 +90,19 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
           ))}
         </div>
 
-        <div className="asubpanel">
-          <p className="asub"><strong>الصق قائمة المناطق</strong></p>
+        <details className="asubpanel" open={!mine.length}>
+          <summary className="asub" style={{ cursor: 'pointer' }}><strong>الصق قائمة مناطق (إضافة أو تحديث)</strong></summary>
           <p className="afield__hint">كل سطر منطقة وسعرها، مثل: «الحصن - 1» أو «الحي الشرقي 0.75»، والسعر «من – لـ» هيك: «حتينا 2/2.5». أسماء ثانية للمنطقة بفاصلة قبل السعر: «القبة، دوار القبة - 1.25». إذا المنطقة موجودة، سعرها بيتحدّث.</p>
           <label className="afield"><textarea rows={6} value={paste} onChange={e => setPaste(e.target.value)} placeholder={'الحصن - 1\nالحي الشرقي - 0.75\nالقبة، دوار القبة - 1.25'} /></label>
           {paste.trim() && <p className="afield__hint">جاهز: <b>{preview.rows.length}</b> منطقة{preview.bad.length ? <> · <span className="afield__err">ما فهمنا: {preview.bad.join(' | ')}</span></> : null}</p>}
           <div className="arow"><button className="abtn abtn--primary" onClick={importList} disabled={busy || !preview.rows.length}>{busy ? 'بنحفظ…' : `احفظ لـ ${branches.find(b => b.id === branch)?.name ?? ''}`}</button></div>
-        </div>
+        </details>
 
         {!zones ? <p>…</p> : !mine.length ? <p>ما في مناطق لهالفرع لسا (التوصيل بالاتصال).</p> : (
-          <ul className="aitems">{mine.map(z => <ZoneRow key={z.id} z={z} onSave={p => save(z, p)} onRemove={() => remove(z)} />)}</ul>
+          <details className="asubpanel">
+            <summary className="asub" style={{ cursor: 'pointer' }}><strong>مناطق {branches.find(b => b.id === branch)?.name ?? ''} ({mine.length})</strong> <span className="afield__hint">اكبس لتفتحها وتعدّل</span></summary>
+            <ul className="aitems">{mine.map(z => <ZoneRow key={z.id} z={z} onSave={p => save(z, p)} onRemove={() => remove(z)} />)}</ul>
+          </details>
         )}
       </div>
     </section>
