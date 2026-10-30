@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { AlertTriangle, Bike, Check, ClipboardCopy, Headset, LogOut, MapPin, MessageCircle, Pause, Phone, Play, Store as StoreIcon, Unlock, UserX, Wifi, WifiOff, X } from 'lucide-react';
+import { AlertTriangle, Bike, Check, ClipboardCopy, Headset, Search, LogOut, MapPin, MessageCircle, Pause, Phone, Play, Store as StoreIcon, Unlock, UserX, Wifi, WifiOff, X } from 'lucide-react';
 import type { Content } from '../../lib/types';
 import type { Order } from '../branch/api';
 import { keepAwake, ring, unlockAudio } from '../branch/alarm';
@@ -24,6 +24,7 @@ type Res = { ok: boolean; error?: string; name?: string; repeat?: boolean };
 
 const money = (n: number) => Number(n).toFixed(2);
 const clock = (iso: string) => new Intl.DateTimeFormat('ar-JO-u-nu-latn', { timeZone: 'Asia/Amman', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+const day = (iso: string) => new Intl.DateTimeFormat('ar-JO-u-nu-latn', { timeZone: 'Asia/Amman', weekday: 'long', day: 'numeric', month: 'numeric' }).format(new Date(iso));
 const minsAgo = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
 // a taken order stays with that agent until they confirm or cancel it (only an admin can unlock it)
 const heldBy = (o: CcOrder) => o.claimed_by;
@@ -121,6 +122,26 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
   const [branches, setBranches] = useState<Branch[]>([]);
   const [filter, setFilter] = useState<string>('all');
   const [view, setView] = useState<'orders' | 'menu'>('orders');
+  // search an older order: by its number (numbers restart every day, so there can be several) or the customer's phone
+  const [query, setQuery] = useState('');
+  const [found, setFound] = useState<CcOrder[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const search = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const q = query.trim().replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/^#/, '');
+    if (!q) { setFound(null); return; }
+    const digits = q.replace(/\D/g, '');
+    const phone = digits.replace(/^(00962|962)/, '0').replace(/^7(\d{8})$/, '07$1');
+    let req = sb.from('orders').select('*, order_items(*)').order('created_at', { ascending: false }).limit(30);
+    if (/^07[789]\d{7}$/.test(phone)) req = req.eq('customer_phone', phone);
+    else if (/^\d{1,5}$/.test(q)) req = req.eq('number', Number(q));
+    else { toast.error('اكتب رقم الطلب (مثل 57) أو رقم الزبون (07…)'); return; }
+    setSearching(true);
+    const { data, error } = await req;
+    setSearching(false);
+    if (error) return failed(error);
+    setFound(((data ?? []) as CcOrder[]).map(o => ({ ...o, order_items: [...o.order_items].sort((a, b) => a.id - b.id) })));
+  };
   const [online, setOnline] = useState(navigator.onLine);
   const [live, setLive] = useState(false);
   const [, tick] = useState(0);
@@ -229,7 +250,22 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
         </div>
       )}
 
-      {view === 'menu' ? <Availability branches={branches} filter={filter} branchName={branchName} tone={tone} /> : <>
+      {view === 'orders' && (
+        <form onSubmit={search} className="mx-auto flex max-w-7xl gap-2 px-4 pt-4" role="search">
+          <div className="relative flex-1">
+            <Search size={18} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-soft" />
+            <Input value={query} onChange={e => { setQuery(e.target.value); if (!e.target.value.trim()) setFound(null); }} placeholder="دوّر على طلب قديم: رقم الطلب أو رقم الزبون" inputMode="numeric" className="ps-10" aria-label="بحث عن طلب" />
+          </div>
+          <Button type="submit" disabled={searching}>{searching ? 'لحظة…' : 'دوّر'}</Button>
+          {found && <Button type="button" variant="outline" onClick={() => { setQuery(''); setFound(null); }}>رجوع للطلبات</Button>}
+        </form>
+      )}
+      {view === 'orders' && found ? (
+        <main className="mx-auto flex max-w-7xl flex-col gap-4 px-4 pt-4">
+          <p className="font-bold">{found.length ? `لقينا ${found.length} طلب${found.length === 30 ? ' (آخر 30)' : ''}:` : 'ما لقينا ولا طلب. الطلبات الأقدم من مدة الاحتفاظ بتنحذف.'}</p>
+          <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">{found.filter(o => filter === 'all' || o.branch_id === filter).map(card)}</div>
+        </main>
+      ) : view === 'menu' ? <Availability branches={branches} filter={filter} branchName={branchName} tone={tone} /> : <>
       {/* three columns on a desk screen: waiting for someone, with me, with colleagues and done */}
       <main className="mx-auto grid max-w-7xl items-start gap-6 px-4 pt-4 lg:grid-cols-3">
         <Group title="طلبات جديدة" empty="ما في طلبات جديدة. أول ما يوصل طلب الشاشة رح تزمّر.">{open.map(card)}</Group>
@@ -427,7 +463,9 @@ function OrderCard({ o, rating, twins, userId, admin, branchName, tone, onChange
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-display text-4xl leading-none"><span className="num">#{o.number}</span></p>
-          <p className={cn('mt-1 text-sm', late ? 'font-bold text-brand-deep' : 'text-soft')}>{clock(o.created_at)} · {age < 1 ? 'هسّا' : `قبل ${age} د`}</p>
+          <p className={cn('mt-1 text-sm', late ? 'font-bold text-brand-deep' : 'text-soft')}>
+            {age < 24 * 60 ? <>{clock(o.created_at)} · {age < 1 ? 'هسّا' : age < 120 ? `قبل ${age} د` : `قبل ${Math.floor(age / 60)} س`}</> : <>{day(o.created_at)} · {clock(o.created_at)}</>}
+          </p>
         </div>
         <div className="flex flex-col items-end gap-1.5">
           <span className={cn('rounded-full px-3 py-1 text-sm font-bold ring-2', tone)}>{branchName}</span>
