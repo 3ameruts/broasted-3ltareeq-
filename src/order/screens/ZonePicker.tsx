@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Check, Search } from 'lucide-react';
-import { money, searchZones, type Zone } from '../data';
+import { searchZones, zoneFee, type Zone } from '../data';
 import { Input } from '../ui/field';
 import { cn } from '../ui/cn';
 
@@ -10,7 +10,7 @@ export function ZonePicker({ zones, value, onPick, invalid }: { zones: Zone[]; v
   if (value) return (
     <div className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 shadow-[0_0_0_2px_var(--color-brand-deep)]">
       <span className="flex items-center gap-2 font-bold"><Check size={18} className="text-brand-deep" /> {value.name}</span>
-      <span className="text-sm">توصيل <b className="num">{money(value.fee)}</b> د.أ</span>
+      <span className="text-sm">توصيل <b className="num">{zoneFee(value)}</b> د.أ</span>
       <button className="text-sm font-bold text-soft underline" onClick={() => { onPick(null); setQ(''); }}>غيّر</button>
     </div>
   );
@@ -27,7 +27,7 @@ export function ZonePicker({ zones, value, onPick, invalid }: { zones: Zone[]; v
             <button role="option" aria-selected={false} onClick={() => onPick(z)}
               className={cn('flex min-h-12 w-full items-center justify-between gap-3 border-b border-line px-4 text-start last:border-0')}>
               <span className="font-semibold">{z.name}</span>
-              <span className="num text-sm text-soft">{money(z.fee)} د.أ</span>
+              <span className="num text-sm text-soft">{zoneFee(z)} د.أ</span>
             </button>
           </li>
         ))}

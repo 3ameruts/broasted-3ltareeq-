@@ -3,20 +3,22 @@ import { supabase } from '../lib/supabase';
 
 // Admin: delivery areas and fees per branch. Paste a whole list at once (one area per line with its price),
 // then fix names, other names customers use, prices, or switch an area off.
-type Zone = { id: number; branch_id: string; name: string; aliases: string[]; fee: number; active: boolean };
+type Zone = { id: number; branch_id: string; name: string; aliases: string[]; fee: number; fee_max: number | null; active: boolean };
 type Flash = (text: string, bad?: boolean) => void;
 
 // «الحصن - 1»، «الحصن: 1.5»، «الحصن 0.75»، «الحصن، حصن، دوار الحصن = 1» (the names before the price, the first is the main one)
+// and from–to prices: «حتينا - 2/2.5» or «حتينا 2-2.5»
 function parse(text: string) {
-  const rows: { name: string; aliases: string[]; fee: number }[] = [], bad: string[] = [];
+  const rows: { name: string; aliases: string[]; fee: number; fee_max: number | null }[] = [], bad: string[] = [];
   for (const raw of text.split('\n')) {
     const line = raw.trim().replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
     if (!line) continue;
-    const m = line.match(/^(.*?)[\s:=\-–—]*(\d+(?:[.,]\d+)?)\s*(?:د\.?أ|دينار|jd)?$/i);
+    const m = line.match(/^(.*?)[\s:=\-–—]*(\d+(?:[.,]\d+)?)(?:\s*[-–—/\\]\s*(\d+(?:[.,]\d+)?))?\s*(?:د\.?أ|دينار|jd)?$/i);
     const names = m?.[1].split(/[،,|/]/).map(x => x.trim()).filter(Boolean) ?? [];
-    const fee = m ? Number(m[2].replace(',', '.')) : NaN;
-    if (!names.length || !(fee >= 0 && fee <= 20)) { bad.push(raw.trim()); continue; }
-    rows.push({ name: names[0].slice(0, 60), aliases: names.slice(1), fee });
+    const a = m ? Number(m[2].replace(',', '.')) : NaN, b = m?.[3] ? Number(m[3].replace(',', '.')) : NaN;
+    const fee = b >= 0 ? Math.min(a, b) : a, max = b >= 0 && b !== a ? Math.max(a, b) : null;
+    if (!names.length || !(fee >= 0 && fee <= 20) || (max !== null && max > 20)) { bad.push(raw.trim()); continue; }
+    rows.push({ name: names[0].slice(0, 60), aliases: names.slice(1), fee, fee_max: max });
   }
   return { rows, bad };
 }
@@ -32,7 +34,7 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
   const refresh = useCallback(async () => {
     const { data, error } = await supabase.from('delivery_zones').select('*').order('name');
     if (error) return setMissing(true);
-    setZones((data ?? []).map(z => ({ ...z, fee: Number(z.fee) })) as Zone[]);
+    setZones((data ?? []).map(z => ({ ...z, fee: Number(z.fee), fee_max: z.fee_max == null ? null : Number(z.fee_max) })) as Zone[]);
   }, []);
   useEffect(() => {
     supabase.from('order_branches').select('id, name').order('id').then(({ data }) => { setBranches(data ?? []); setBranch(b => b || data?.[0]?.id || ''); });
@@ -47,7 +49,7 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
     if (!preview.rows.length) return;
     setBusy(true);
     const { error } = await supabase.from('delivery_zones')
-      .upsert(preview.rows.map(r => ({ branch_id: branch, name: r.name, aliases: r.aliases, fee: r.fee, active: true })), { onConflict: 'branch_id,name' });
+      .upsert(preview.rows.map(r => ({ branch_id: branch, name: r.name, aliases: r.aliases, fee: r.fee, fee_max: r.fee_max, active: true })), { onConflict: 'branch_id,name' });
     setBusy(false);
     if (error) return flash(`ما انحفظت المناطق (${error.message})`, true);
     flash(`انحفظت ${preview.rows.length} منطقة`);
@@ -80,7 +82,7 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
 
         <div className="asubpanel">
           <p className="asub"><strong>الصق قائمة المناطق</strong></p>
-          <p className="afield__hint">كل سطر منطقة وسعرها، مثل: «الحصن - 1» أو «الحي الشرقي 0.75». أسماء ثانية للمنطقة بفاصلة قبل السعر: «القبة، دوار القبة - 1.25». إذا المنطقة موجودة، سعرها بيتحدّث.</p>
+          <p className="afield__hint">كل سطر منطقة وسعرها، مثل: «الحصن - 1» أو «الحي الشرقي 0.75»، والسعر «من – لـ» هيك: «حتينا 2/2.5». أسماء ثانية للمنطقة بفاصلة قبل السعر: «القبة، دوار القبة - 1.25». إذا المنطقة موجودة، سعرها بيتحدّث.</p>
           <label className="afield"><textarea rows={6} value={paste} onChange={e => setPaste(e.target.value)} placeholder={'الحصن - 1\nالحي الشرقي - 0.75\nالقبة، دوار القبة - 1.25'} /></label>
           {paste.trim() && <p className="afield__hint">جاهز: <b>{preview.rows.length}</b> منطقة{preview.bad.length ? <> · <span className="afield__err">ما فهمنا: {preview.bad.join(' | ')}</span></> : null}</p>}
           <div className="arow"><button className="abtn abtn--primary" onClick={importList} disabled={busy || !preview.rows.length}>{busy ? 'بنحفظ…' : `احفظ لـ ${branches.find(b => b.id === branch)?.name ?? ''}`}</button></div>
@@ -98,18 +100,22 @@ function ZoneRow({ z, onSave, onRemove }: { z: Zone; onSave: (p: Partial<Zone>) 
   const [name, setName] = useState(z.name);
   const [aliases, setAliases] = useState(z.aliases.join('، '));
   const [fee, setFee] = useState(String(z.fee));
+  const [max, setMax] = useState(z.fee_max == null ? '' : String(z.fee_max));
+  const maxN = max.trim() === '' ? null : Number(max);
+  const maxOk = maxN === null || (maxN > Number(fee) && maxN <= 20);
   const list = aliases.split(/[،,]/).map(x => x.trim()).filter(Boolean);
-  const changed = name.trim() !== z.name || list.join('|') !== z.aliases.join('|') || Number(fee) !== z.fee;
+  const changed = name.trim() !== z.name || list.join('|') !== z.aliases.join('|') || Number(fee) !== z.fee || maxN !== z.fee_max;
   return (
     <li className="aitem" style={z.active ? undefined : { opacity: 0.6 }}>
       <div className="agrid">
         <label className="afield"><span className="afield__label">المنطقة</span><input value={name} onChange={e => setName(e.target.value)} maxLength={60} /></label>
         <label className="afield"><span className="afield__label">أسماء ثانية (اختياري)</span><input value={aliases} onChange={e => setAliases(e.target.value)} placeholder="بفاصلة بينهم" /></label>
-        <label className="afield"><span className="afield__label">سعر التوصيل</span><input dir="ltr" inputMode="decimal" value={fee} onChange={e => setFee(e.target.value.replace(/[^\d.]/g, ''))} /></label>
+        <label className="afield"><span className="afield__label">سعر التوصيل (من)</span><input dir="ltr" inputMode="decimal" value={fee} onChange={e => setFee(e.target.value.replace(/[^\d.]/g, ''))} /></label>
+        <label className="afield"><span className="afield__label">لـ (إذا السعر من – لـ)</span><input dir="ltr" inputMode="decimal" value={max} onChange={e => setMax(e.target.value.replace(/[^\d.]/g, ''))} placeholder="فاضي = سعر واحد" /></label>
       </div>
       <div className="arow">
-        {changed && <button className="abtn abtn--small abtn--primary" disabled={!name.trim() || !(Number(fee) >= 0 && Number(fee) <= 20)}
-          onClick={() => onSave({ name: name.trim(), aliases: list, fee: Math.round(Number(fee) * 100) / 100 })}>احفظ</button>}
+        {changed && <button className="abtn abtn--small abtn--primary" disabled={!name.trim() || !(Number(fee) >= 0 && Number(fee) <= 20) || !maxOk}
+          onClick={() => onSave({ name: name.trim(), aliases: list, fee: Math.round(Number(fee) * 100) / 100, fee_max: maxN === null ? null : Math.round(maxN * 100) / 100 })}>احفظ</button>}
         <button className="abtn abtn--small" onClick={() => onSave({ active: !z.active })}>{z.active ? 'وقّف التوصيل لهالمنطقة' : 'رجّعها'}</button>
         <button className="abtn abtn--small abtn--ghost" onClick={onRemove}>امسح</button>
       </div>

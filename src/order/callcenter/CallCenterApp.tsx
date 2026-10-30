@@ -249,7 +249,7 @@ function posText(o: CcOrder, branchName: string) {
     for (const x of extras) lines.push(`   + ${x.name}${x.qty > 1 ? ' ×' + x.qty : ''}  ${money(x.total)}`);
     if (i.note) lines.push(`   ملاحظة: ${i.note}`);
   }
-  if (o.type === 'delivery') lines.push('', o.delivery_fee != null ? `التوصيل${o.delivery_zone ? ` (${o.delivery_zone})` : ''}: ${money(o.delivery_fee)}` : 'التوصيل: بالاتصال');
+  if (o.type === 'delivery') lines.push('', `التوصيل${o.delivery_zone ? ` (${o.delivery_zone})` : ''}: ${o.delivery_fee != null ? money(o.delivery_fee) : o.delivery_range ? `${o.delivery_range} (بيتأكد)` : 'بالاتصال'}`);
   lines.push(`المجموع: ${money(Number(o.subtotal) + Number(o.delivery_fee ?? 0))} د.أ`);
   lines.push(`الدفع: ${o.pay_method === 'cash' ? 'كاش' : 'كليك'}${o.pay_method === 'cash' && o.change_for ? ` (فكّة لـ ${money(o.change_for)})` : ''}`);
   if (o.note) lines.push(`ملاحظة الزبون: ${o.note}`);
@@ -353,7 +353,7 @@ function OrderCard({ o, twins, userId, admin, branchName, tone, onChange }: { o:
       </div>
       {o.type === 'delivery' && (o.delivery_fee != null
         ? <p className="-mt-2 text-sm">التوصيل{o.delivery_zone ? ` (${o.delivery_zone})` : ''}: <b className="num">{money(o.delivery_fee)}</b>{o.fee_set_by ? <span className="text-soft"> · عدّله {o.fee_set_by}</span> : null}</p>
-        : <p className="-mt-2 rounded-2xl bg-mustard/30 px-3 py-2 text-sm font-bold">⚠️ منطقة مش بالقائمة: اتفق مع الزبون على سعر التوصيل وسجّله تحت.</p>)}
+        : <p className="-mt-2 rounded-2xl bg-mustard/30 px-3 py-2 text-sm font-bold">⚠️ {o.delivery_range ? `${o.delivery_zone}: التوصيل من ${o.delivery_range.replace(' – ', ' لـ ')}، ثبّت السعر مع الزبون وسجّله تحت.` : 'منطقة مش بالقائمة: اتفق مع الزبون على سعر التوصيل وسجّله تحت.'}</p>)}
 
       {o.status === 'new' && !holder && (
         <Button size="lg" onClick={() => act(() => rpc('cc_claim', { p_order: o.id }), 'الطلب معك')} disabled={busy}><Headset size={20} /> استلمت الطلب</Button>

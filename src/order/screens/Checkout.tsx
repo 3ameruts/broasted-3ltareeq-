@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Banknote, LocateFixed, MapPin, Smartphone } from 'lucide-react';
 import { usePersisted, type Cart } from '../cart';
-import { createOrder, deviceFor, ERRORS, latestOrder, money, normPhone, rememberDevice, rememberOrder, type OrderPayload, type Zone } from '../data';
+import { createOrder, deviceFor, ERRORS, latestOrder, money, normPhone, rememberDevice, rememberOrder, zoneFee, type OrderPayload, type Zone } from '../data';
 import { PhoneCheck } from './PhoneCheck';
 import { ZonePicker } from './ZonePicker';
 import type { Mode } from './BranchPicker';
@@ -36,7 +36,8 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
   const hasZones = mode === 'delivery' && zones.length > 0;
   const [zone, setZone] = useState<Zone | null>(() => zones.find(z => z.name === c.area) ?? null);
   const [notListed, setNotListed] = useState(false);
-  const fee = hasZones && !notListed && zone ? zone.fee : null;
+  const picked = hasZones && !notListed ? zone : null;
+  const fee = picked && picked.fee_max == null ? picked.fee : null;  // a from–to area is confirmed by phone
   const total = cart.total + (fee ?? 0);
   const topRef = useRef<HTMLDivElement>(null);
   useEffect(() => { topRef.current?.scrollIntoView(); }, []);
@@ -77,7 +78,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
       address: mode === 'delivery' ? { area: c.area, street: c.street, building: c.building, floor: c.floor, landmark: c.landmark } : undefined,
       location: mode === 'delivery' ? loc : null,
       device: requireOtp ? deviceFor(c.phone) : undefined,
-      zone_id: fee !== null && zone ? zone.id : undefined,
+      zone_id: picked ? picked.id : undefined,
       items: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note || undefined, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })),
     };
     setMessage('');
@@ -155,6 +156,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
             <Field id="f-area" label="منطقتك" error={errors.area}>
               <ZonePicker zones={zones} value={zone} invalid={!!errors.area}
                 onPick={z => { setZone(z); setC(p => ({ ...p, area: z?.name ?? '' })); if (z) setErrors(e => ({ ...e, area: undefined })); }} />
+              {zone?.fee_max != null && <p className="mt-2 rounded-2xl bg-mustard/25 px-3 py-2 text-sm font-semibold">سعر التوصيل لهالمنطقة من {zone.fee.toFixed(2)} لـ {zone.fee_max.toFixed(2)} د.أ حسب مكانك بالزبط، والكول سنتر بيأكّده معك بالاتصال.</p>}
             </Field>
           ) : (
             <>
@@ -239,7 +241,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         <div className={cn('flex justify-between font-bold', fee === null ? 'mt-3 border-t border-line pt-3' : 'mt-1')}>
           <span>المجموع</span><span className="num">{money(total)} د.أ</span>
         </div>
-        {mode === 'delivery' && fee === null && <p className="mt-1 text-sm text-soft">+ التوصيل بيتحدد بالاتصال</p>}
+        {mode === 'delivery' && fee === null && <p className="mt-1 text-sm text-soft">{picked ? `+ التوصيل (${picked.name}) ${zoneFee(picked)} د.أ، بيتأكد بالاتصال` : '+ التوصيل بيتحدد بالاتصال'}</p>}
       </section>
       <div className="hidden flex-col gap-2 lg:flex">{alert}{submitButton}</div>
     </aside>

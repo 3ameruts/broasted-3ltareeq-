@@ -12,6 +12,10 @@ create table if not exists public.delivery_zones (
   active boolean not null default true,
   unique (branch_id, name)
 );
+-- بعض المناطق سعرها «من – لـ» (حسب وين بالزبط): fee = من، fee_max = لـ. الزبون بيشوف المدى والكول سنتر بيثبّت السعر.
+alter table public.delivery_zones add column if not exists fee_max numeric(6,2) check (fee_max between 0 and 20);
+alter table public.delivery_zones drop constraint if exists delivery_zones_range;
+alter table public.delivery_zones add constraint delivery_zones_range check (fee_max is null or fee_max > fee);
 alter table public.delivery_zones enable row level security;
 revoke all on public.delivery_zones from anon, authenticated;
 grant select on public.delivery_zones to anon, authenticated;
@@ -25,6 +29,7 @@ create policy "admins manage zones" on public.delivery_zones for all to authenti
 alter table public.orders add column if not exists delivery_zone text;
 alter table public.orders add column if not exists delivery_fee numeric(6,2) check (delivery_fee between 0 and 50);
 alter table public.orders add column if not exists fee_set_by text;
+alter table public.orders add column if not exists delivery_range text;
 
 -- الطلب: نفس فحوصات 10 و 11، وبعد ما ينعمل الطلب بنثبّت منطقة التوصيل وسعرها (من قاعدة البيانات، مش من المتصفح)
 create or replace function public.create_order(p jsonb)
@@ -53,9 +58,12 @@ begin
   if (r->>'ok')::boolean and p->>'type' = 'delivery' and coalesce((r->>'repeat')::boolean, false) = false then
     begin v_zone := (p->>'zone_id')::bigint; exception when others then v_zone := null; end;
     select * into z from public.delivery_zones where id = v_zone and branch_id = p->>'branch_id' and active;
-    if found then
+    if found and z.fee_max is null then
       update public.orders set delivery_zone = z.name, delivery_fee = z.fee where tracking_token = r->>'token';
       r := r || jsonb_build_object('delivery_fee', z.fee);
+    elsif found then  -- سعر «من – لـ»: المنطقة معروفة والسعر النهائي بيثبّته الكول سنتر
+      update public.orders set delivery_zone = z.name, delivery_range = trim(to_char(z.fee, 'FM990.00')) || ' – ' || trim(to_char(z.fee_max, 'FM990.00'))
+      where tracking_token = r->>'token';
     end if;
   end if;
   return r;
@@ -85,7 +93,7 @@ returns jsonb language sql stable security definer set search_path = public as $
     'name', o.customer_name,
     'phone', left(o.customer_phone, 3) || '****' || right(o.customer_phone, 3),
     'pay_method', o.pay_method, 'subtotal', o.subtotal, 'reject_reason', o.reject_reason,
-    'delivery_fee', o.delivery_fee, 'delivery_zone', o.delivery_zone,
+    'delivery_fee', o.delivery_fee, 'delivery_zone', o.delivery_zone, 'delivery_range', o.delivery_range,
     'created_at', o.created_at, 'accepted_at', o.accepted_at, 'ready_at', o.ready_at, 'delivered_at', o.delivered_at,
     'printed_at', o.printed_at,
     'contact_phone', s.phone,
@@ -120,7 +128,7 @@ begin
     'id', o.id, 'number', o.number, 'branch', b.name, 'type', o.type, 'created_at', o.created_at,
     'name', o.customer_name, 'phone', o.customer_phone, 'address', o.address, 'location', o.location, 'note', o.note,
     'pay_method', o.pay_method, 'change_for', o.change_for, 'subtotal', o.subtotal,
-    'delivery_fee', o.delivery_fee, 'delivery_zone', o.delivery_zone,
+    'delivery_fee', o.delivery_fee, 'delivery_zone', o.delivery_zone, 'delivery_range', o.delivery_range,
     'cliq_alias', case when o.pay_method = 'cliq' then s.cliq_alias end,
     'warn', (select count(*) from public.orders x where x.customer_phone = o.customer_phone and x.status in ('rejected', 'no_show')),
     'items', (select coalesce(jsonb_agg(jsonb_build_object('name', i.name, 'qty', i.qty, 'options', i.options, 'note', i.note, 'line_total', i.line_total) order by i.id), '[]')

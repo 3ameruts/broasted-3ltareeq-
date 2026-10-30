@@ -311,7 +311,7 @@ function OrderCard({ o, branch, cliqAlias, onChange }: { o: Order; branch: Branc
       <div className="flex items-baseline justify-between">
         <span className="text-sm">
           الدفع: <b>{o.pay_method === 'cash' ? 'كاش' : 'كليك'}</b>{o.pay_method === 'cash' && o.change_for ? <> · فكّة لـ <span className="num">{money(o.change_for)}</span></> : null}
-          {o.type === 'delivery' && (o.delivery_fee != null ? <> · التوصيل <span className="num">{money(o.delivery_fee)}</span></> : ' · + التوصيل بالاتصال')}
+          {o.type === 'delivery' && (o.delivery_fee != null ? <> · التوصيل <span className="num">{money(o.delivery_fee)}</span></> : o.delivery_range ? <> · التوصيل <span className="num">{o.delivery_range}</span> (بيتأكد)</> : ' · + التوصيل بالاتصال')}
         </span>
         <span className="num text-xl font-bold">{money(Number(o.subtotal) + Number(o.delivery_fee ?? 0))} د.أ</span>
       </div>

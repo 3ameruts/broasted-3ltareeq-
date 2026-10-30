@@ -15,7 +15,9 @@ export type Settings = {
 export type OrderBranch = { id: string; code: string; name: string; accepting: boolean; paused_until: string | null };
 export type Unavailable = { branch_id: string; item_id: string; until: string | null };
 
-export type Zone = { id: number; branch_id: string; name: string; aliases: string[]; fee: number };
+export type Zone = { id: number; branch_id: string; name: string; aliases: string[]; fee: number; fee_max?: number | null };
+// «1.50» or «2.00 – 2.50» for areas priced from–to
+export const zoneFee = (z: Zone) => (z.fee_max != null ? `${z.fee.toFixed(2)} – ${z.fee_max.toFixed(2)}` : z.fee.toFixed(2));
 export type Store = { content: Content; settings: Settings; branches: OrderBranch[]; unavailable: Unavailable[]; zones: Zone[] };
 
 export async function loadStore(): Promise<Store> {
@@ -24,12 +26,12 @@ export async function loadStore(): Promise<Store> {
     db.from('order_settings').select('*').eq('id', 1).single(),
     db.from('order_branches').select('*').order('id'),
     db.from('item_availability').select('branch_id,item_id,until'),
-    db.from('delivery_zones').select('id,branch_id,name,aliases,fee').order('name'),
+    db.from('delivery_zones').select('id,branch_id,name,aliases,fee,fee_max').order('name'),
   ]);
   const err = c.error || s.error || b.error || a.error;
   if (err) throw err;
   // no zones (or the zones table not set up yet): delivery fee by phone, as before
-  const zones = ((z.error ? [] : z.data) as Zone[]).map(x => ({ ...x, fee: Number(x.fee) }));
+  const zones = ((z.error ? [] : z.data) as Zone[]).map(x => ({ ...x, fee: Number(x.fee), fee_max: x.fee_max == null ? null : Number(x.fee_max) }));
   return { content: c.data.content as Content, settings: s.data as Settings, branches: b.data as OrderBranch[], unavailable: a.data as Unavailable[], zones };
 }
 
@@ -99,7 +101,7 @@ export async function createOrder(p: OrderPayload): Promise<CreateResult> {
 export type Tracked = {
   number: number; code: string; branch: string; status: 'new' | 'accepted' | 'ready' | 'delivered' | 'rejected' | 'no_show';
   type: 'pickup' | 'delivery'; name: string; phone: string; pay_method: 'cash' | 'cliq'; subtotal: number; reject_reason: string | null;
-  created_at: string; printed_at: string | null; contact_phone: string; delivery_fee?: number | null; delivery_zone?: string | null; cliq_alias: string | null; cliq_name: string | null;
+  created_at: string; printed_at: string | null; contact_phone: string; delivery_fee?: number | null; delivery_zone?: string | null; delivery_range?: string | null; cliq_alias: string | null; cliq_name: string | null;
   items: { name: string; qty: number; options: { name: string; qty: number; price?: number }[]; note: string | null; line_total: number }[];
 };
 export async function getOrder(token: string): Promise<Tracked | null> {

@@ -278,5 +278,11 @@ ok('call center sets the fee', (await A2(`select public.cc_set_fee($1, 1.25) r`,
 ok('branch staff cannot set the fee', !!(await B2(`select public.cc_set_fee($1, 0)`, [zId3])).error);
 await db.exec(`update public.orders set printed_at = null, print_claimed_at = null where tracking_token = '${zr.token}'`);
 let pz = null; for (let i = 0; i < 20 && !(pz && pz.number === zr.number); i++) { const x = await pn(tok.b2); if (!x.order) break; pz = x.order; await pd(tok.b2, x.order.id); }
+await BOSS(`insert into public.delivery_zones (branch_id, name, fee, fee_max) values ('b2', 'حتينا', 2, 2.5)`);
+const rz = (await anon(`select id from public.delivery_zones where name = 'حتينا'`)).rows[0].id;
+const zr4 = await order({ ...dz, phone: '0798080804', idempotency_key: key(), zone_id: rz });
+const zt4 = (await anon('select public.get_order($1) r', [zr4.token])).rows[0].r;
+ok('a «from – to» area keeps the area and range, fee confirmed by phone', zr4.ok && zt4.delivery_fee === null && zt4.delivery_zone === 'حتينا' && zt4.delivery_range === '2.00 – 2.50', JSON.stringify(zt4.delivery_range));
+ok('a range must go up', !!(await BOSS(`insert into public.delivery_zones (branch_id, name, fee, fee_max) values ('b2', 'x', 2, 1)`)).error);
 ok('printer gets the delivery fee', pz && Number(pz.delivery_fee) === 1 && pz.delivery_zone === 'الحصن', JSON.stringify(pz && { n: pz.number, f: pz.delivery_fee }));
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

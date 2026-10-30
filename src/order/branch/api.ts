@@ -12,7 +12,7 @@ export type Order = {
   type: 'pickup' | 'delivery'; customer_name: string; customer_phone: string;
   address: { area?: string; street?: string; building?: string; floor?: string; landmark?: string } | null;
   location: { lat: number; lng: number } | null; note: string | null; pay_method: 'cash' | 'cliq'; change_for: number | null;
-  subtotal: number; delivery_fee?: number | null; delivery_zone?: string | null; reject_reason: string | null; created_at: string; accepted_at: string | null; printed_at: string | null; print_count: number;
+  subtotal: number; delivery_fee?: number | null; delivery_zone?: string | null; delivery_range?: string | null; reject_reason: string | null; created_at: string; accepted_at: string | null; printed_at: string | null; print_count: number;
   paid_method: 'cash' | 'cliq' | null; paid_ref: string | null; paid_at: string | null; order_items: OrderItem[];
 };
 
