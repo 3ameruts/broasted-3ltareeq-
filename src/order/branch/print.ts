@@ -38,8 +38,9 @@ ${o.type === 'delivery' && a ? `<div class="box">${esc([a.area, a.street, a.buil
 <hr>
 ${o.order_items.map(i => { const { base, extras } = splitLine(i.line_total, i.qty, i.options); return `<div class="item"><div class="row"><b>${i.qty} × ${esc(i.name)}</b><span>${money(base)}</span></div>${extras.map(x => `<div class="row sub"><span>+ ${esc(x.name)}${x.qty > 1 ? ' ×' + x.qty : ''}</span><span>${money(x.total)}</span></div>`).join('')}${i.note ? `<div class="sub">ملاحظة: ${esc(i.note)}</div>` : ''}</div>`; }).join('')}
 <hr>
-<div class="row total"><span>المجموع</span><span>${money(o.subtotal)} د.أ</span></div>
-${o.type === 'delivery' ? '<div>+ رسوم التوصيل حسب المنطقة</div>' : ''}
+${o.type === 'delivery' && o.delivery_fee != null ? `<div class="row"><span>التوصيل${o.delivery_zone ? ' (' + esc(o.delivery_zone) + ')' : ''}</span><span>${money(o.delivery_fee)}</span></div>` : ''}
+<div class="row total"><span>المجموع</span><span>${money(Number(o.subtotal) + Number(o.delivery_fee ?? 0))} د.أ</span></div>
+${o.type === 'delivery' && o.delivery_fee == null ? '<div>+ التوصيل بالاتصال</div>' : ''}
 <div class="box"><b>الدفع عند الاستلام: ${o.pay_method === 'cash' ? 'كاش' : 'كليك'}</b>${o.pay_method === 'cash' && o.change_for ? `<br>فكّة لـ ${money(o.change_for)} د.أ` : ''}${o.pay_method === 'cliq' ? '<br>تحقّق من وصول الحوالة' + (opts.cliqAlias ? '<br>Alias: <span class="ltr">' + esc(opts.cliqAlias) + '</span>' : '') : ''}</div>
 ${o.note ? `<div class="box">ملاحظة: ${esc(o.note)}</div>` : ''}
 </body></html>`;

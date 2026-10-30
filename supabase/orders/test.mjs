@@ -254,4 +254,29 @@ await A2(`select public.cc_cancel(id, 'طلب وهمي', true) from public.order
 const bl = (await BOSS('select * from public.admin_blocked()')).rows;
 ok('blocked list shows who blocked and why', bl.length > 0 && bl.some(x => x.blocked_by === 'سارة'), JSON.stringify(bl.slice(0, 2)));
 ok('agents cannot read the blocked list', !!(await A2('select * from public.admin_blocked()')).error);
+
+// ── delivery zones (13-delivery-zones.sql) ──
+await db.exec(readFileSync(dir + '/13-delivery-zones.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/13-delivery-zones.sql', 'utf8'));
+await BOSS(`insert into public.delivery_zones (branch_id, name, aliases, fee) values ('b2', 'الحصن', '{حصن}', 1), ('b2', 'الحي الشرقي', '{}', 0.75), ('b1', 'المخيم', '{}', 0.5)`);
+ok('admin adds zones', (await anon('select count(*)::int n from public.delivery_zones')).rows[0].n === 3);
+ok('customers cannot add zones', !!(await anon(`insert into public.delivery_zones (branch_id, name, fee) values ('b1','x',1)`)).error);
+const zid = (await anon(`select id from public.delivery_zones where name = 'الحصن'`)).rows[0].id;
+const zoneOtherBranch = (await anon(`select id from public.delivery_zones where name = 'المخيم'`)).rows[0].id;
+const dz = { ...base0, branch_id: 'b2', type: 'delivery', address: { area: 'الحصن', street: 'شارع 1', building: '3' }, items: [{ item_id: 'broasted-1', qty: 1 }] };
+const zr = await order({ ...dz, phone: '0798080801', idempotency_key: key(), zone_id: zid });
+ok('delivery order gets the zone fee from the database', zr.ok && Number(zr.delivery_fee) === 1, JSON.stringify(zr));
+const zt = (await anon('select public.get_order($1) r', [zr.token])).rows[0].r;
+ok('tracking shows the zone and fee', zt.delivery_zone === 'الحصن' && Number(zt.delivery_fee) === 1);
+const zr2 = await order({ ...dz, phone: '0798080802', idempotency_key: key(), zone_id: zoneOtherBranch });
+ok('a zone of another branch is ignored (fee by phone)', zr2.ok && zr2.delivery_fee === undefined);
+const zr3 = await order({ ...dz, phone: '0798080803', idempotency_key: key() });
+ok('no zone = fee by phone, order still goes through', zr3.ok && (await anon('select public.get_order($1) r', [zr3.token])).rows[0].r.delivery_fee === null);
+const zId3 = (await BOSS(`select id from public.orders where tracking_token = $1`, [zr3.token])).rows[0].id;
+ok('call center sets the fee', (await A2(`select public.cc_set_fee($1, 1.25) r`, [zId3])).rows[0].r.ok
+  && Number((await anon('select public.get_order($1) r', [zr3.token])).rows[0].r.delivery_fee) === 1.25);
+ok('branch staff cannot set the fee', !!(await B2(`select public.cc_set_fee($1, 0)`, [zId3])).error);
+await db.exec(`update public.orders set printed_at = null, print_claimed_at = null where tracking_token = '${zr.token}'`);
+let pz = null; for (let i = 0; i < 20 && !(pz && pz.number === zr.number); i++) { const x = await pn(tok.b2); if (!x.order) break; pz = x.order; await pd(tok.b2, x.order.id); }
+ok('printer gets the delivery fee', pz && Number(pz.delivery_fee) === 1 && pz.delivery_zone === 'الحصن', JSON.stringify(pz && { n: pz.number, f: pz.delivery_fee }));
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

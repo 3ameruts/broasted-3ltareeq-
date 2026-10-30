@@ -16,7 +16,7 @@ const url = import.meta.env.VITE_ORDERS_SUPABASE_URL || 'https://qzglmmkrnasgocu
 const key = import.meta.env.VITE_ORDERS_SUPABASE_KEY || 'sb_publishable_crkSQ5p2ntixzGDK5WRx6Q_2LAfmZee';
 const sb = createClient(url, key, { auth: { persistSession: true, storageKey: 'broasted-cc-auth' } });
 
-type CcOrder = Order & { claimed_by: string | null; claimed_name: string | null; claimed_at: string | null; confirmed_name: string | null; confirmed_at: string | null; pos_ref: string | null };
+type CcOrder = Order & { fee_set_by?: string | null; claimed_by: string | null; claimed_name: string | null; claimed_at: string | null; confirmed_name: string | null; confirmed_at: string | null; pos_ref: string | null };
 type Branch = { id: string; code: string; name: string };
 type Res = { ok: boolean; error?: string; name?: string; repeat?: boolean };
 
@@ -249,7 +249,8 @@ function posText(o: CcOrder, branchName: string) {
     for (const x of extras) lines.push(`   + ${x.name}${x.qty > 1 ? ' ×' + x.qty : ''}  ${money(x.total)}`);
     if (i.note) lines.push(`   ملاحظة: ${i.note}`);
   }
-  lines.push('', `المجموع: ${money(o.subtotal)} د.أ${o.type === 'delivery' ? ' + التوصيل' : ''}`);
+  if (o.type === 'delivery') lines.push('', o.delivery_fee != null ? `التوصيل${o.delivery_zone ? ` (${o.delivery_zone})` : ''}: ${money(o.delivery_fee)}` : 'التوصيل: بالاتصال');
+  lines.push(`المجموع: ${money(Number(o.subtotal) + Number(o.delivery_fee ?? 0))} د.أ`);
   lines.push(`الدفع: ${o.pay_method === 'cash' ? 'كاش' : 'كليك'}${o.pay_method === 'cash' && o.change_for ? ` (فكّة لـ ${money(o.change_for)})` : ''}`);
   if (o.note) lines.push(`ملاحظة الزبون: ${o.note}`);
   return lines.join('\n');
@@ -347,10 +348,12 @@ function OrderCard({ o, twins, userId, admin, branchName, tone, onChange }: { o:
       <div className="flex items-baseline justify-between">
         <span className="text-sm">
           الدفع: <b>{o.pay_method === 'cash' ? 'كاش' : 'كليك'}</b>{o.pay_method === 'cash' && o.change_for ? <> · فكّة لـ <span className="num">{money(o.change_for)}</span></> : null}
-          {o.type === 'delivery' && ' · + التوصيل'}
         </span>
-        <span className="num text-xl font-bold">{money(o.subtotal)} د.أ</span>
+        <span className="num text-xl font-bold">{money(Number(o.subtotal) + Number(o.delivery_fee ?? 0))} د.أ</span>
       </div>
+      {o.type === 'delivery' && (o.delivery_fee != null
+        ? <p className="-mt-2 text-sm">التوصيل{o.delivery_zone ? ` (${o.delivery_zone})` : ''}: <b className="num">{money(o.delivery_fee)}</b>{o.fee_set_by ? <span className="text-soft"> · عدّله {o.fee_set_by}</span> : null}</p>
+        : <p className="-mt-2 rounded-2xl bg-mustard/30 px-3 py-2 text-sm font-bold">⚠️ منطقة مش بالقائمة: اتفق مع الزبون على سعر التوصيل وسجّله تحت.</p>)}
 
       {o.status === 'new' && !holder && (
         <Button size="lg" onClick={() => act(() => rpc('cc_claim', { p_order: o.id }), 'الطلب معك')} disabled={busy}><Headset size={20} /> استلمت الطلب</Button>
@@ -364,6 +367,7 @@ function OrderCard({ o, twins, userId, admin, branchName, tone, onChange }: { o:
       {o.status === 'new' && isMine && (
         <div className="flex flex-col gap-2 rounded-2xl bg-paper p-3">
           <Button variant="outline" onClick={copy}><ClipboardCopy size={18} /> انسخ الطلب للـ POS</Button>
+          {o.type === 'delivery' && <FeeEditor o={o} onSave={fee => act(() => rpc('cc_set_fee', { p_order: o.id, p_fee: fee }), 'انحفظ سعر التوصيل')} />}
           <label className="flex flex-col gap-1.5 text-sm font-bold">رقم فاتورة الـ POS <span className="font-normal text-soft">(اختياري)</span>
             <Input value={pos} onChange={e => setPos(e.target.value)} maxLength={40} dir="ltr" inputMode="numeric" />
           </label>
@@ -394,6 +398,21 @@ function OrderCard({ o, twins, userId, admin, branchName, tone, onChange }: { o:
         </div>
       </Sheet>
     </article>
+  );
+}
+
+// delivery fee: fill it in for an area that isn't on the list, or change it after talking to the customer
+function FeeEditor({ o, onSave }: { o: CcOrder; onSave: (fee: number) => void }) {
+  const [v, setV] = useState(o.delivery_fee != null ? String(o.delivery_fee) : '');
+  const n = Number(v);
+  const changed = v.trim() !== '' && n >= 0 && n <= 50 && n !== (o.delivery_fee != null ? Number(o.delivery_fee) : NaN);
+  return (
+    <div className="flex items-end gap-2">
+      <label className="flex flex-1 flex-col gap-1.5 text-sm font-bold">سعر التوصيل
+        <Input value={v} onChange={e => setV(e.target.value.replace(/[^\d.]/g, ''))} inputMode="decimal" dir="ltr" placeholder="0.75" />
+      </label>
+      <Button variant="outline" onClick={() => onSave(Math.round(n * 100) / 100)} disabled={!changed}>احفظ</Button>
+    </div>
   );
 }
 

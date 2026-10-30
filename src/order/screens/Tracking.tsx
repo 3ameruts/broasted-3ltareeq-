@@ -107,10 +107,15 @@ export function Tracking({ token, onNewOrder, onReorder }: { token: string; onNe
             );
           })}
         </ul>
-        <div className="mt-3 flex justify-between border-t border-line pt-3 font-bold">
-          <span>المجموع</span><span className="num">{money(o.subtotal)} د.أ</span>
+        {o.type === 'delivery' && o.delivery_fee != null && (
+          <div className="mt-3 flex justify-between gap-2 border-t border-line pt-3 text-sm">
+            <span>التوصيل{o.delivery_zone ? ` (${o.delivery_zone})` : ''}</span><span className="num">{money(Number(o.delivery_fee))}</span>
+          </div>
+        )}
+        <div className={cn('flex justify-between font-bold', o.type === 'delivery' && o.delivery_fee != null ? 'mt-1' : 'mt-3 border-t border-line pt-3')}>
+          <span>المجموع</span><span className="num">{money(Number(o.subtotal) + Number(o.delivery_fee ?? 0))} د.أ</span>
         </div>
-        <p className="mt-1 text-sm text-soft">الدفع عند الاستلام: {o.pay_method === 'cash' ? 'كاش' : 'كليك'}{o.type === 'delivery' ? ' · + التوصيل' : ''}</p>
+        <p className="mt-1 text-sm text-soft">الدفع عند الاستلام: {o.pay_method === 'cash' ? 'كاش' : 'كليك'}{o.type === 'delivery' && o.delivery_fee == null ? ' · + التوصيل بيتحدد بالاتصال' : ''}</p>
       </div>
 
       {!!orderFor(token)?.lines?.length && ['delivered', 'accepted', 'ready'].includes(o.status) && (

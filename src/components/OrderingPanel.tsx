@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import ZonesPanel from './ZonesPanel';
 
 // Admin tab: online ordering on/off, the "order online" button on the site, ordering hours,
 // CliQ details shown to customers, and whether each branch's printer PC is connected.
@@ -81,6 +82,7 @@ export default function OrderingPanel({ flash }: { flash: (text: string, bad?: b
           </div>
         </div>
       </section>
+      <ZonesPanel flash={flash} />
       <WhatsAppPanel flash={flash} />
       <section className="apanel">
         <h3>طابعات الفروع</h3>

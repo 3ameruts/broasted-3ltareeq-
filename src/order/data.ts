@@ -15,18 +15,22 @@ export type Settings = {
 export type OrderBranch = { id: string; code: string; name: string; accepting: boolean; paused_until: string | null };
 export type Unavailable = { branch_id: string; item_id: string; until: string | null };
 
-export type Store = { content: Content; settings: Settings; branches: OrderBranch[]; unavailable: Unavailable[] };
+export type Zone = { id: number; branch_id: string; name: string; aliases: string[]; fee: number };
+export type Store = { content: Content; settings: Settings; branches: OrderBranch[]; unavailable: Unavailable[]; zones: Zone[] };
 
 export async function loadStore(): Promise<Store> {
-  const [c, s, b, a] = await Promise.all([
+  const [c, s, b, a, z] = await Promise.all([
     db.from('site_content').select('content').eq('id', 1).single(),
     db.from('order_settings').select('*').eq('id', 1).single(),
     db.from('order_branches').select('*').order('id'),
     db.from('item_availability').select('branch_id,item_id,until'),
+    db.from('delivery_zones').select('id,branch_id,name,aliases,fee').order('name'),
   ]);
   const err = c.error || s.error || b.error || a.error;
   if (err) throw err;
-  return { content: c.data.content as Content, settings: s.data as Settings, branches: b.data as OrderBranch[], unavailable: a.data as Unavailable[] };
+  // no zones (or the zones table not set up yet): delivery fee by phone, as before
+  const zones = ((z.error ? [] : z.data) as Zone[]).map(x => ({ ...x, fee: Number(x.fee) }));
+  return { content: c.data.content as Content, settings: s.data as Settings, branches: b.data as OrderBranch[], unavailable: a.data as Unavailable[], zones };
 }
 
 // Live updates when a branch switches an item off/on or pauses orders
@@ -57,6 +61,14 @@ export const hourLabel = (hhmm: string) => {
   return `${h % 12 || 12}${m ? ':' + String(m).padStart(2, '0') : ''} ${part}`;
 };
 
+// Arabic search that ignores hamza forms, ta marbuta, diacritics and a leading «ال»
+const norm = (t: string) => t.replace(/[\u064B-\u0652\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').trim().toLowerCase();
+const keys = (z: Zone) => [z.name, ...z.aliases].flatMap(k => { const n = norm(k); return [n, n.replace(/^ال/, '')]; });
+export const searchZones = (zones: Zone[], q: string) => {
+  const n = norm(q).replace(/^ال/, '');
+  return n ? zones.filter(z => keys(z).some(k => k.includes(n))) : zones;
+};
+
 export const imgUrl = (p?: string) => (!p ? undefined : /^https?:/.test(p) ? p : '/' + p.replace(/^\.?\//, ''));
 export const money = (n: number) => n.toFixed(2);
 export { splitLine } from './split';
@@ -73,10 +85,10 @@ export function addonsFor(cat: Category, content: Content, s: Settings) {
 export type OrderPayload = {
   idempotency_key: string; branch_id: string; type: 'pickup' | 'delivery'; name: string; phone: string;
   address?: { area: string; street: string; building: string; floor?: string; landmark?: string };
-  location?: { lat: number; lng: number } | null; note?: string; pay_method: 'cash' | 'cliq'; change_for?: number | null; device?: string;
+  location?: { lat: number; lng: number } | null; note?: string; pay_method: 'cash' | 'cliq'; change_for?: number | null; device?: string; zone_id?: number;
   items: { item_id: string; qty: number; note?: string; options: { id: string; qty: number }[] }[];
 };
-export type CreateResult = { ok: true; token: string; number: number; subtotal: number; repeat?: boolean } | { ok: false; error: string; items?: string[] };
+export type CreateResult = { ok: true; token: string; number: number; subtotal: number; repeat?: boolean; delivery_fee?: number } | { ok: false; error: string; items?: string[] };
 
 export async function createOrder(p: OrderPayload): Promise<CreateResult> {
   const { data, error } = await db.rpc('create_order', { p });
@@ -87,7 +99,7 @@ export async function createOrder(p: OrderPayload): Promise<CreateResult> {
 export type Tracked = {
   number: number; code: string; branch: string; status: 'new' | 'accepted' | 'ready' | 'delivered' | 'rejected' | 'no_show';
   type: 'pickup' | 'delivery'; name: string; phone: string; pay_method: 'cash' | 'cliq'; subtotal: number; reject_reason: string | null;
-  created_at: string; printed_at: string | null; contact_phone: string; cliq_alias: string | null; cliq_name: string | null;
+  created_at: string; printed_at: string | null; contact_phone: string; delivery_fee?: number | null; delivery_zone?: string | null; cliq_alias: string | null; cliq_name: string | null;
   items: { name: string; qty: number; options: { name: string; qty: number; price?: number }[]; note: string | null; line_total: number }[];
 };
 export async function getOrder(token: string): Promise<Tracked | null> {

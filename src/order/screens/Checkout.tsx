@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Banknote, LocateFixed, MapPin, Smartphone } from 'lucide-react';
 import { usePersisted, type Cart } from '../cart';
-import { createOrder, deviceFor, ERRORS, latestOrder, money, normPhone, rememberDevice, rememberOrder, type OrderPayload } from '../data';
+import { createOrder, deviceFor, ERRORS, latestOrder, money, normPhone, rememberDevice, rememberOrder, type OrderPayload, type Zone } from '../data';
 import { PhoneCheck } from './PhoneCheck';
+import { ZonePicker } from './ZonePicker';
 import type { Mode } from './BranchPicker';
 import { Button } from '../ui/button';
 import { Field, Input, Textarea } from '../ui/field';
@@ -15,9 +16,10 @@ const phoneOk = (p: string) => /^07[789]\d{7}$/.test(p.replace(/\D/g, '').replac
 
 // Checkout: details, address (manual, location optional), pay at receipt. One idempotency key per attempt,
 // kept until the order is confirmed, so a double tap or a retry after a dropped connection never makes two orders.
-export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBack, onPlaced, onTrack, onUnavailable, contactPhone, requireOtp }: {
+export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBack, onPlaced, onTrack, onUnavailable, contactPhone, requireOtp, zones = [] }: {
   cart: Cart; branchId: string; branchName: string; mode: Mode; onModeChange: (m: Mode) => void; onBack: () => void;
   onPlaced: (token: string) => void; onTrack: (token: string) => void; onUnavailable: (names: string[]) => void; contactPhone: string; requireOtp?: boolean;
+  zones?: Zone[];
 }) {
   const [c, setC] = usePersisted<Customer>('broasted-order-customer-v1', EMPTY);
   const [note, setNote] = useState('');
@@ -30,6 +32,12 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
   const [message, setMessage] = useState('');
   const [checking, setChecking] = useState(false);
   const [openToken, setOpenToken] = useState<string | null>(null);
+  // delivery area from the branch's list (fee shown now), or «منطقتي مش بالقائمة» (fee by phone)
+  const hasZones = mode === 'delivery' && zones.length > 0;
+  const [zone, setZone] = useState<Zone | null>(() => zones.find(z => z.name === c.area) ?? null);
+  const [notListed, setNotListed] = useState(false);
+  const fee = hasZones && !notListed && zone ? zone.fee : null;
+  const total = cart.total + (fee ?? 0);
   const topRef = useRef<HTMLDivElement>(null);
   useEffect(() => { topRef.current?.scrollIntoView(); }, []);
   const set = (k: keyof Customer) => (e: React.ChangeEvent<HTMLInputElement>) => setC(p => ({ ...p, [k]: e.target.value }));
@@ -46,7 +54,8 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
     if (c.name.trim().length < 2) e.name = 'اكتب اسمك.';
     if (!phoneOk(c.phone)) e.phone = 'رقم أردني، مثل 0791234567.';
     if (mode === 'delivery') {
-      if (!c.area.trim()) e.area = 'اكتب المنطقة أو الحي.';
+      if (hasZones && !notListed) { if (!zone) e.area = 'اختار منطقتك من القائمة، أو كبس «منطقتي مش بالقائمة».'; }
+      else if (!c.area.trim()) e.area = 'اكتب المنطقة أو الحي.';
       if (!c.street.trim()) e.street = 'اكتب الشارع.';
       if (!c.building.trim()) e.building = 'اكتب رقم أو اسم البناية.';
     }
@@ -68,6 +77,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
       address: mode === 'delivery' ? { area: c.area, street: c.street, building: c.building, floor: c.floor, landmark: c.landmark } : undefined,
       location: mode === 'delivery' ? loc : null,
       device: requireOtp ? deviceFor(c.phone) : undefined,
+      zone_id: fee !== null && zone ? zone.id : undefined,
       items: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note || undefined, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })),
     };
     setMessage('');
@@ -104,7 +114,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
   const submitButton = (
     <Button size="lg" className="w-full" onClick={submit} disabled={busy || cart.count === 0} aria-busy={busy}>
       {state === 'sending' ? 'عم نبعت طلبك…' : state === 'checking' ? 'عم نتأكد من طلبك…' : state === 'failed' ? 'جرّب مرة ثانية'
-        : <>تأكيد الطلب · <span className="num">{money(cart.total)}</span> د.أ</>}
+        : <>تأكيد الطلب · <span className="num">{money(total)}</span> د.أ</>}
     </Button>
   );
   return (
@@ -119,7 +129,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
             className={cn('h-11 rounded-xl font-bold transition-colors', mode === v ? 'bg-asphalt text-white' : 'text-ink')}>{l}</button>
         ))}
       </div>
-      <p className="-mt-3 text-sm text-soft">{mode === 'pickup' ? `من ${branchName}` : `التوصيل من ${branchName}. سعر التوصيل بيحددلك ياه الفرع لما يتصل يأكد.`}</p>
+      <p className="-mt-3 text-sm text-soft">{mode === 'pickup' ? `من ${branchName}` : hasZones ? `التوصيل من ${branchName}.` : `التوصيل من ${branchName}. سعر التوصيل بيحددلك ياه الفرع لما يتصل يأكد.`}</p>
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-bold">معلوماتك</h2>
@@ -135,9 +145,25 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
       {mode === 'delivery' && (
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-bold">عنوان التوصيل</h2>
-          <Field id="f-area" label="المنطقة أو الحي" error={errors.area}>
-            <Input id="f-area" autoComplete="address-level3" value={c.area} onChange={set('area')} invalid={!!errors.area} maxLength={80} />
-          </Field>
+          {hasZones && (
+            <button onClick={() => { setNotListed(!notListed); setZone(null); setC(p => ({ ...p, area: '' })); setErrors(e => ({ ...e, area: undefined })); }}
+              className={cn('flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 px-4 font-bold', notListed ? 'border-brand-deep bg-brand/5 text-brand-deep' : 'border-line bg-white')}>
+              {notListed ? '← رجوع لقائمة المناطق' : 'منطقتي مش بالقائمة'}
+            </button>
+          )}
+          {hasZones && !notListed ? (
+            <Field id="f-area" label="منطقتك" error={errors.area}>
+              <ZonePicker zones={zones} value={zone} invalid={!!errors.area}
+                onPick={z => { setZone(z); setC(p => ({ ...p, area: z?.name ?? '' })); if (z) setErrors(e => ({ ...e, area: undefined })); }} />
+            </Field>
+          ) : (
+            <>
+              <Field id="f-area" label="المنطقة أو الحي" error={errors.area}>
+                <Input id="f-area" autoComplete="address-level3" value={c.area} onChange={set('area')} invalid={!!errors.area} maxLength={80} />
+              </Field>
+              {hasZones && <p className="-mt-2 rounded-2xl bg-mustard/25 px-3 py-2 text-sm font-semibold">سعر التوصيل لمنطقتك بيحكيلك ياه الكول سنتر لما يتصل يأكّد الطلب.</p>}
+            </>
+          )}
           <Field id="f-street" label="الشارع" error={errors.street}>
             <Input id="f-street" autoComplete="address-line1" value={c.street} onChange={set('street')} invalid={!!errors.street} maxLength={80} />
           </Field>
@@ -205,10 +231,15 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
             </li>
           ))}
         </ul>
-        <div className="mt-3 flex justify-between border-t border-line pt-3 font-bold">
-          <span>المجموع</span><span className="num">{money(cart.total)} د.أ</span>
+        {fee !== null && (
+          <div className="mt-3 flex justify-between gap-2 border-t border-line pt-3 text-sm">
+            <span>التوصيل ({zone?.name})</span><span className="num">{money(fee)}</span>
+          </div>
+        )}
+        <div className={cn('flex justify-between font-bold', fee === null ? 'mt-3 border-t border-line pt-3' : 'mt-1')}>
+          <span>المجموع</span><span className="num">{money(total)} د.أ</span>
         </div>
-        {mode === 'delivery' && <p className="mt-1 text-sm text-soft">+ التوصيل حسب المنطقة</p>}
+        {mode === 'delivery' && fee === null && <p className="mt-1 text-sm text-soft">+ التوصيل بيتحدد بالاتصال</p>}
       </section>
       <div className="hidden flex-col gap-2 lg:flex">{alert}{submitButton}</div>
     </aside>

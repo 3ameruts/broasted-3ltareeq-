@@ -104,8 +104,10 @@ export function ticketSvg(o, look = {}) {
 
   // 5) total and payment
   gap(26); rule(PAD, right, { width: 3 });
-  gap(48); parts.push(text('المجموع', { size: 36 })); parts.push(ltr(money(o.subtotal) + ' JD', { size: 36 }));
-  if (o.type === 'delivery') para('+ رسوم التوصيل حسب المنطقة', 22, { weight: 400 });
+  const fee = o.type === 'delivery' && o.delivery_fee != null ? Number(o.delivery_fee) : null;
+  if (fee !== null) { gap(38); parts.push(text(`التوصيل${o.delivery_zone ? ` (${o.delivery_zone})` : ''}`, { size: 26 })); parts.push(ltr(money(fee), { size: 26 })); }
+  gap(48); parts.push(text('المجموع', { size: 36 })); parts.push(ltr(money(Number(o.subtotal) + (fee ?? 0)) + ' JD', { size: 36 }));
+  if (o.type === 'delivery' && fee === null) para('+ التوصيل بالاتصال', 22, { weight: 400 });
   gap(20);
   const pay = [`الدفع عند الاستلام: ${o.pay_method === 'cash' ? 'كاش' : 'كليك'}`];
   if (o.pay_method === 'cash' && o.change_for) pay.push(`فكّة لـ ${money(o.change_for)} د.أ`);
