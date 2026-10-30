@@ -13,7 +13,7 @@ function parse(text: string) {
   for (const raw of text.split('\n')) {
     const line = raw.trim().replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
     if (!line) continue;
-    const m = line.match(/^(.*?)[\s:=\-–—]*(\d+(?:[.,]\d+)?)(?:\s*[-–—/\\]\s*(\d+(?:[.,]\d+)?))?\s*(?:د\.?أ|دينار|jd)?$/i);
+    const m = line.match(/^(.*?)[\s:=\-–—]+(\d+(?:[.,]\d+)?)(?:\s*[-–—/\\]\s*(\d+(?:[.,]\d+)?))?\s*(?:د\.?أ|دينار|jd)?$/i);
     const names = m?.[1].split(/[،,|/]/).map(x => x.trim()).filter(Boolean) ?? [];
     const a = m ? Number(m[2].replace(',', '.')) : NaN, b = m?.[3] ? Number(m[3].replace(',', '.')) : NaN;
     const fee = b >= 0 ? Math.min(a, b) : a, max = b >= 0 && b !== a ? Math.max(a, b) : null;
