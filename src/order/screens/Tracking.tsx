@@ -3,6 +3,7 @@ import { Check, Copy, Phone, RotateCcw } from 'lucide-react';
 import { getOrder, money, orderFor, splitLine, type Tracked } from '../data';
 import { Button } from '../ui/button';
 import { InstallPrompt } from './InstallPrompt';
+import { RateOrder } from './RateOrder';
 import { cn } from '../ui/cn';
 
 const STEPS = {
@@ -119,6 +120,8 @@ export function Tracking({ token, onNewOrder, onReorder }: { token: string; onNe
           ? (o.delivery_range ? ` · + التوصيل${o.delivery_zone ? ` (${o.delivery_zone})` : ''} ${o.delivery_range} د.أ، بيتأكد بالاتصال` : ' · + التوصيل بيتحدد بالاتصال') : ''}</p>
       </div>
 
+      {/* rate once the order is out (or confirmed for 25 minutes, since the kitchen works on the POS) */}
+      {(['ready', 'delivered'].includes(o.status) || (o.status === 'accepted' && o.accepted_at && Date.now() - new Date(o.accepted_at).getTime() > 25 * 60000)) && <RateOrder token={token} />}
       {!!orderFor(token)?.lines?.length && ['delivered', 'accepted', 'ready'].includes(o.status) && (
         <Button size="lg" className="w-full" onClick={onReorder}><RotateCcw size={18} /> اطلب نفس الطلب مرة ثانية</Button>
       )}

@@ -115,6 +115,7 @@ function Shift({ userId }: { userId: string }) {
 
 function Board({ userId, name, admin }: { userId: string; name: string; admin: boolean }) {
   const [orders, setOrders] = useState<CcOrder[]>([]);
+  const [ratings, setRatings] = useState<Map<string, { stars: number; comment: string | null }>>(new Map());
   const [branches, setBranches] = useState<Branch[]>([]);
   const [filter, setFilter] = useState<string>('all');
   const [online, setOnline] = useState(navigator.onLine);
@@ -136,6 +137,10 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
     }
     seen.current = new Set(list.map(o => o.id));
     setOrders(list);
+    // customer ratings for the orders on screen (missing table = no ratings yet)
+    const done = list.filter(o => o.status !== 'new').map(o => o.id);
+    if (done.length) sb.from('order_ratings').select('order_id, stars, comment').in('order_id', done)
+      .then(({ data }) => setRatings(new Map((data ?? []).map(r => [r.order_id as string, { stars: r.stars as number, comment: r.comment as string | null }]))));
   }, []);
 
   useEffect(() => {
@@ -178,7 +183,7 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
   // other orders from the same phone within an hour, so nobody keys the same order into the POS twice
   const twins = (o: CcOrder) => orders.filter(x => x.id !== o.id && x.customer_phone === o.customer_phone
     && Math.abs(new Date(x.created_at).getTime() - new Date(o.created_at).getTime()) < 3600000);
-  const card = (o: CcOrder) => <OrderCard key={o.id} o={o} twins={twins(o)} userId={userId} admin={admin} branchName={branchName(o.branch_id)} tone={tone.get(o.branch_id) ?? TONES[0]} onChange={refresh} />;
+  const card = (o: CcOrder) => <OrderCard key={o.id} o={o} rating={ratings.get(o.id)} twins={twins(o)} userId={userId} admin={admin} branchName={branchName(o.branch_id)} tone={tone.get(o.branch_id) ?? TONES[0]} onChange={refresh} />;
   return (
     <div className="min-h-dvh pb-10">
       {unclaimed.length > 0 && <div className="pointer-events-none fixed inset-0 z-50 animate-pulse shadow-[inset_0_0_0_8px_var(--color-brand)]" aria-hidden />}
@@ -261,7 +266,7 @@ const REASONS = ['ما ردّ على الاتصال', 'طلب وهمي', 'صنف
 const itemsKey = (o: CcOrder) => o.order_items.map(i => `${i.name}×${i.qty}`).sort().join('|');
 const STATUS: Record<CcOrder['status'], string> = { new: 'لسا جديد', accepted: 'انأكّد', ready: 'جاهز', delivered: 'انسلّم', rejected: 'انلغى', no_show: 'ما انستلم' };
 
-function OrderCard({ o, twins, userId, admin, branchName, tone, onChange }: { o: CcOrder; twins: CcOrder[]; userId: string; admin: boolean; branchName: string; tone: string; onChange: () => void }) {
+function OrderCard({ o, rating, twins, userId, admin, branchName, tone, onChange }: { o: CcOrder; rating?: { stars: number; comment: string | null }; twins: CcOrder[]; userId: string; admin: boolean; branchName: string; tone: string; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
   const [sheet, setSheet] = useState<null | 'reject' | 'cancel'>(null);
   const [pos, setPos] = useState('');
@@ -384,6 +389,8 @@ function OrderCard({ o, twins, userId, admin, branchName, tone, onChange }: { o:
         <p className="text-sm font-bold text-emerald-700">✓ أكّده {o.confirmed_name} {o.confirmed_at && `الساعة ${clock(o.confirmed_at)}`}{o.pos_ref ? <> · POS <span className="num">#{o.pos_ref}</span></> : null}</p>
       )}
       {o.status === 'accepted' && !o.confirmed_name && <p className="text-sm font-bold text-emerald-700">✓ انقبل من الفرع</p>}
+      {rating && <p className={cn('rounded-2xl px-3 py-2 text-sm font-bold', rating.stars <= 2 ? 'bg-brand/10 text-brand-deep' : 'bg-mustard/25')}>
+        تقييم الزبون: {'★'.repeat(rating.stars)}{'☆'.repeat(5 - rating.stars)}{rating.comment ? ` «${rating.comment}»` : ''}</p>}
       {['ready', 'delivered'].includes(o.status) && <p className="text-sm font-bold text-emerald-700">✓ {o.status === 'ready' ? 'جاهز' : 'انسلّم'}</p>}
       {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">انلغى{o.reject_reason ? `: ${o.reject_reason}` : ''}{o.confirmed_name ? ` · ${o.confirmed_name}` : ''}</p>}
       {o.status === 'no_show' && <p className="text-sm font-bold text-brand-deep">ما انستلم</p>}

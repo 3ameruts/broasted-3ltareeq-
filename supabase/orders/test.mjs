@@ -289,4 +289,24 @@ const zt4 = (await anon('select public.get_order($1) r', [zr4.token])).rows[0].r
 ok('a «from – to» area keeps the area and range, fee confirmed by phone', zr4.ok && zt4.delivery_fee === null && zt4.delivery_zone === 'حتينا' && zt4.delivery_range === '2.00 – 2.50', JSON.stringify(zt4.delivery_range));
 ok('a range must go up', !!(await BOSS(`insert into public.delivery_zones (branch_id, name, fee, fee_max) values ('b2', 'x', 2, 1)`)).error);
 ok('printer gets the delivery fee', pz && Number(pz.delivery_fee) === 1 && pz.delivery_zone === 'الحصن', JSON.stringify(pz && { n: pz.number, f: pz.delivery_fee }));
+
+// ── ratings (14-ratings.sql) ──
+await db.exec(readFileSync(dir + '/14-ratings.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/14-ratings.sql', 'utf8'));
+const rate = async (t, st, c) => (await anon('select public.rate_order($1,$2,$3) r', [t, st, c ?? null])).rows[0].r;
+const ro = await order({ ...base0, branch_id: 'b3', phone: '0799090901', idempotency_key: key(), items: [{ item_id: 'broasted-1', qty: 1 }] });
+ok('a new (unconfirmed) order cannot be rated yet', (await rate(ro.token, 5)).error === 'not_yet');
+await db.exec(`update public.orders set status = 'accepted' where tracking_token = '${ro.token}'`);
+ok('a confirmed order can be rated', (await rate(ro.token, 2, ' الأكل وصل بارد ')).ok);
+ok('the customer can change the rating', (await rate(ro.token, 4, 'تمام')).ok && (await anon('select public.my_rating($1) r', [ro.token])).rows[0].r.stars === 4);
+ok('stars must be 1 to 5', (await rate(ro.token, 9)).error === 'bad_stars');
+ok('a wrong link cannot rate', (await rate('f'.repeat(32), 5)).error === 'not_found');
+ok('customers cannot read ratings', !!(await anon('select * from public.order_ratings')).error);
+ok('agents and admin see ratings', (await A2('select count(*)::int n from public.order_ratings')).rows[0].n === 1);
+const rs = (await BOSS('select * from public.admin_rating_summary(30)')).rows.find(x => x.branch_id === 'b3');
+ok('admin sees the branch average', rs && rs.ratings === 1 && Number(rs.average) === 4, JSON.stringify(rs));
+ok('only admin gets the summary', !!(await A2('select * from public.admin_rating_summary(30)')).error);
+await db.exec(`update public.orders set created_at = now() - interval '100 days' where tracking_token = '${ro.token}'`);
+await db.exec('select public.cleanup_orders()');
+ok('the rating stays after the old order is cleaned up', (await db.query('select count(*)::int n from public.order_ratings')).rows[0].n === 1);
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

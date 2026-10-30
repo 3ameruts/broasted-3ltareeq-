@@ -23,10 +23,81 @@ const stamp = () => new Date().toISOString().slice(0, 10);
 export default function AdminTools({ flash, onRestore }: { flash: Flash; onRestore: (c: Content) => void }) {
   return (
     <>
+      <Ratings />
       <Versions flash={flash} onRestore={onRestore} />
       <Agents flash={flash} />
       <BlockedPhones flash={flash} />
     </>
+  );
+}
+
+type Summary = { branch_id: string; branch: string; ratings: number; average: number | null; five: number; low: number };
+type RatingRow = { order_id: string; branch_id: string; order_number: number; order_type: string; stars: number; comment: string | null; created_at: string };
+
+// customer ratings: each branch's average, then the latest ratings (the low ones first if you pick «الضعيفة»)
+function Ratings() {
+  const [days, setDays] = useState(30);
+  const [sum, setSum] = useState<Summary[] | null>(null);
+  const [rows, setRows] = useState<RatingRow[]>([]);
+  const [filter, setFilter] = useState<'all' | 'low' | 'comments'>('all');
+  const [bad, setBad] = useState(false);
+  useEffect(() => {
+    supabase.rpc('admin_rating_summary', { p_days: days }).then(({ data, error }) => (error ? setBad(true) : setSum((data ?? []) as Summary[])));
+    const since = new Date(Date.now() - days * 86400000).toISOString();
+    supabase.from('order_ratings').select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(200)
+      .then(({ data }) => setRows((data ?? []) as RatingRow[]));
+  }, [days]);
+  if (bad) return <section className="apanel"><h3>تقييمات الزباين</h3><div className="apanel__body"><p>شغّل ملف 14-ratings.sql بـ Supabase عشان يشتغل هالقسم.</p></div></section>;
+  const name = (id: string) => sum?.find(s => s.branch_id === id)?.branch ?? id;
+  const shown = rows.filter(r => filter === 'all' || (filter === 'low' ? r.stars <= 2 : !!r.comment));
+  const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
+  return (
+    <section className="apanel">
+      <h3>تقييمات الزباين</h3>
+      <div className="apanel__body">
+        <div className="arow">
+          {[7, 30, 90].map(d => <button key={d} className={'abtn abtn--small' + (days === d ? ' abtn--primary' : '')} onClick={() => setDays(d)}>آخر {d} يوم</button>)}
+        </div>
+        {!sum ? <p>…</p> : (
+          <ul className="aitems">
+            {sum.map(s => (
+              <li key={s.branch_id} className="aitem">
+                <div className="aitem__head">
+                  <strong>{s.branch}</strong>
+                  {s.ratings ? <>
+                    <span style={{ color: '#d99a00', fontSize: '1.1rem' }}>{stars(Math.round(Number(s.average)))}</span>
+                    <b className="num">{Number(s.average).toFixed(1)}</b>
+                    <span className="afield__hint">من {s.ratings} تقييم · 5 نجوم: {s.five}{s.low ? ` · ضعيفة: ${s.low}` : ''}</span>
+                  </> : <span className="afield__hint">لسا ما في تقييمات</span>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {rows.length > 0 && <>
+          <div className="arow">
+            {([['all', 'الكل'], ['low', 'الضعيفة (1–2)'], ['comments', 'اللي فيها تعليق']] as const).map(([k, l]) => (
+              <button key={k} className={'abtn abtn--small' + (filter === k ? ' abtn--primary' : '')} onClick={() => setFilter(k)}>{l}</button>
+            ))}
+          </div>
+          <details className="asubpanel" open={filter !== 'all'}>
+            <summary className="asub" style={{ cursor: 'pointer' }}><strong>آخر التقييمات ({shown.length})</strong></summary>
+            <ul className="aitems">
+              {shown.map(r => (
+                <li key={r.order_id} className="aitem">
+                  <div className="aitem__head">
+                    <span style={{ color: r.stars <= 2 ? '#b21017' : '#d99a00', fontSize: '1.1rem' }}>{stars(r.stars)}</span>
+                    <strong>{name(r.branch_id)}</strong>
+                    <span className="afield__hint">طلب #{r.order_number} · {r.order_type === 'delivery' ? 'توصيل' : 'استلام'} · {when(r.created_at)}</span>
+                  </div>
+                  {r.comment && <p>«{r.comment}»</p>}
+                </li>
+              ))}
+            </ul>
+          </details>
+        </>}
+      </div>
+    </section>
   );
 }
 

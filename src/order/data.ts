@@ -101,9 +101,20 @@ export async function createOrder(p: OrderPayload): Promise<CreateResult> {
 export type Tracked = {
   number: number; code: string; branch: string; status: 'new' | 'accepted' | 'ready' | 'delivered' | 'rejected' | 'no_show';
   type: 'pickup' | 'delivery'; name: string; phone: string; pay_method: 'cash' | 'cliq'; subtotal: number; reject_reason: string | null;
-  created_at: string; printed_at: string | null; contact_phone: string; delivery_fee?: number | null; delivery_zone?: string | null; delivery_range?: string | null; cliq_alias: string | null; cliq_name: string | null;
+  created_at: string; accepted_at?: string | null; printed_at: string | null; contact_phone: string; delivery_fee?: number | null; delivery_zone?: string | null; delivery_range?: string | null; cliq_alias: string | null; cliq_name: string | null;
   items: { name: string; qty: number; options: { name: string; qty: number; price?: number }[]; note: string | null; line_total: number }[];
 };
+export type Rating = { stars: number; comment: string | null };
+export async function myRating(token: string): Promise<Rating | null> {
+  const { data, error } = await db.rpc('my_rating', { p_token: token });
+  if (error) return null;
+  return (data as Rating | null) ?? null;
+}
+export async function rateOrder(token: string, stars: number, comment: string): Promise<{ ok: boolean; error?: string }> {
+  const { data, error } = await db.rpc('rate_order', { p_token: token, p_stars: stars, p_comment: comment || null });
+  if (error) throw error;
+  return data as { ok: boolean; error?: string };
+}
 export async function getOrder(token: string): Promise<Tracked | null> {
   const { data, error } = await db.rpc('get_order', { p_token: token });
   if (error) throw error;
