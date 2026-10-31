@@ -418,4 +418,13 @@ ok('agent edit keeps the choice', (await A1(`select public.cc_edit_order($1, $2:
 await db.exec(`update public.orders set printed_at = null, print_claimed_at = null where id = '${spId}'`);
 let pzz = null; for (let i = 0; i < 30 && !(pzz && pzz.id === spId); i++) { const x = await pn(tok.b1); if (!x.order) break; pzz = x.order; await pd(tok.b1, x.order.id); }
 ok('printer gets hot/regular', pzz && pzz.items[0].spice === 'hot');
+
+// «الزبون استلم» by any agent, on someone else's order, even an old one
+const md = await order({ ...base0, branch_id: 'b2', phone: '0799797979', idempotency_key: key(), items: [{ item_id: 'broasted-1', qty: 1, spice: 'hot' }] });
+const mdId = (await BOSS(`select id from public.orders where tracking_token = $1`, [md.token])).rows[0].id;
+await A1(`select public.cc_claim($1)`, [mdId]); await A1(`select public.cc_confirm($1, null)`, [mdId]);
+await db.exec(`update public.orders set created_at = now() - interval '5 days', accepted_at = now() - interval '5 days' + interval '10 minutes', status = 'accepted' where id = '${mdId}'`);
+await db.exec(`update public.call_center_agents set active = true`);
+ok('another agent marks an old order received', (await A2(`select public.cc_mark_delivered($1) r`, [mdId])).rows[0].r.ok
+  && (await BOSS(`select delivered_by from public.orders where id = $1`, [mdId])).rows[0].delivered_by === 'سارة');
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);
