@@ -119,7 +119,7 @@ returns setof text language sql stable security definer set search_path = public
   join public.menu_items() m on m.item_id = i.item_id
   cross join public.order_settings s
   where s.id = 1 and o.status not in ('rejected', 'no_show') and o.created_at > now() - interval '30 days'
-    and m.category_id not in ('sides', s.sauce_category)
+    and m.category_id not in ('sides', coalesce(s.sauce_category, 'sauces'))
   group by i.item_id having sum(i.qty) >= 3
   order by sum(i.qty) desc limit least(greatest(p_limit, 1), 10);
 $$;
