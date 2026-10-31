@@ -56,8 +56,11 @@ export function ItemSheet({ item, category, addons, unavailable, onClose, onAdd,
 
           {askSpice && (
             <div id="spice-choice" className="flex flex-col gap-2">
-              <p className={cn('font-bold', needSpice && 'text-brand-deep')}>حار ولا عادي؟ {needSpice && <span className="text-sm">(اختار عشان تكمّل)</span>}</p>
-              <div className={cn('grid grid-cols-2 gap-2 rounded-2xl', needSpice && 'shadow-[0_0_0_2px_var(--color-brand)]')} role="radiogroup" aria-label="حار ولا عادي">
+              <p className={cn('flex items-center gap-2 font-bold', needSpice && 'text-brand-deep')}>
+                عادي ولا حار؟ <span className="rounded-full bg-brand px-2 py-0.5 text-xs text-white">إجباري</span>
+                {needSpice && <span className="text-sm">اختار عشان تكمّل</span>}
+              </p>
+              <div className={cn('grid grid-cols-2 gap-2 rounded-2xl', needSpice && 'shadow-[0_0_0_2px_var(--color-brand)]')} role="radiogroup" aria-label="عادي ولا حار">
                 {([['regular', 'عادي'], ['hot', 'حار 🌶️']] as const).map(([v, l]) => (
                   <button key={v} role="radio" aria-checked={spice === v} onClick={() => { setSpice(v); setNeedSpice(false); }}
                     className={cn('h-13 rounded-2xl border-2 bg-white text-lg font-bold', spice === v ? 'border-brand-deep text-brand-deep' : 'border-line')}>{l}</button>
