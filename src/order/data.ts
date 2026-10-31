@@ -18,21 +18,24 @@ export type Unavailable = { branch_id: string; item_id: string; until: string | 
 export type Zone = { id: number; branch_id: string; name: string; aliases: string[]; fee: number; fee_max?: number | null };
 // «1.50» or «2.00 – 2.50» for areas priced from–to
 export const zoneFee = (z: Zone) => (z.fee_max != null ? `${z.fee.toFixed(2)} – ${z.fee_max.toFixed(2)}` : z.fee.toFixed(2));
-export type Store = { content: Content; settings: Settings; branches: OrderBranch[]; unavailable: Unavailable[]; zones: Zone[] };
+export type Store = { content: Content; settings: Settings; branches: OrderBranch[]; unavailable: Unavailable[]; zones: Zone[]; best: string[] };
 
 export async function loadStore(): Promise<Store> {
-  const [c, s, b, a, z] = await Promise.all([
+  const [c, s, b, a, z, top] = await Promise.all([
     db.from('site_content').select('content').eq('id', 1).single(),
     db.from('order_settings').select('*').eq('id', 1).single(),
     db.from('order_branches').select('*').order('id'),
     db.from('item_availability').select('branch_id,item_id,until'),
     db.from('delivery_zones').select('id,branch_id,name,aliases,fee,fee_max').order('name'),
+    db.rpc('best_sellers', { p_limit: 5 }),
   ]);
   const err = c.error || s.error || b.error || a.error;
   if (err) throw err;
   // no zones (or the zones table not set up yet): delivery fee by phone, as before
   const zones = ((z.error ? [] : z.data) as Zone[]).map(x => ({ ...x, fee: Number(x.fee), fee_max: x.fee_max == null ? null : Number(x.fee_max) }));
-  return { content: c.data.content as Content, settings: s.data as Settings, branches: b.data as OrderBranch[], unavailable: a.data as Unavailable[], zones };
+  // «الأكثر طلباً»: optional, the menu works without it
+  const best = top.error ? [] : ((top.data ?? []) as string[]);
+  return { content: c.data.content as Content, settings: s.data as Settings, branches: b.data as OrderBranch[], unavailable: a.data as Unavailable[], zones, best };
 }
 
 // Live updates when a branch switches an item off/on or pauses orders
@@ -90,7 +93,7 @@ export type OrderPayload = {
   location?: { lat: number; lng: number } | null; note?: string; pay_method: 'cash' | 'cliq'; change_for?: number | null; device?: string; zone_id?: number;
   items: { item_id: string; qty: number; note?: string; options: { id: string; qty: number }[] }[];
 };
-export type CreateResult = { ok: true; token: string; number: number; subtotal: number; repeat?: boolean; delivery_fee?: number } | { ok: false; error: string; items?: string[] };
+export type CreateResult = { ok: true; token: string; number: number; subtotal: number; repeat?: boolean; delivery_fee?: number } | { ok: false; error: string; items?: string[]; number?: number; branch?: string; status?: string };
 
 export async function createOrder(p: OrderPayload): Promise<CreateResult> {
   const { data, error } = await db.rpc('create_order', { p });

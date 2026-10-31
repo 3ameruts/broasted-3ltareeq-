@@ -10,10 +10,10 @@ const layoutOf = (c: Category): Layout =>
   c.id === 'sides' || c.id === 'sauces' ? 'compact' : c.items.filter(i => i.image).length >= c.items.length * 0.7 ? 'photo' : 'list';
 const thumbOf = (c: Category) => imgUrl(c.image || c.items.find(i => i.image)?.image);
 
-type Props = { categories: Category[]; unavailable: (id: string) => boolean; onOpen: (item: Item, cat: Category) => void; onQuickAdd: (item: Item, cat: Category) => void };
+type Props = { categories: Category[]; unavailable: (id: string) => boolean; onOpen: (item: Item, cat: Category) => void; onQuickAdd: (item: Item, cat: Category) => void; best?: string[] };
 
 // Menu: search, sticky category tabs that follow the scroll, and item cards with a quick "+"
-export function Menu({ categories, unavailable, onOpen, onQuickAdd }: Props) {
+export function Menu({ categories, unavailable, onOpen, onQuickAdd, best = [] }: Props) {
   const [q, setQ] = useState('');
   const [active, setActive] = useState(categories[0]?.id);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -79,7 +79,7 @@ export function Menu({ categories, unavailable, onOpen, onQuickAdd }: Props) {
             <ul className={cn('mt-3 grid gap-3',
               layout === 'photo' ? 'grid-cols-2 sm:grid-cols-3' : layout === 'compact' ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2')}>
               {c.items.map(i => {
-                const p = { item: i, cat: c, out: unavailable(i.id), onOpen, onQuickAdd };
+                const p = { item: i, cat: c, out: unavailable(i.id), hot: best.includes(i.id), onOpen, onQuickAdd };
                 return <li key={i.id}>{layout === 'photo' ? <PhotoCard {...p} /> : layout === 'compact' ? <CompactCard {...p} /> : <ListCard {...p} />}</li>;
               })}
             </ul>
@@ -91,7 +91,8 @@ export function Menu({ categories, unavailable, onOpen, onQuickAdd }: Props) {
   );
 }
 
-type CardProps = { item: Item; cat: Category; out: boolean; onOpen: Props['onOpen']; onQuickAdd: Props['onQuickAdd'] };
+type CardProps = { item: Item; cat: Category; out: boolean; hot?: boolean; onOpen: Props['onOpen']; onQuickAdd: Props['onQuickAdd'] };
+const Hot = () => <span className="inline-flex items-center gap-0.5 rounded-full bg-brand px-2 py-0.5 text-[11px] font-bold text-white">🔥 الأكثر طلباً</span>;
 
 const AddButton = ({ item, cat, onQuickAdd, className }: Pick<CardProps, 'item' | 'cat' | 'onQuickAdd'> & { className?: string }) => (
   <button onClick={() => onQuickAdd(item, cat)} aria-label={`أضف ${item.name}`}
@@ -106,12 +107,13 @@ const OpenArea = ({ item, cat, out, onOpen }: Pick<CardProps, 'item' | 'cat' | '
   <button className="absolute inset-0 rounded-[inherit]" onClick={() => !out && onOpen(item, cat)} disabled={out} aria-label={`${item.name}، التفاصيل`} />;
 
 // photo first: the food sells itself
-function PhotoCard({ item, cat, out, onOpen, onQuickAdd }: CardProps) {
+function PhotoCard({ item, cat, out, hot, onOpen, onQuickAdd }: CardProps) {
   return (
     <div className={cn('group relative flex h-full flex-col overflow-hidden rounded-3xl bg-white shadow-[0_0_0_2px_var(--color-line)] transition-shadow lg:hover:shadow-[0_0_0_2px_var(--color-asphalt)]', out && 'opacity-55')}>
       <OpenArea item={item} cat={cat} out={out} onOpen={onOpen} />
       <div className="pointer-events-none relative aspect-[4/3] bg-white">
         <img src={imgUrl(item.image)} alt="" loading="lazy" className="size-full object-contain p-2 transition-transform duration-300 lg:group-hover:scale-105" />
+        {hot && !out && <span className="absolute top-2 start-2"><Hot /></span>}
       </div>
       <div className="flex flex-1 flex-col gap-1 px-3 pb-3">
         <h3 className="font-bold leading-snug">{item.name}</h3>
@@ -125,12 +127,13 @@ function PhotoCard({ item, cat, out, onOpen, onQuickAdd }: CardProps) {
   );
 }
 
-function ListCard({ item, cat, out, onOpen, onQuickAdd }: CardProps) {
+function ListCard({ item, cat, out, hot, onOpen, onQuickAdd }: CardProps) {
   const img = imgUrl(item.image || cat.image);
   return (
     <div className={cn('relative flex h-full items-stretch gap-3 rounded-3xl bg-white p-3 shadow-[0_0_0_2px_var(--color-line)] transition-shadow lg:hover:shadow-[0_0_0_2px_var(--color-asphalt)]', out && 'opacity-55')}>
       <OpenArea item={item} cat={cat} out={out} onOpen={onOpen} />
       <div className="flex min-w-0 flex-1 flex-col gap-1 py-1">
+        {hot && !out && <Hot />}
         <h3 className="font-bold leading-snug">{item.name}</h3>
         {item.contents && <p className="line-clamp-2 text-sm leading-relaxed text-soft">{item.contents}</p>}
         <p className="mt-auto pt-1"><Price item={item} out={out} /></p>
@@ -144,11 +147,12 @@ function ListCard({ item, cat, out, onOpen, onQuickAdd }: CardProps) {
   );
 }
 
-function CompactCard({ item, cat, out, onOpen, onQuickAdd }: CardProps) {
+function CompactCard({ item, cat, out, hot, onOpen, onQuickAdd }: CardProps) {
   return (
     <div className={cn('relative flex h-full min-h-20 items-center gap-2 rounded-2xl bg-white ps-3 pe-2 py-2 shadow-[0_0_0_2px_var(--color-line)]', out && 'opacity-55')}>
       <OpenArea item={item} cat={cat} out={out} onOpen={onOpen} />
       <div className="min-w-0 flex-1">
+        {hot && !out && <Hot />}
         <h3 className="text-sm font-bold leading-snug">{item.name}</h3>
         <Price item={item} out={out} />
       </div>

@@ -125,6 +125,11 @@ export function Tracking({ token, onNewOrder, onReorder }: { token: string; onNe
       {!!orderFor(token)?.lines?.length && ['delivered', 'accepted', 'ready'].includes(o.status) && (
         <Button size="lg" className="w-full" onClick={onReorder}><RotateCcw size={18} /> اطلب نفس الطلب مرة ثانية</Button>
       )}
+      {['new', 'accepted', 'ready'].includes(o.status) && (
+        <p className="rounded-2xl bg-white px-4 py-3 text-sm shadow-[0_0_0_2px_var(--color-line)]">
+          <b>بدك تعدّل طلبك أو تزيد عليه؟</b> تواصل معنا على <a className="num font-bold text-brand-deep underline" href={`tel:${o.contact_phone}`}>{o.contact_phone}</a> وبنعدّله إلك.
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <a href={`tel:${o.contact_phone}`} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white font-bold shadow-[0_0_0_2px_var(--color-line)]">
           <Phone size={18} /> اتصل فينا

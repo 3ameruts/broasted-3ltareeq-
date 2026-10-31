@@ -99,6 +99,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         if (r.error === 'verify_phone') { rememberDevice(c.phone, null); setChecking(true); }
         else if (r.error === 'unavailable') { onUnavailable(r.items ?? []); setMessage(`${ERRORS.unavailable} ${(r.items ?? []).join('، ')}`); }
         else if (r.error === 'bad_phone' || r.error === 'bad_name' || r.error === 'bad_address') { setMessage(ERRORS[r.error]); validate(); }
+        else if (r.error === 'open_order' && r.number) setMessage(`عندك طلب #${r.number} من ${r.branch ?? 'الفرع'} لسا ${r.status === 'new' ? 'قيد المراجعة' : 'ما انسلّم'}. ما بتقدر تطلب طلب ثاني لحد ما يخلص، ولأي تعديل تواصل معنا على الرقم`);
         else setMessage(ERRORS[r.error] ?? 'صار خطأ، جرّب مرة ثانية.');
         return;
       } catch {
@@ -110,8 +111,8 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
   };
 
   const busy = state === 'sending' || state === 'checking';
-  const alert = message && <div className="text-sm font-semibold text-brand-deep" role="alert">{message}{(message === ERRORS.blocked || message === ERRORS.open_order) && <> <a className="num underline" href={`tel:${contactPhone}`}>{contactPhone}</a></>}
-    {message === ERRORS.open_order && openToken && <Button variant="outline" className="mt-2 w-full" onClick={() => onTrack(openToken)}>شوف طلبك</Button>}</div>;
+  const alert = message && <div className="text-sm font-semibold text-brand-deep" role="alert">{message}{(message === ERRORS.blocked || message === ERRORS.open_order || message.startsWith('عندك طلب #')) && <> <a className="num underline" href={`tel:${contactPhone}`}>{contactPhone}</a></>}
+    {(message === ERRORS.open_order || message.startsWith('عندك طلب #')) && openToken && <Button variant="outline" className="mt-2 w-full" onClick={() => onTrack(openToken)}>شوف طلبك</Button>}</div>;
   const submitButton = (
     <Button size="lg" className="w-full" onClick={submit} disabled={busy || cart.count === 0} aria-busy={busy}>
       {state === 'sending' ? 'عم نبعت طلبك…' : state === 'checking' ? 'عم نتأكد من طلبك…' : state === 'failed' ? 'جرّب مرة ثانية'

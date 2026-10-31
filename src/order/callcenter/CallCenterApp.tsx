@@ -18,7 +18,7 @@ const key = import.meta.env.VITE_ORDERS_SUPABASE_KEY || 'sb_publishable_crkSQ5p2
 const sb = createClient(url, key, { auth: { persistSession: true, storageKey: 'broasted-cc-auth' } });
 
 type MenuInfo = { content: Content; sauce: string; cheese: string | null; cheeseCat: string };
-type CcOrder = Order & { edited_by?: string | null; fee_set_by?: string | null; claimed_by: string | null; claimed_name: string | null; claimed_at: string | null; confirmed_name: string | null; confirmed_at: string | null; pos_ref: string | null };
+type CcOrder = Order & { delivered_by?: string | null; edited_by?: string | null; fee_set_by?: string | null; claimed_by: string | null; claimed_name: string | null; claimed_at: string | null; confirmed_name: string | null; confirmed_at: string | null; pos_ref: string | null };
 type Branch = { id: string; code: string; name: string; accepting: boolean; paused_until: string | null };
 type Unavail = { branch_id: string; item_id: string; until: string | null; updated_by: string | null };
 type Res = { ok: boolean; error?: string; name?: string; repeat?: boolean };
@@ -568,7 +568,10 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
       )}
       {rating && <p className={cn('rounded-2xl px-3 py-2 text-sm font-bold', rating.stars <= 2 ? 'bg-brand/10 text-brand-deep' : 'bg-mustard/25')}>
         تقييم الزبون: {'★'.repeat(rating.stars)}{'☆'.repeat(5 - rating.stars)}{rating.comment ? ` «${rating.comment}»` : ''}</p>}
-      {['ready', 'delivered'].includes(o.status) && <p className="text-sm font-bold text-emerald-700">✓ {o.status === 'ready' ? 'جاهز' : 'انسلّم'}</p>}
+      {['accepted', 'ready'].includes(o.status) && (
+        <Button variant="outline" onClick={() => act(() => rpc('cc_mark_delivered', { p_order: o.id }), 'انسجّل إنه انسلّم')} disabled={busy}><Check size={16} /> تم الاستلام (الزبون بيقدر يطلب من جديد)</Button>
+      )}
+      {['ready', 'delivered'].includes(o.status) && <p className="text-sm font-bold text-emerald-700">✓ {o.status === 'ready' ? 'جاهز' : `انسلّم${o.delivered_by ? ` · ${o.delivered_by}` : ''}`}</p>}
       {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">انلغى{o.reject_reason ? `: ${o.reject_reason}` : ''}{o.confirmed_name ? ` · ${o.confirmed_name}` : ''}</p>}
       {o.status === 'no_show' && <p className="text-sm font-bold text-brand-deep">ما انستلم</p>}
 

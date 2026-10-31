@@ -4,7 +4,7 @@ import ZonesPanel from './ZonesPanel';
 
 // Admin tab: online ordering on/off, the "order online" button on the site, ordering hours,
 // CliQ details shown to customers, and whether each branch's printer PC is connected.
-type Settings = { enabled: boolean; show_button: boolean; order_url: string; open_time: string; last_order_time: string; cliq_alias: string | null; cliq_name: string | null };
+type Settings = { enabled: boolean; show_button: boolean; order_url: string; open_time: string; last_order_time: string; cliq_alias: string | null; cliq_name: string | null; auto_complete_hours?: number };
 type Printer = { branch_id: string; last_seen: string | null };
 type WhatsApp = { phone_number_id: string; template: string; template_lang: string; test_phones: string; require_otp: boolean };
 const SPLIT_URL = 'https://order.broasted3ltareeq.com/';
@@ -26,7 +26,7 @@ export default function OrderingPanel({ flash }: { flash: (text: string, bad?: b
   useEffect(() => {
     (async () => {
       const [a, b, p] = await Promise.all([
-        supabase.from('order_settings').select('enabled, show_button, order_url, open_time, last_order_time, cliq_alias, cliq_name').eq('id', 1).maybeSingle(),
+        supabase.from('order_settings').select('*').eq('id', 1).maybeSingle(),
         supabase.from('order_branches').select('id, name').order('id'),
         supabase.from('printer_tokens').select('branch_id, last_seen'),
       ]);
@@ -46,6 +46,7 @@ export default function OrderingPanel({ flash }: { flash: (text: string, bad?: b
     const { error } = await supabase.from('order_settings').update({
       enabled: s.enabled, show_button: s.show_button, order_url: s.order_url, open_time: s.open_time, last_order_time: s.last_order_time,
       cliq_alias: s.cliq_alias?.trim() || null, cliq_name: s.cliq_name?.trim() || null,
+      ...(s.auto_complete_hours ? { auto_complete_hours: s.auto_complete_hours } : {}),
     }).eq('id', 1);
     setSaving(false);
     if (error) return flash(`ما انحفظت إعدادات الطلب (${error.message})`, true);
@@ -75,6 +76,12 @@ export default function OrderingPanel({ flash }: { flash: (text: string, bad?: b
             <label className="afield"><span>كليك: الـ Alias</span><input dir="ltr" value={s.cliq_alias ?? ''} onChange={e => set({ cliq_alias: e.target.value })} /></label>
             <label className="afield"><span>كليك: اسم المستفيد</span><input value={s.cliq_name ?? ''} onChange={e => set({ cliq_name: e.target.value })} /></label>
           </div>
+          {s.auto_complete_hours !== undefined && (
+            <label className="afield"><span>الطلب المؤكد بيصير «انسلّم» لحاله بعد (ساعات)</span>
+              <input type="number" min={1} max={24} dir="ltr" value={s.auto_complete_hours} onChange={e => set({ auto_complete_hours: Math.min(24, Math.max(1, Number(e.target.value) || 3)) })} />
+              <span className="afield__hint">لأنو الكول سنتر ما بيعرف إمتى استلم الزبون. لحد ما ينسلّم، الزبون ما بيقدر يطلب طلب ثاني (إلا إذا الكول سنتر كبس «تم الاستلام»).</span>
+            </label>
+          )}
           <div className="arow">
             <button className="abtn abtn--primary" onClick={save} disabled={!dirty || saving}>{saving ? 'بنحفظ…' : 'احفظ إعدادات الطلب'}</button>
             <a className="abtn" href="/order/" target="_blank" rel="noopener">افتح صفحة الطلب</a>

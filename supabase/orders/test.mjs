@@ -357,4 +357,29 @@ ok('an empty order is refused', (await edit(A1, [])).error === 'bad_items');
 await A1(`select public.cc_confirm($1, '55')`, [eid]);
 ok('a confirmed order can still be edited (customer called back)', (await edit(A1, [{ item_id: 'broasted-1', qty: 1 }])).ok);
 ok('customers cannot edit orders', !!(await anon(`select public.cc_edit_order($1, '[]'::jsonb)`, [eid])).error);
+
+// ── one active order per customer, auto-complete (17-active-order.sql) ──
+await db.exec(readFileSync(dir + '/17-active-order.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/17-active-order.sql', 'utf8'));
+await db.exec(`update public.order_settings set require_otp = false; update public.whatsapp_config set test_phones = '{}'; delete from public.item_availability`);
+const ac1 = await order({ ...base0, branch_id: 'b1', phone: '0799393939', idempotency_key: key(), items: [{ item_id: 'broasted-1', qty: 1 }] });
+ok('first order goes through', ac1.ok, JSON.stringify(ac1));
+const ac2 = await order({ ...base0, branch_id: 'b2', phone: '0799393939', idempotency_key: key(), items: [{ item_id: 'broasted-1', qty: 1 }] });
+ok('a second order from another branch is stopped and names the open one', ac2.error === 'open_order' && ac2.number === ac1.number && ac2.branch === 'فرع دوار العيادات', JSON.stringify(ac2));
+const acId = (await BOSS(`select id from public.orders where tracking_token = $1`, [ac1.token])).rows[0].id;
+await A1(`select public.cc_claim($1)`, [acId]); await A1(`select public.cc_confirm($1, null)`, [acId]);
+ok('still stopped after it is confirmed (not received yet)', (await order({ ...base0, branch_id: 'b2', phone: '0799393939', idempotency_key: key(), items: [{ item_id: 'broasted-1', qty: 1 }] })).error === 'open_order');
+ok('call center marks it received', (await A1(`select public.cc_mark_delivered($1) r`, [acId])).rows[0].r.ok
+  && (await BOSS(`select status, delivered_by from public.orders where id = $1`, [acId])).rows[0].delivered_by === 'أحمد');
+ok('then the customer can order again', (await order({ ...base0, branch_id: 'b2', phone: '0799393939', idempotency_key: key(), items: [{ item_id: 'broasted-1', qty: 1 }] })).ok);
+const ac3 = (await BOSS(`select id from public.orders where customer_phone = '0799393939' and status = 'new'`)).rows[0].id;
+await A1(`select public.cc_claim($1)`, [ac3]); await A1(`select public.cc_confirm($1, null)`, [ac3]);
+await db.exec(`update public.orders set accepted_at = now() - interval '4 hours' where id = '${ac3}'`);
+const n = (await db.query('select public.auto_complete_orders() n')).rows[0].n;
+ok('confirmed orders close by themselves after the set hours', n >= 1 && (await BOSS(`select status, delivered_by from public.orders where id = $1`, [ac3])).rows[0].delivered_by === 'تلقائي');
+ok('customers cannot mark orders received', !!(await anon(`select public.cc_mark_delivered($1)`, [ac3])).error);
+const zAgain = await order({ ...base0, branch_id: 'b2', type: 'delivery', phone: '0799494949', idempotency_key: key(), address: { area: 'الحصن', street: 'ش', building: '1' }, items: [{ item_id: 'broasted-1', qty: 1 }], zone_id: zid });
+const bs = (await anon('select * from public.best_sellers(5) b')).rows.map(x => x.b);
+ok('best sellers are main items only', bs.length > 0 && bs.every(x => !x.startsWith('sides') && !x.startsWith('sauces')), bs.join(','));
+ok('delivery area pricing still works through the new order steps', zAgain.ok && Number(zAgain.delivery_fee) === 1, JSON.stringify(zAgain));
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

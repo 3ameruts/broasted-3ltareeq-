@@ -145,7 +145,7 @@ export default function OrderApp() {
           <div className="px-4 pt-3 lg:px-0"><RecentOrderBar onOpen={token => go({ name: 'track', token })} onRepeat={setReorder} />{lastOrder() && <InstallPrompt className="mb-4" />}</div>
           <Hero slogan={store.content.brand.slogan} note={closedNote || `مفتوح للطلب لحد ${hourLabel(s.last_order_time)}`} open={!closedNote}
             where={`${mode === 'pickup' ? 'استلام من' : 'توصيل من'} ${branch.name}`} onChange={() => setPickerOpen(true)} />
-          <Menu categories={categories} unavailable={unavailable} onOpen={openItem} onQuickAdd={quickAdd} />
+          <Menu categories={categories} unavailable={unavailable} onOpen={openItem} onQuickAdd={quickAdd} best={store.best} />
         </div>
         <div className="hidden pt-4 lg:block">
           <CartPanel cart={cart} delivery={mode === 'delivery'} unavailable={unavailable} suggestions={suggestions} onSuggest={addSuggestion}
