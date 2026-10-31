@@ -4,6 +4,7 @@ import { getOrder, money, orderFor, splitLine, type Tracked } from '../data';
 import { Button } from '../ui/button';
 import { InstallPrompt } from './InstallPrompt';
 import { RateOrder } from './RateOrder';
+import { PushCard } from './PushCard';
 import { cn } from '../ui/cn';
 
 const STEPS = {
@@ -120,6 +121,7 @@ export function Tracking({ token, onNewOrder, onReorder }: { token: string; onNe
           ? (o.delivery_range ? ` · + التوصيل${o.delivery_zone ? ` (${o.delivery_zone})` : ''} ${o.delivery_range} د.أ، بيتأكد بالاتصال` : ' · + التوصيل بيتحدد بالاتصال') : ''}</p>
       </div>
 
+      {['new', 'accepted'].includes(o.status) && <PushCard token={token} />}
       {/* rate once the order is out (or confirmed for 25 minutes, since the kitchen works on the POS) */}
       {(['ready', 'delivered'].includes(o.status) || (o.status === 'accepted' && o.accepted_at && Date.now() - new Date(o.accepted_at).getTime() > 25 * 60000)) && <RateOrder token={token} />}
       {!!orderFor(token)?.lines?.length && ['delivered', 'accepted', 'ready'].includes(o.status) && (

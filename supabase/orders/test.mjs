@@ -382,4 +382,24 @@ const zAgain = await order({ ...base0, branch_id: 'b2', type: 'delivery', phone:
 const bs = (await anon('select * from public.best_sellers(5) b')).rows.map(x => x.b);
 ok('best sellers are main items only', bs.length > 0 && bs.every(x => !x.startsWith('sides') && !x.startsWith('sauces')), bs.join(','));
 ok('delivery area pricing still works through the new order steps', zAgain.ok && Number(zAgain.delivery_fee) === 1, JSON.stringify(zAgain));
+
+// ── order notifications (18-push.sql); pg_net and vault are the stubs from the WhatsApp tests ──
+await db.exec(readFileSync(dir + '/18-push.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/18-push.sql', 'utf8'));
+const pu = await order({ ...base0, branch_id: 'b3', phone: '0799595959', idempotency_key: key(), items: [{ item_id: 'broasted-1', qty: 1 }] });
+const psub = { endpoint: 'https://push.example.com/abc', keys: { p256dh: 'BKey', auth: 'aKey' } };
+ok('customer subscribes with the tracking link', (await anon('select public.push_subscribe($1, $2::jsonb) r', [pu.token, JSON.stringify(psub)])).rows[0].r.ok);
+ok('a wrong link cannot subscribe', (await anon('select public.push_subscribe($1, $2::jsonb) r', ['0'.repeat(32), JSON.stringify(psub)])).rows[0].r.error === 'not_found');
+ok('a non-https endpoint is refused', (await anon('select public.push_subscribe($1, $2::jsonb) r', [pu.token, JSON.stringify({ ...psub, endpoint: 'http://x' })])).rows[0].r.error === 'bad_subscription');
+ok('customers cannot read subscriptions', !!(await anon('select * from public.push_subscriptions')).error);
+const puId = (await BOSS(`select id from public.orders where tracking_token = $1`, [pu.token])).rows[0].id;
+const sentBefore = (await db.query('select count(*)::int n from net.sent')).rows[0].n;
+await A1(`select public.cc_claim($1)`, [puId]); await A1(`select public.cc_confirm($1, null)`, [puId]);
+ok('not set up yet: confirming works and sends nothing', (await db.query('select count(*)::int n from net.sent')).rows[0].n === sentBefore);
+await db.exec(`update public.push_config set function_url = 'https://abc.supabase.co/functions/v1/order-push'; insert into vault.secrets values ('push_hook_secret', 'hook-secret')`);
+await db.exec(`update public.orders set status = 'new' where id = '${puId}'`);
+await A1(`select public.cc_confirm($1, null)`, [puId]);
+const last = (await db.query(`select body, url from net.sent order by ctid desc limit 1`)).rows[0];
+ok('confirming sends the notification to the function', last.url.endsWith('/functions/v1/order-push') && last.body.title.includes('تم تأكيد طلبك') && last.body.subscriptions.length === 1 && last.body.url.includes(pu.token), JSON.stringify(last.body?.title));
+ok('admin sees push status, others do not', (await BOSS('select public.push_ready() r')).rows[0].r.hook_secret === true && !!(await A1('select public.push_ready()')).error);
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

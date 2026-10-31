@@ -90,6 +90,7 @@ export default function OrderingPanel({ flash }: { flash: (text: string, bad?: b
         </div>
       </section>
       <ZonesPanel flash={flash} />
+      <PushPanel flash={flash} />
       <WhatsAppPanel flash={flash} />
       <section className="apanel">
         <h3>طابعات الفروع</h3>
@@ -158,6 +159,55 @@ function WhatsAppPanel({ flash }: { flash: (text: string, bad?: boolean) => void
         <div className="arow">
           <button className="abtn abtn--primary" onClick={save} disabled={JSON.stringify(w) === JSON.stringify(saved) || saving}>{saving ? 'بنحفظ…' : 'احفظ إعدادات الواتساب'}</button>
         </div>
+      </div>
+    </section>
+  );
+}
+
+// Order notifications on the customer's phone: makes the keys once, shows the secret ones to copy into Supabase
+type PushStatus = { public_key: boolean; function_url: string | null; hook_secret: boolean; subscribers: number };
+const b64u = (b: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+function PushPanel({ flash }: { flash: (text: string, bad?: boolean) => void }) {
+  const [st, setSt] = useState<PushStatus | null>(null);
+  const [missing, setMissing] = useState(false);
+  const [keys, setKeys] = useState<{ pub: string; priv: string; hook: string } | null>(null);
+  const load = () => supabase.rpc('push_ready').then(({ data, error }) => (error ? setMissing(true) : setSt(data as PushStatus)));
+  useEffect(() => { load(); }, []);
+  if (missing) return <section className="apanel"><h3>إشعارات الموبايل</h3><div className="apanel__body"><p>شغّل ملف 18-push.sql بـ Supabase عشان يظهر هالقسم.</p></div></section>;
+  if (!st) return null;
+  const make = async () => {
+    if (st.public_key && !confirm('في مفاتيح قبل. مفاتيح جديدة يعني لازم تحدّث الأسرار بـ Supabase، والزباين اللي فعّلوا قبل ما بيوصلهم إشي. أكيد؟')) return;
+    const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    const pub = b64u(await crypto.subtle.exportKey('raw', pair.publicKey));
+    const priv = (await crypto.subtle.exportKey('jwk', pair.privateKey)).d!;
+    const hook = b64u(crypto.getRandomValues(new Uint8Array(32)).buffer);
+    const base = import.meta.env.VITE_SUPABASE_URL || 'https://qzglmmkrnasgocuvtkut.supabase.co';
+    const a = await supabase.from('order_settings').update({ push_public_key: pub }).eq('id', 1);
+    const b = a.error ? a : await supabase.from('push_config').update({ function_url: `${base}/functions/v1/order-push` }).eq('id', 1);
+    if (b.error) return flash(`ما انحفظ (${b.error.message})`, true);
+    setKeys({ pub, priv, hook }); load();
+  };
+  const copy = (v: string) => navigator.clipboard.writeText(v).then(() => flash('انتسخ'));
+  const ok = (v: boolean) => <span style={{ color: v ? '#1a7f37' : '#b21017' }}>{v ? '✓' : '✗'}</span>;
+  return (
+    <section className="apanel">
+      <h3>إشعارات الموبايل</h3>
+      <div className="apanel__body">
+        <p className="afield__hint">الزبون بيفعّلها من صفحة التتبّع، وبيوصله إشعار لما يتأكّد طلبه أو يجهز أو ينلغى. مجانية.</p>
+        <p>{ok(st.public_key)} المفاتيح · {ok(!!st.function_url)} رابط الدالة · {ok(st.hook_secret)} سر الربط بـ Vault · زباين مفعّلين: <b className="num">{st.subscribers}</b></p>
+        {!keys ? <div className="arow"><button className="abtn abtn--primary" onClick={make}>{st.public_key ? 'اعمل مفاتيح جديدة' : 'جهّز مفاتيح الإشعارات'}</button></div> : (
+          <div className="asubpanel">
+            <p className="afield__err">انسخهم هلأ وحطهم بـ Supabase، ما رح يطلعوا مرة ثانية. لا تبعتهم لحدا.</p>
+            {([['VAPID_PUBLIC_KEY', keys.pub], ['VAPID_PRIVATE_KEY', keys.priv], ['PUSH_HOOK_SECRET', keys.hook]] as const).map(([n, v]) => (
+              <div key={n} className="arow" style={{ alignItems: 'center' }}>
+                <code style={{ fontWeight: 700 }}>{n}</code>
+                <input readOnly dir="ltr" value={v} style={{ flex: 1, minWidth: 0 }} onFocus={e => e.target.select()} />
+                <button className="abtn abtn--small" onClick={() => copy(v)}>انسخ</button>
+              </div>
+            ))}
+            <p className="afield__hint">الثلاثة بـ Edge Functions ← Secrets. والثالث (PUSH_HOOK_SECRET) كمان بـ Vault باسم push_hook_secret.</p>
+          </div>
+        )}
       </div>
     </section>
   );
