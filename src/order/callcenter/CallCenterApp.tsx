@@ -25,6 +25,17 @@ type Res = { ok: boolean; error?: string; name?: string; repeat?: boolean };
 
 const money = (n: number) => Number(n).toFixed(2);
 const clock = (iso: string) => new Intl.DateTimeFormat('ar-JO-u-nu-latn', { timeZone: 'Asia/Amman', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+// copies with the clipboard API, or the old way when the page isn't allowed to (http, older browsers)
+const copyText = (t: string) => {
+  const done = () => toast.success(`انتسخ ${t}`);
+  const fallback = () => {
+    const el = document.createElement('textarea'); el.value = t; el.style.position = 'fixed'; el.style.opacity = '0';
+    document.body.appendChild(el); el.select();
+    try { document.execCommand('copy') ? done() : toast.error('ما قدرت أنسخ'); } catch { toast.error('ما قدرت أنسخ'); }
+    el.remove();
+  };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(t).then(done, fallback); else fallback();
+};
 const hot = (s?: string | null) => (s === 'hot' ? ' · حار 🌶️' : s === 'regular' ? ' · عادي' : '');
 const day = (iso: string) => new Intl.DateTimeFormat('ar-JO-u-nu-latn', { timeZone: 'Asia/Amman', weekday: 'long', day: 'numeric', month: 'numeric' }).format(new Date(iso));
 const minsAgo = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
@@ -493,9 +504,10 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-bold">{o.customer_name}</p>
         <div className="flex gap-2">
-          <a href={`tel:${o.customer_phone}`} className="num flex h-11 items-center gap-2 rounded-full bg-paper px-4 font-bold"><Phone size={16} />{o.customer_phone}</a>
-          <button onClick={() => navigator.clipboard.writeText(o.customer_phone).then(() => toast.success('انتسخ الرقم'), () => toast.error('ما قدرت أنسخ'))}
-            className="grid size-11 place-items-center rounded-full bg-paper" aria-label="انسخ الرقم" title="انسخ الرقم"><Copy size={18} /></button>
+          {/* the number itself copies on a tap (and can be selected); the phone icon calls */}
+          <button onClick={() => copyText(o.customer_phone)} title="اكبس لتنسخ الرقم"
+            className="num flex h-11 select-all items-center gap-2 rounded-full bg-paper px-4 font-bold"><Copy size={16} />{o.customer_phone}</button>
+          <a href={`tel:${o.customer_phone}`} className="grid size-11 place-items-center rounded-full bg-emerald-100 text-emerald-800" aria-label="اتصل" title="اتصل"><Phone size={18} /></a>
         </div>
       </div>
       {o.type === 'delivery' && a && (
