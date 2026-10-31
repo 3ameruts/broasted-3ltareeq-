@@ -1,13 +1,13 @@
 -- بروستد عالطريق: طلب واحد شغّال لكل زبون، وإغلاق تلقائي للطلبات المؤكدة. بيعتمد على 02 و 09 و 10 و 11 و 13. آمن تشغّله أكثر من مرة.
 -- 1) الزبون اللي عنده طلب شغّال (جديد أو مؤكد، من أي فرع) ما بيقدر يطلب طلب ثاني، وبتطلعله رسالة فيها رقم طلبه وفرعه.
--- 2) الطلب المؤكد بيصير «انسلّم» لحاله بعد مدة (من لوحة التحكم، افتراضياً 3 ساعات)، لأنو الكول سنتر برّا الفروع.
+-- 2) الطلب المؤكد بيصير «تم الاستلام» لحاله بعد مدة (من لوحة التحكم، افتراضياً 3 ساعات)، لأنو الكول سنتر برّا الفروع.
 -- 3) الكول سنتر بيقدر يكبس «تم الاستلام» عشان الزبون يقدر يطلب من جديد.
 -- من هون ورايح create_order مقسوم لأجزاء: order_guard (الفحوصات قبل) ← create_order_core ← apply_delivery_zone (بعد).
 
 alter table public.order_settings add column if not exists auto_complete_hours int not null default 3 check (auto_complete_hours between 1 and 24);
 alter table public.orders add column if not exists delivered_by text;
 
--- طلب الزبون الشغّال (إذا في): جديد، أو مؤكد لسا ما انسلّم وما مرّ عليه وقت الإغلاق التلقائي
+-- طلب الزبون الشغّال (إذا في): جديد، أو مؤكد لسا ما تم استلامه وما مرّ عليه وقت الإغلاق التلقائي
 create or replace function public.active_order(p_phone text, p_key uuid default null)
 returns public.orders language sql stable security definer set search_path = public as $$
   select o.* from public.orders o, public.order_settings s

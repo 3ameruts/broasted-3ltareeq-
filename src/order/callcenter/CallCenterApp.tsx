@@ -434,7 +434,7 @@ function posText(o: CcOrder, branchName: string) {
 const REASONS = ['ما ردّ على الاتصال', 'طلب وهمي', 'صنف خلص', 'خارج منطقة التوصيل', 'الفرع مضغوط'];
 
 const itemsKey = (o: CcOrder) => o.order_items.map(i => `${i.name}×${i.qty}`).sort().join('|');
-const STATUS: Record<CcOrder['status'], string> = { new: 'لسا جديد', accepted: 'انأكّد', ready: 'جاهز', delivered: 'انسلّم', rejected: 'انلغى', no_show: 'ما انستلم' };
+const STATUS: Record<CcOrder['status'], string> = { new: 'لسا جديد', accepted: 'انأكّد', ready: 'جاهز', delivered: 'تم الاستلام', rejected: 'انلغى', no_show: 'ما انستلم' };
 
 function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, onChange }: { o: CcOrder; menu: MenuInfo | null; rating?: { stars: number; comment: string | null }; twins: CcOrder[]; userId: string; admin: boolean; branchName: string; tone: string; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
@@ -567,9 +567,9 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
       {rating && <p className={cn('rounded-2xl px-3 py-2 text-sm font-bold', rating.stars <= 2 ? 'bg-brand/10 text-brand-deep' : 'bg-mustard/25')}>
         تقييم الزبون: {'★'.repeat(rating.stars)}{'☆'.repeat(5 - rating.stars)}{rating.comment ? ` «${rating.comment}»` : ''}</p>}
       {['accepted', 'ready'].includes(o.status) && (
-        <Button variant="outline" onClick={() => act(() => rpc('cc_mark_delivered', { p_order: o.id }), 'انسجّل إنه انسلّم')} disabled={busy}><Check size={16} /> تم الاستلام (الزبون بيقدر يطلب من جديد)</Button>
+        <Button variant="outline" onClick={() => act(() => rpc('cc_mark_delivered', { p_order: o.id }), 'تم الاستلام ✓')} disabled={busy}><Check size={16} /> تم الاستلام (الزبون بيقدر يطلب من جديد)</Button>
       )}
-      {['ready', 'delivered'].includes(o.status) && <p className="text-sm font-bold text-emerald-700">✓ {o.status === 'ready' ? 'جاهز' : `انسلّم${o.delivered_by ? ` · ${o.delivered_by}` : ''}`}</p>}
+      {['ready', 'delivered'].includes(o.status) && <p className="text-sm font-bold text-emerald-700">✓ {o.status === 'ready' ? 'جاهز' : `تم الاستلام${o.delivered_by ? ` · ${o.delivered_by}` : ''}`}</p>}
       {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">انلغى{o.reject_reason ? `: ${o.reject_reason}` : ''}{o.confirmed_name ? ` · ${o.confirmed_name}` : ''}</p>}
       {o.status === 'no_show' && <p className="text-sm font-bold text-brand-deep">ما انستلم</p>}
 

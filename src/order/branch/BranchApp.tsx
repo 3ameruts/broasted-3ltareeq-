@@ -234,7 +234,7 @@ function DaySummary({ orders }: { orders: Order[] }) {
   const sum = (f: (o: Order) => boolean) => money(d.filter(f).reduce((s, o) => s + Number(o.subtotal), 0));
   return (
     <div className="grid grid-cols-3 gap-2 rounded-3xl bg-white p-4 text-center shadow-[0_0_0_2px_var(--color-line)] md:col-span-2">
-      <div><p className="text-sm text-soft">انسلّم</p><p className="num text-xl font-bold">{d.length}</p></div>
+      <div><p className="text-sm text-soft">تم الاستلام</p><p className="num text-xl font-bold">{d.length}</p></div>
       <div><p className="text-sm text-soft">كاش</p><p className="num text-xl font-bold">{sum(o => o.paid_method === 'cash')}</p></div>
       <div><p className="text-sm text-soft">كليك</p><p className="num text-xl font-bold">{sum(o => o.paid_method === 'cliq')}</p></div>
     </div>
@@ -337,7 +337,7 @@ function OrderCard({ o, branch, cliqAlias, onChange }: { o: Order; branch: Branc
         </div>
       )}
       {o.status === 'delivered' && (o.paid_method
-        ? <p className="text-sm font-bold text-emerald-700">✓ انسلّم وانحاسب {o.paid_method === 'cash' ? 'كاش' : 'كليك'}{o.paid_ref ? ` (${o.paid_ref})` : ''}</p>
+        ? <p className="text-sm font-bold text-emerald-700">✓ تم الاستلام والدفع {o.paid_method === 'cash' ? 'كاش' : 'كليك'}{o.paid_ref ? ` (${o.paid_ref})` : ''}</p>
         : <Button variant="outline" onClick={() => setSheet('paid')}>سجّل الدفع</Button>)}
       {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">انرفض{o.reject_reason ? `: ${o.reject_reason}` : ''}</p>}
       {o.status === 'no_show' && <p className="text-sm font-bold text-brand-deep">ما انستلم</p>}

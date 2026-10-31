@@ -99,7 +99,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         if (r.error === 'verify_phone') { rememberDevice(c.phone, null); setChecking(true); }
         else if (r.error === 'unavailable') { onUnavailable(r.items ?? []); setMessage(`${ERRORS.unavailable} ${(r.items ?? []).join('، ')}`); }
         else if (r.error === 'bad_phone' || r.error === 'bad_name' || r.error === 'bad_address') { setMessage(ERRORS[r.error]); validate(); }
-        else if (r.error === 'open_order' && r.number) setMessage(`عندك طلب #${r.number} من ${r.branch ?? 'الفرع'} لسا ${r.status === 'new' ? 'قيد المراجعة' : 'ما انسلّم'}. ما بتقدر تطلب طلب ثاني لحد ما يخلص، ولأي تعديل تواصل معنا على الرقم`);
+        else if (r.error === 'open_order' && r.number) setMessage(`عندك طلب #${r.number} من ${r.branch ?? 'الفرع'} لسا ${r.status === 'new' ? 'قيد المراجعة' : 'ما تم استلامه'}. ما بتقدر تطلب طلب ثاني لحد ما يخلص، ولأي تعديل تواصل معنا على الرقم`);
         else setMessage(ERRORS[r.error] ?? 'صار خطأ، جرّب مرة ثانية.');
         return;
       } catch {

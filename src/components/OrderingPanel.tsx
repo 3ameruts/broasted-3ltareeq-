@@ -77,9 +77,9 @@ export default function OrderingPanel({ flash }: { flash: (text: string, bad?: b
             <label className="afield"><span>كليك: اسم المستفيد</span><input value={s.cliq_name ?? ''} onChange={e => set({ cliq_name: e.target.value })} /></label>
           </div>
           {s.auto_complete_hours !== undefined && (
-            <label className="afield"><span>الطلب المؤكد بيصير «انسلّم» لحاله بعد (ساعات)</span>
+            <label className="afield"><span>الطلب المؤكد بيصير «تم الاستلام» لحاله بعد (ساعات)</span>
               <input type="number" min={1} max={24} dir="ltr" value={s.auto_complete_hours} onChange={e => set({ auto_complete_hours: Math.min(24, Math.max(1, Number(e.target.value) || 3)) })} />
-              <span className="afield__hint">لأنو الكول سنتر ما بيعرف إمتى استلم الزبون. لحد ما ينسلّم، الزبون ما بيقدر يطلب طلب ثاني (إلا إذا الكول سنتر كبس «تم الاستلام»).</span>
+              <span className="afield__hint">لأنو الكول سنتر ما بيعرف إمتى استلم الزبون. لحد ما يصير «تم الاستلام»، الزبون ما بيقدر يطلب طلب ثاني (إلا إذا الكول سنتر كبس «تم الاستلام»).</span>
             </label>
           )}
           <div className="arow">
