@@ -178,16 +178,16 @@ function Agents({ flash }: { flash: Flash }) {
     const { data, error } = await supabase.rpc('admin_add_agent', { p_email: email, p_name: name });
     setBusy(false);
     const r = data as { ok: boolean; error?: string } | null;
-    if (error || !r?.ok) return flash(r?.error === 'no_user' ? `ما في حساب بهالإيميل. حط كلمة سر لنعمله${note}` : 'ما انضاف', true);
+    if (error || !r?.ok) return flash(r?.error === 'no_user' ? `ما في حساب بهالإيميل. حط كلمة سر لنعمله${note}` : 'ما تمت الإضافة', true);
     setForm({ name: '', email: '', password: '' });
-    flash(`انضاف ${name} عالكول سنتر${note}`);
+    flash(`تمت إضافة ${name} عالكول سنتر${note}`);
     refresh();
   };
   const update = async (a: Agent, patch: Partial<Agent>) => {
     const next = { ...a, ...patch };
     const { data, error } = await supabase.rpc('admin_update_agent', { p_user: a.user_id, p_name: next.name, p_active: next.active });
-    if (error || !(data as { ok: boolean }).ok) return flash('ما انحفظ', true);
-    flash(patch.active === false ? `${a.name} انوقف، وما بيقدر يدخل الكول سنتر` : patch.active ? `${a.name} رجع شغّال` : 'انحفظ');
+    if (error || !(data as { ok: boolean }).ok) return flash('ما تم الحفظ', true);
+    flash(patch.active === false ? `تم إيقاف ${a.name}، وما بيقدر يدخل الكول سنتر` : patch.active ? `${a.name} رجع شغّال` : 'تم الحفظ');
     refresh();
   };
 
@@ -247,7 +247,7 @@ function BlockedPhones({ flash }: { flash: Flash }) {
     const { data, error } = await supabase.rpc('set_phone_blocked', { p_phone: p, p_blocked: blocked, p_reason: why || null });
     const r = data as { ok: boolean; error?: string } | null;
     if (error || !r?.ok) return flash(r?.error === 'bad_phone' ? 'الرقم مش صحيح' : 'ما زبطت', true);
-    flash(blocked ? `انحظر ${p}` : `انفك الحظر عن ${p}`);
+    flash(blocked ? `تم حظر ${p}` : `تم فك الحظر عن ${p}`);
     if (blocked) { setPhone(''); setReason(''); }
     refresh();
   };

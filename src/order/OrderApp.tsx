@@ -96,7 +96,7 @@ export default function OrderApp() {
   }, [store, categories, cart.lines, unavailable]);
   const addSuggestion = (item: Item) => {
     cart.add({ item_id: item.id, name: item.name, price: item.price, image: item.image, qty: 1, options: [], note: '' });
-    toast.success(`انضاف ${item.name.replace(/\s+/g, ' ')}`, { duration: 1500 });
+    toast.success(`تمت إضافة ${item.name.replace(/\s+/g, ' ')}`, { duration: 1500 });
   };
 
   if (view.name === 'track') return <Shell><Tracking token={view.token} onNewOrder={() => go({ name: 'menu' })} onReorder={() => { setReorder(view.token); go({ name: 'menu' }); }} /></Shell>;
@@ -144,7 +144,7 @@ export default function OrderApp() {
     if (!canOrder) return toast(closedNote);
     if (askSpice(cat)) return setSheet({ item, cat });  // hot or regular has to be chosen first
     cart.add({ item_id: item.id, name: item.name, price: item.price, image: item.image || cat.image, qty: 1, options: [], note: '' });
-    toast.success(`انضاف ${item.name}`, { duration: 1500 });
+    toast.success(`تمت إضافة ${item.name}`, { duration: 1500 });
   };
 
   return (
@@ -181,7 +181,7 @@ export default function OrderApp() {
         onAdd={(qty, options, note, spice) => {
           if (!sheet) return;
           cart.add({ item_id: sheet.item.id, name: sheet.item.name, price: sheet.item.price, image: sheet.item.image || sheet.cat.image, qty, options, note: note.trim(), spice });
-          toast.success(`انضاف ${sheet.item.name}`, { duration: 1500 });
+          toast.success(`تمت إضافة ${sheet.item.name}`, { duration: 1500 });
           setSheet(null);
         }} />
       <CartSheet open={cartOpen} onOpenChange={setCartOpen} cart={cart} delivery={mode === 'delivery'} unavailable={unavailable} suggestions={suggestions} onSuggest={addSuggestion}

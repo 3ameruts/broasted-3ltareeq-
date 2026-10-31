@@ -167,7 +167,7 @@ function Editor({ email }: { email: string }) {
     if (r.ok) {
       setContent(draft);
       if (legacy) { clearLegacyEdits(); setLegacy(null); }
-      flash('انحفظت التعديلات وصارت على الموقع');
+      flash('تم حفظ التعديلات وصارت على الموقع');
       return;
     }
     const msg = r.reason === 'not-setup' ? 'ما قدرنا نحفظ.'
@@ -190,7 +190,7 @@ function Editor({ email }: { email: string }) {
           <img src={draft.brand.logo} alt="" width={86} height={50} />
           <div>
             <strong>لوحة التحكم</strong>
-            <small>{saving ? 'بنحفظ…' : dirty ? 'في تعديلات ما انحفظت' : 'كل إشي محفوظ وعلى الموقع'}</small>
+            <small>{saving ? 'بنحفظ…' : dirty ? 'في تعديلات ما تم حفظها' : 'كل إشي محفوظ وعلى الموقع'}</small>
           </div>
         </div>
         <div className="admin__actions">

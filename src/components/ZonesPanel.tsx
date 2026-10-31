@@ -53,26 +53,26 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
     const { error } = await supabase.from('delivery_zones')
       .upsert(preview.rows.map(r => ({ branch_id: branch, name: r.name, aliases: r.aliases, fee: r.fee, fee_max: r.fee_max, active: true })), { onConflict: 'branch_id,name' });
     setBusy(false);
-    if (error) return flash(`ما انحفظت المناطق (${error.message})`, true);
-    flash(`انحفظت ${preview.rows.length} منطقة`);
+    if (error) return flash(`ما تم حفظ المناطق (${error.message})`, true);
+    flash(`تم حفظ ${preview.rows.length} منطقة`);
     setPaste(''); refresh();
   };
   const save = async (z: Zone, patch: Partial<Zone>) => {
     const { error } = await supabase.from('delivery_zones').update(patch).eq('id', z.id);
-    if (error) return flash(`ما انحفظ (${error.message})`, true);
-    flash('انحفظ'); refresh();
+    if (error) return flash(`ما تم الحفظ (${error.message})`, true);
+    flash('تم الحفظ'); refresh();
   };
   const toggle = async (on: boolean) => {
     const { error } = await supabase.from('order_settings').update({ zones_enabled: on }).eq('id', 1);
-    if (error) return flash(`ما انحفظ (${error.message})`, true);
+    if (error) return flash(`ما تم الحفظ (${error.message})`, true);
     setEnabled(on);
     flash(on ? 'حساب التوصيل حسب المنطقة شغّال' : 'رجع التوصيل بالاتصال زي قبل');
   };
   const remove = async (z: Zone) => {
     if (!confirm(`تمسح منطقة «${z.name}»؟`)) return;
     const { error } = await supabase.from('delivery_zones').delete().eq('id', z.id);
-    if (error) return flash(`ما انمسحت (${error.message})`, true);
-    flash('انمسحت'); refresh();
+    if (error) return flash(`ما تم الحذف (${error.message})`, true);
+    flash('تم الحذف'); refresh();
   };
 
   return (

@@ -1,4 +1,4 @@
--- بروستد عالطريق: إشعارات على موبايل الزبون لما يتأكّد طلبه أو يجهز أو ينلغى. بيعتمد على 02. آمن تشغّله أكثر من مرة.
+-- بروستد عالطريق: إشعارات على موبايل الزبون لما يتم تأكيد طلبه أو يجهز أو يتم إلغاؤه. بيعتمد على 02. آمن تشغّله أكثر من مرة.
 -- الزبون بيكبس «فعّل الإشعارات» بصفحة التتبّع. لما تتغيّر حالة الطلب، قاعدة البيانات بتبعت للدالة order-push (Edge Function)
 -- وهي بتبعت الإشعار. المفاتيح السرية بـ Edge Function Secrets وبـ Vault، مش بالجداول.
 
@@ -68,7 +68,7 @@ begin
     v_title := case new.status
       when 'accepted' then 'تم تأكيد طلبك #' || new.number || ' ✅'
       when 'ready' then case when new.type = 'delivery' then 'طلبك #' || new.number || ' طلع إلك 🛵' else 'طلبك #' || new.number || ' جاهز للاستلام 🍗' end
-      else 'انلغى طلبك #' || new.number end;
+      else 'تم إلغاء طلبك #' || new.number end;
     v_body := case new.status
       when 'accepted' then 'طلبك عم يتحضّر بـ' || coalesce(v_branch, 'الفرع') || '.'
       when 'ready' then case when new.type = 'delivery' then 'السائق بالطريق.' else 'تفضّل استلمه من ' || coalesce(v_branch, 'الفرع') || '.' end

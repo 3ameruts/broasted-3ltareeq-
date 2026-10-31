@@ -53,7 +53,7 @@ export function Tracking({ token, onNewOrder, onReorder }: { token: string; onNe
 
       {step < 0 ? (
         <div className="rounded-3xl bg-white p-5 shadow-[0_0_0_2px_var(--color-line)]" role="status">
-          <p className="text-lg font-bold text-brand-deep">{o.status === 'rejected' ? 'للأسف ما قدرنا نجهّز طلبك' : 'انلغى الطلب'}</p>
+          <p className="text-lg font-bold text-brand-deep">{o.status === 'rejected' ? 'للأسف ما قدرنا نجهّز طلبك' : 'تم إلغاء الطلب'}</p>
           {o.reject_reason && <p className="mt-1 text-soft">{o.reject_reason}</p>}
         </div>
       ) : (
@@ -118,7 +118,7 @@ export function Tracking({ token, onNewOrder, onReorder }: { token: string; onNe
           <span>المجموع</span><span className="num">{money(Number(o.subtotal) + Number(o.delivery_fee ?? 0))} د.أ</span>
         </div>
         <p className="mt-1 text-sm text-soft">الدفع عند الاستلام: {o.pay_method === 'cash' ? 'كاش' : 'كليك'}{o.type === 'delivery' && o.delivery_fee == null
-          ? (o.delivery_range ? ` · + التوصيل${o.delivery_zone ? ` (${o.delivery_zone})` : ''} ${o.delivery_range} د.أ، بيتأكد بالاتصال` : ' · + التوصيل بيتحدد بالاتصال') : ''}</p>
+          ? (o.delivery_range ? ` · + التوصيل${o.delivery_zone ? ` (${o.delivery_zone})` : ''} ${o.delivery_range} د.أ، بيتم تأكيده بالاتصال` : ' · + التوصيل بيتحدد بالاتصال') : ''}</p>
       </div>
 
       {['new', 'accepted'].includes(o.status) && <PushCard token={token} />}

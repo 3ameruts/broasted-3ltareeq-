@@ -242,7 +242,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         <div className={cn('flex justify-between font-bold', fee === null ? 'mt-3 border-t border-line pt-3' : 'mt-1')}>
           <span>المجموع</span><span className="num">{money(total)} د.أ</span>
         </div>
-        {mode === 'delivery' && fee === null && <p className="mt-1 text-sm text-soft">{picked ? `+ التوصيل (${picked.name}) ${zoneFee(picked)} د.أ، بيتأكد بالاتصال` : '+ التوصيل بيتحدد بالاتصال'}</p>}
+        {mode === 'delivery' && fee === null && <p className="mt-1 text-sm text-soft">{picked ? `+ التوصيل (${picked.name}) ${zoneFee(picked)} د.أ، بيتم تأكيده بالاتصال` : '+ التوصيل بيتحدد بالاتصال'}</p>}
       </section>
       <div className="hidden flex-col gap-2 lg:flex">{alert}{submitButton}</div>
     </aside>

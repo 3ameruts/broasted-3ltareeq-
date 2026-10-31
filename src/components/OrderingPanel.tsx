@@ -49,7 +49,7 @@ export default function OrderingPanel({ flash }: { flash: (text: string, bad?: b
       ...(s.auto_complete_hours ? { auto_complete_hours: s.auto_complete_hours } : {}),
     }).eq('id', 1);
     setSaving(false);
-    if (error) return flash(`ما انحفظت إعدادات الطلب (${error.message})`, true);
+    if (error) return flash(`ما تم حفظ إعدادات الطلب (${error.message})`, true);
     setSaved(s);
     flash(`الطلب الأونلاين ${s.enabled ? 'شغّال' : 'متوقف'}، والزر ${s.show_button ? 'ظاهر بالموقع' : 'مخفي'}`);
   };
@@ -135,7 +135,7 @@ function WhatsAppPanel({ flash }: { flash: (text: string, bad?: boolean) => void
     const a = await supabase.from('whatsapp_config').update({ phone_number_id: w.phone_number_id.trim() || null, template: w.template.trim(), template_lang: w.template_lang.trim(), test_phones: tests }).eq('id', 1);
     const b = a.error ? a : await supabase.from('order_settings').update({ require_otp: w.require_otp }).eq('id', 1);
     setSaving(false);
-    if (b.error) return flash(`ما انحفظت إعدادات الواتساب (${b.error.message})`, true);
+    if (b.error) return flash(`ما تم حفظ إعدادات الواتساب (${b.error.message})`, true);
     setW({ ...w, test_phones: tests.join('، ') }); setSaved({ ...w, test_phones: tests.join('، ') });
     flash(w.require_otp ? 'تأكيد الرقم بالواتساب شغّال للكل' : tests.length ? `التأكيد شغّال على أرقام التجربة بس (${tests.length})` : 'تأكيد الرقم بالواتساب مطفي');
   };
@@ -179,10 +179,10 @@ function PushPanel({ flash }: { flash: (text: string, bad?: boolean) => void }) 
     const base = import.meta.env.VITE_SUPABASE_URL || 'https://qzglmmkrnasgocuvtkut.supabase.co';
     const a = await supabase.from('order_settings').update({ push_public_key: pub }).eq('id', 1);
     const b = a.error ? a : await supabase.from('push_config').update({ function_url: `${base}/functions/v1/order-push` }).eq('id', 1);
-    if (b.error) return flash(`ما انحفظ (${b.error.message})`, true);
+    if (b.error) return flash(`ما تم الحفظ (${b.error.message})`, true);
     setKeys({ pub, priv, hook }); load();
   };
-  const copy = (v: string) => navigator.clipboard.writeText(v).then(() => flash('انتسخ'));
+  const copy = (v: string) => navigator.clipboard.writeText(v).then(() => flash('تم النسخ'));
   const ok = (v: boolean) => <span style={{ color: v ? '#1a7f37' : '#b21017' }}>{v ? '✓' : '✗'}</span>;
   return (
     <section className="apanel">
@@ -221,8 +221,8 @@ function SpicePanel({ flash }: { flash: (text: string, bad?: boolean) => void })
   const toggle = async (id: string) => {
     const next = on.includes(id) ? on.filter(x => x !== id) : [...on, id];
     const { error } = await supabase.from('order_settings').update({ spice_categories: next }).eq('id', 1);
-    if (error) return flash(`ما انحفظ (${error.message})`, true);
-    setOn(next); flash('انحفظ');
+    if (error) return flash(`ما تم الحفظ (${error.message})`, true);
+    setOn(next); flash('تم الحفظ');
   };
   return (
     <section className="apanel">

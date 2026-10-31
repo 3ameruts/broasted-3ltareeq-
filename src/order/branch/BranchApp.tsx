@@ -208,7 +208,7 @@ function Board({ branch, onBranches }: { branch: Branch; onBranches: (b: Branch[
             <Play size={18} /> شغّل الطلبات هسّا</Button>}
           <p className="text-sm text-soft">الزباين ما رح يقدروا يطلبوا من هالفرع خلال هالمدة، وبترجع لحالها.</p>
           {[15, 30, 60].map(m => (
-            <Button key={m} variant="outline" size="lg" onClick={async () => { try { await pauseBranch(m, branch.id); await refreshMeta(); setPauseOpen(false); toast(`انوقفت الطلبات ${m} دقيقة`); } catch (e) { failed(e); } }}>
+            <Button key={m} variant="outline" size="lg" onClick={async () => { try { await pauseBranch(m, branch.id); await refreshMeta(); setPauseOpen(false); toast(`تم إيقاف الطلبات ${m} دقيقة`); } catch (e) { failed(e); } }}>
               أوقف <span className="num">{m}</span> دقيقة
             </Button>
           ))}
@@ -257,7 +257,7 @@ function OrderCard({ o, branch, cliqAlias, onChange }: { o: Order; branch: Branc
     const r = await acceptOrder(o.id);
     if (!r.ok) throw new Error(r.error);
     if (r.print) await printTicket(ticketHtml(o, branch.name, { cliqAlias }));
-  }, 'انقبل الطلب');
+  }, 'تم قبول الطلب');
   const reprint = () => act(async () => { const r = await reprintOrder(o.id); if (r.ok) await printTicket(ticketHtml(o, branch.name, { copy: true, cliqAlias })); });
 
   const a = o.address;
@@ -311,7 +311,7 @@ function OrderCard({ o, branch, cliqAlias, onChange }: { o: Order; branch: Branc
       <div className="flex items-baseline justify-between">
         <span className="text-sm">
           الدفع: <b>{o.pay_method === 'cash' ? 'كاش' : 'كليك'}</b>{o.pay_method === 'cash' && o.change_for ? <> · فكّة لـ <span className="num">{money(o.change_for)}</span></> : null}
-          {o.type === 'delivery' && (o.delivery_fee != null ? <> · التوصيل <span className="num">{money(o.delivery_fee)}</span></> : o.delivery_range ? <> · التوصيل <span className="num">{o.delivery_range}</span> (بيتأكد)</> : ' · + التوصيل بالاتصال')}
+          {o.type === 'delivery' && (o.delivery_fee != null ? <> · التوصيل <span className="num">{money(o.delivery_fee)}</span></> : o.delivery_range ? <> · التوصيل <span className="num">{o.delivery_range}</span> (بيتم تأكيده)</> : ' · + التوصيل بالاتصال')}
         </span>
         <span className="num text-xl font-bold">{money(Number(o.subtotal) + Number(o.delivery_fee ?? 0))} د.أ</span>
       </div>
@@ -339,15 +339,15 @@ function OrderCard({ o, branch, cliqAlias, onChange }: { o: Order; branch: Branc
       {o.status === 'delivered' && (o.paid_method
         ? <p className="text-sm font-bold text-emerald-700">✓ تم الاستلام والدفع {o.paid_method === 'cash' ? 'كاش' : 'كليك'}{o.paid_ref ? ` (${o.paid_ref})` : ''}</p>
         : <Button variant="outline" onClick={() => setSheet('paid')}>سجّل الدفع</Button>)}
-      {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">انرفض{o.reject_reason ? `: ${o.reject_reason}` : ''}</p>}
+      {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">تم الرفض{o.reject_reason ? `: ${o.reject_reason}` : ''}</p>}
       {o.status === 'no_show' && <p className="text-sm font-bold text-brand-deep">لم يتم الاستلام</p>}
 
-      <RejectSheet open={sheet === 'reject'} onClose={() => setSheet(null)} onSubmit={(reason, block) => act(() => rejectOrder(o.id, reason, block), block ? 'انرفض وانحظر الرقم' : 'انرفض الطلب').then(() => setSheet(null))} />
+      <RejectSheet open={sheet === 'reject'} onClose={() => setSheet(null)} onSubmit={(reason, block) => act(() => rejectOrder(o.id, reason, block), block ? 'تم الرفض وحظر الرقم' : 'تم رفض الطلب').then(() => setSheet(null))} />
       <PaidSheet open={sheet === 'paid'} defaultMethod={o.pay_method} onClose={() => setSheet(null)}
         onSubmit={(m, ref) => act(async () => { if (o.status !== 'delivered') await setStatus(o.id, 'delivered'); await markPaid(o.id, m, ref); }, 'تم').then(() => setSheet(null))} />
       <Sheet open={sheet === 'noshow'} onOpenChange={x => !x && setSheet(null)} title="الزبون لم يستلم الطلب؟">
         <div className="flex flex-col gap-3 pb-4">
-          <Button size="lg" onClick={() => act(() => setStatus(o.id, 'no_show', true), 'انحظر الرقم').then(() => setSheet(null))}>لم يتم الاستلام، واحظر الرقم</Button>
+          <Button size="lg" onClick={() => act(() => setStatus(o.id, 'no_show', true), 'تم حظر الرقم').then(() => setSheet(null))}>لم يتم الاستلام، واحظر الرقم</Button>
           <Button size="lg" variant="outline" onClick={() => act(() => setStatus(o.id, 'no_show', false)).then(() => setSheet(null))}>لم يتم الاستلام، بدون حظر</Button>
         </div>
       </Sheet>

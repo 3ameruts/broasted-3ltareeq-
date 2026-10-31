@@ -108,7 +108,7 @@ async function main() {
   async function pull(token) {
     const r = await rpc('printer_next', { p_token: token });
     if (!r.ok) {
-      if (!badTokens.has(token)) { badTokens.add(token); log(`رمز فرع غلط أو انلغى (رقم ${tokens.indexOf(token) + 1} بالملف):`, r.error); beep(2); }
+      if (!badTokens.has(token)) { badTokens.add(token); log(`رمز فرع غلط أو تم إلغاؤه (رقم ${tokens.indexOf(token) + 1} بالملف):`, r.error); beep(2); }
       return false;
     }
     badTokens.delete(token);

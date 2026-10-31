@@ -27,7 +27,7 @@ const money = (n: number) => Number(n).toFixed(2);
 const clock = (iso: string) => new Intl.DateTimeFormat('ar-JO-u-nu-latn', { timeZone: 'Asia/Amman', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 // copies with the clipboard API, or the old way when the page isn't allowed to (http, older browsers)
 const copyText = (t: string) => {
-  const done = () => toast.success(`انتسخ ${t}`);
+  const done = () => toast.success(`تم نسخ ${t}`);
   const fallback = () => {
     const el = document.createElement('textarea'); el.value = t; el.style.position = 'fixed'; el.style.opacity = '0';
     document.body.appendChild(el); el.select();
@@ -331,7 +331,7 @@ function Availability({ branches, filter, branchName, tone }: { branches: Branch
     run(b => sb.rpc('set_item_availability', { p_item: item, p_mode: mode, p_branch: b }), mode === 'on' ? 'رجع متوفر' : 'صار غير متوفر').then(() => setPick(null));
   const pause = (b: string, minutes: number | null) => {
     setBusy(true);
-    sb.rpc('pause_branch', { p_minutes: minutes, p_branch: b }).then(({ error }) => { setBusy(false); if (error) failed(error); else toast.success(minutes ? `${branchName(b)} انوقف ${minutes} دقيقة` : `${branchName(b)} رجع يستقبل`); });
+    sb.rpc('pause_branch', { p_minutes: minutes, p_branch: b }).then(({ error }) => { setBusy(false); if (error) failed(error); else toast.success(minutes ? `تم إيقاف ${branchName(b)} ${minutes} دقيقة` : `${branchName(b)} رجع يستقبل`); });
   };
   const q = find.trim();
 
@@ -436,7 +436,7 @@ function posText(o: CcOrder, branchName: string) {
     for (const x of extras) lines.push(`   + ${x.name}${x.qty > 1 ? ' ×' + x.qty : ''}  ${money(x.total)}`);
     if (i.note) lines.push(`   ملاحظة: ${i.note}`);
   }
-  if (o.type === 'delivery') lines.push('', `التوصيل${o.delivery_zone ? ` (${o.delivery_zone})` : ''}: ${o.delivery_fee != null ? money(o.delivery_fee) : o.delivery_range ? `${o.delivery_range} (بيتأكد)` : 'بالاتصال'}`);
+  if (o.type === 'delivery') lines.push('', `التوصيل${o.delivery_zone ? ` (${o.delivery_zone})` : ''}: ${o.delivery_fee != null ? money(o.delivery_fee) : o.delivery_range ? `${o.delivery_range} (بيتم تأكيده)` : 'بالاتصال'}`);
   lines.push(`المجموع: ${money(Number(o.subtotal) + Number(o.delivery_fee ?? 0))} د.أ`);
   lines.push(`الدفع: ${o.pay_method === 'cash' ? 'كاش' : 'كليك'}${o.pay_method === 'cash' && o.change_for ? ` (فكّة لـ ${money(o.change_for)})` : ''}`);
   if (o.note) lines.push(`ملاحظة الزبون: ${o.note}`);
@@ -446,7 +446,7 @@ function posText(o: CcOrder, branchName: string) {
 const REASONS = ['ما ردّ على الاتصال', 'طلب وهمي', 'صنف خلص', 'خارج منطقة التوصيل', 'الفرع مضغوط'];
 
 const itemsKey = (o: CcOrder) => o.order_items.map(i => `${i.name}×${i.qty}`).sort().join('|');
-const STATUS: Record<CcOrder['status'], string> = { new: 'لسا جديد', accepted: 'انأكّد', ready: 'جاهز', delivered: 'تم الاستلام', rejected: 'انلغى', no_show: 'لم يتم الاستلام' };
+const STATUS: Record<CcOrder['status'], string> = { new: 'لسا جديد', accepted: 'تم التأكيد', ready: 'جاهز', delivered: 'تم الاستلام', rejected: 'تم الإلغاء', no_show: 'لم يتم الاستلام' };
 
 function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, onChange }: { o: CcOrder; menu: MenuInfo | null; rating?: { stars: number; comment: string | null }; twins: CcOrder[]; userId: string; admin: boolean; branchName: string; tone: string; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
@@ -468,7 +468,7 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
     } catch (e) { failed(e); return false; } finally { setBusy(false); }
   };
   const copy = async () => {
-    try { await navigator.clipboard.writeText(posText(o, branchName)); toast.success('انتسخ الطلب'); } catch { toast.error('ما قدرت أنسخ'); }
+    try { await navigator.clipboard.writeText(posText(o, branchName)); toast.success('تم نسخ الطلب'); } catch { toast.error('ما قدرت أنسخ'); }
   };
 
   const a = o.address;
@@ -552,17 +552,17 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
       {o.status === 'new' && holder && !isMine && (
         <div className="flex items-center justify-between gap-2 rounded-2xl bg-paper px-3 py-2 text-sm font-bold">
           <span>مع {o.claimed_name} من {minsAgo(o.claimed_at!)} د</span>
-          {admin && <Button size="sm" variant="outline" onClick={() => act(() => rpc('cc_release', { p_order: o.id }), 'انفك القفل ورجع للقائمة')} disabled={busy}><Unlock size={16} /> فك القفل</Button>}
+          {admin && <Button size="sm" variant="outline" onClick={() => act(() => rpc('cc_release', { p_order: o.id }), 'تم فك القفل ورجع للقائمة')} disabled={busy}><Unlock size={16} /> فك القفل</Button>}
         </div>
       )}
       {o.status === 'new' && isMine && (
         <div className="flex flex-col gap-2 rounded-2xl bg-paper p-3">
           <Button variant="outline" onClick={copy}><ClipboardCopy size={18} /> انسخ الطلب للـ POS</Button>
-          {o.type === 'delivery' && <FeeEditor o={o} onSave={fee => act(() => rpc('cc_set_fee', { p_order: o.id, p_fee: fee }), 'انحفظ سعر التوصيل')} />}
+          {o.type === 'delivery' && <FeeEditor o={o} onSave={fee => act(() => rpc('cc_set_fee', { p_order: o.id, p_fee: fee }), 'تم حفظ سعر التوصيل')} />}
           <label className="flex flex-col gap-1.5 text-sm font-bold">رقم فاتورة الـ POS <span className="font-normal text-soft">(اختياري)</span>
             <Input value={pos} onChange={e => setPos(e.target.value)} maxLength={40} dir="ltr" inputMode="numeric" />
           </label>
-          <Button size="lg" onClick={() => act(() => rpc('cc_confirm', { p_order: o.id, p_pos_ref: pos || null }), 'انأكّد الطلب')} disabled={busy}>
+          <Button size="lg" onClick={() => act(() => rpc('cc_confirm', { p_order: o.id, p_pos_ref: pos || null }), 'تم تأكيد الطلب')} disabled={busy}>
             <Check size={20} /> أكّدته على POS {branchName.replace('فرع ', '').replace('دوار ', '')}
           </Button>
           <div className="grid grid-cols-2 gap-2">
@@ -574,7 +574,7 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
       {o.status === 'accepted' && o.confirmed_name && (
         <p className="text-sm font-bold text-emerald-700">✓ أكّده {o.confirmed_name} {o.confirmed_at && `الساعة ${clock(o.confirmed_at)}`}{o.pos_ref ? <> · POS <span className="num">#{o.pos_ref}</span></> : null}</p>
       )}
-      {o.status === 'accepted' && !o.confirmed_name && <p className="text-sm font-bold text-emerald-700">✓ انقبل من الفرع</p>}
+      {o.status === 'accepted' && !o.confirmed_name && <p className="text-sm font-bold text-emerald-700">✓ تم القبول من الفرع</p>}
       {o.edited_by && <p className="text-xs font-bold text-soft">✏️ عدّله {o.edited_by}</p>}
       {menu && ((o.status === 'new' && isMine) || (o.status === 'accepted' && (o.claimed_by === userId || admin))) && (
         <Button variant="outline" onClick={() => setSheet('edit')}><Pencil size={16} /> عدّل الطلب (الزبون غيّر)</Button>
@@ -585,16 +585,16 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
         <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => act(() => rpc('cc_mark_delivered', { p_order: o.id }), 'تم الاستلام ✓ الزبون بيقدر يطلب من جديد')} disabled={busy}><Check size={20} /> الزبون استلم</Button>
       )}
       {['ready', 'delivered'].includes(o.status) && <p className="text-sm font-bold text-emerald-700">✓ {o.status === 'ready' ? 'جاهز' : `تم الاستلام${o.delivered_by ? ` · ${o.delivered_by}` : ''}`}</p>}
-      {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">انلغى{o.reject_reason ? `: ${o.reject_reason}` : ''}{o.confirmed_name ? ` · ${o.confirmed_name}` : ''}</p>}
+      {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">تم الإلغاء{o.reject_reason ? `: ${o.reject_reason}` : ''}{o.confirmed_name ? ` · ${o.confirmed_name}` : ''}</p>}
       {o.status === 'no_show' && <p className="text-sm font-bold text-brand-deep">لم يتم الاستلام</p>}
 
       {menu && sheet === 'edit' && <EditOrder o={o} menu={menu} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); onChange(); }} />}
       <RejectSheet open={sheet === 'reject'} onClose={() => setSheet(null)}
-        onSubmit={async (reason, block) => { if (await act(() => rpc('cc_cancel', { p_order: o.id, p_reason: reason, p_block: block }), block ? 'انرفض وانحظر الرقم' : 'انرفض الطلب')) setSheet(null); }} />
+        onSubmit={async (reason, block) => { if (await act(() => rpc('cc_cancel', { p_order: o.id, p_reason: reason, p_block: block }), block ? 'تم الرفض وحظر الرقم' : 'تم رفض الطلب')) setSheet(null); }} />
       <Sheet open={sheet === 'cancel'} onOpenChange={x => !x && setSheet(null)} title="الزبون لغى الطلب؟">
         <div className="flex flex-col gap-3 pb-4">
-          <p className="text-soft">الطلب بيطلع من الطابور، والزبون بيشوف إنه انلغى.</p>
-          <Button size="lg" onClick={async () => { if (await act(() => rpc('cc_cancel', { p_order: o.id, p_reason: 'الزبون لغى الطلب', p_block: false }), 'انلغى الطلب')) setSheet(null); }} disabled={busy}>آه، الغيه</Button>
+          <p className="text-soft">الطلب بيطلع من الطابور، والزبون بيشوف إنه تم إلغاؤه.</p>
+          <Button size="lg" onClick={async () => { if (await act(() => rpc('cc_cancel', { p_order: o.id, p_reason: 'الزبون لغى الطلب', p_block: false }), 'تم إلغاء الطلب')) setSheet(null); }} disabled={busy}>آه، الغيه</Button>
           <Button size="lg" variant="outline" onClick={() => setSheet(null)}>لا، رجوع</Button>
         </div>
       </Sheet>
@@ -630,7 +630,7 @@ function EditOrder({ o, menu, onClose, onSaved }: { o: CcOrder; menu: MenuInfo; 
     const r = await rpc('cc_edit_order', { p_order: o.id, p_items: payload }).catch(e => { failed(e); return null; });
     setBusy(false);
     if (!r) return;
-    if (r.ok) { toast.success('انعدّل الطلب'); onSaved(); return; }
+    if (r.ok) { toast.success('تم تعديل الطلب'); onSaved(); return; }
     const err = r as Res & { items?: string[] };
     toast.error(err.error === 'unavailable' ? `خالص هسّا: ${(err.items ?? []).join('، ')}` : err.error === 'bad_items' ? 'الطلب لازم يكون فيه صنف واحد على الأقل' : err.error === 'taken' ? `الطلب مع ${err.name}` : 'ما زبط التعديل');
   };
