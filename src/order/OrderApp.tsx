@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { ShoppingBag } from 'lucide-react';
 import type { Category, Item } from '../lib/types';
 import { useCart, usePersisted } from './cart';
-import { addonsFor, branchPaused, hourLabel, hoursOpen, isUnavailable, lastOrder, latestOrder, loadStore, orderFor, money, reloadAvailability, reloadBranches, watchStore, type Store } from './data';
+import { addonsFor, branchPaused, hourLabel, hoursOpen, isUnavailable, FINAL_STATUSES, getOrder, lastOrder, latestOrder, loadStore, markOrderDone, orderFor, money, reloadAvailability, reloadBranches, watchStore, type Store } from './data';
 import { BranchPicker, type Mode } from './screens/BranchPicker';
 import { BranchChip, Menu } from './screens/Menu';
 import { ItemSheet } from './screens/ItemSheet';
@@ -250,8 +250,17 @@ function Hero({ slogan, note, open, where, onChange }: { slogan: string; note: s
 
 // a recent order from this device: one tap back to its tracking page; an older one: order it again
 function RecentOrderBar({ onOpen, onRepeat }: { onOpen: (token: string) => void; onRepeat: (token: string) => void }) {
+  const [, refresh] = useState(0);
   const o = latestOrder();
   const last = o ? null : lastOrder();
+  // the order may have finished since this device last looked: check before offering «تابع حالته»
+  const token = o?.token;
+  useEffect(() => {
+    if (!token) return;
+    let stop = false;
+    getOrder(token).then(r => { if (!stop && (!r || FINAL_STATUSES.includes(r.status))) { markOrderDone(token); refresh(n => n + 1); } }).catch(() => {});
+    return () => { stop = true; };
+  }, [token]);
   const cls = 'mb-4 flex w-full items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-start font-bold shadow-[0_0_0_2px_var(--color-mustard)]';
   if (o) return (
     <button onClick={() => onOpen(o.token)} className={cls}>

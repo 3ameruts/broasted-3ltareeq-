@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy, Phone, RotateCcw } from 'lucide-react';
-import { getOrder, money, orderFor, splitLine, type Tracked } from '../data';
+import { FINAL_STATUSES, getOrder, markOrderDone, money, orderFor, splitLine, type Tracked } from '../data';
 import { Button } from '../ui/button';
 import { InstallPrompt } from './InstallPrompt';
 import { RateOrder } from './RateOrder';
@@ -21,7 +21,7 @@ export function Tracking({ token, onNewOrder, onReorder }: { token: string; onNe
   useEffect(() => {
     let stop = false; let timer = 0;
     const tick = async () => {
-      try { const r = await getOrder(token); if (!stop) setO(r); if (r && ['delivered', 'rejected', 'no_show'].includes(r.status)) return; }
+      try { const r = await getOrder(token); if (!stop) setO(r); if (r && FINAL_STATUSES.includes(r.status)) { markOrderDone(token); return; } }
       catch { /* keep the last known state; try again */ }
       if (!stop) timer = window.setTimeout(tick, 10000);
     };

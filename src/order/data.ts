@@ -138,7 +138,7 @@ export const rememberDevice = (phone: string, token: string | null) => {
   try { localStorage.setItem(DEVICES, JSON.stringify(all)); } catch { /* storage is optional */ }
 };
 // orders placed on this device, so a customer can get back to a recent one (tracking links stay on the device only)
-export type RecentOrder = { token: string; number: number; phone: string; at: number;
+export type RecentOrder = { token: string; number: number; phone: string; at: number; done?: boolean;
   lines?: { item_id: string; qty: number; note: string; spice?: 'regular' | 'hot'; options: { id: string; qty: number }[] }[] };
 export const orderFor = (token: string) => recent().find(x => x.token === token) ?? null;
 // the last order on this device, any age (for «اطلب نفس الطلب»)
@@ -148,10 +148,15 @@ const recent = (): RecentOrder[] => { try { return JSON.parse(localStorage.getIt
 export const rememberOrder = (o: RecentOrder) => {
   try { localStorage.setItem(RECENT, JSON.stringify([o, ...recent().filter(x => x.token !== o.token)].slice(0, 10))); } catch { /* storage is optional */ }
 };
-// the latest order from the last 3 hours (optionally for one phone)
+// the latest unfinished order from the last 3 hours (optionally for one phone)
 export const latestOrder = (phone?: string) => {
   const p = phone ? normPhone(phone) : null;
-  return recent().find(x => Date.now() - x.at < 3 * 3600000 && (!p || x.phone === p)) ?? null;
+  return recent().find(x => !x.done && Date.now() - x.at < 3 * 3600000 && (!p || x.phone === p)) ?? null;
+};
+// received, cancelled or not picked up: stop offering «تابع حالته» for it
+export const FINAL_STATUSES = ['delivered', 'rejected', 'no_show'];
+export const markOrderDone = (token: string) => {
+  try { localStorage.setItem(RECENT, JSON.stringify(recent().map(x => x.token === token ? { ...x, done: true } : x))); } catch { /* storage is optional */ }
 };
 
 export type OtpResult = { ok: boolean; error?: string; seconds?: number; left?: number; device?: string };
