@@ -1,11 +1,10 @@
-import { ArrowRight, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { ArrowRight, MapPin, Phone } from 'lucide-react';
 import type { Content } from '../../lib/types';
 import { cn } from '../ui/cn';
 
 // Privacy, ordering terms and contact: plain Jordanian Arabic, linked at the bottom of the order pages
 export type InfoPage = 'privacy' | 'terms' | 'contact';
 const TITLES: Record<InfoPage, string> = { privacy: 'الخصوصية', terms: 'شروط الطلب', contact: 'تواصل معنا' };
-const wa = (p: string) => 'https://wa.me/' + p.replace(/\D/g, '').replace(/^0/, '962');
 
 export function Info({ page, content, phone, keepDays, onPage, onBack }: {
   page: InfoPage; content: Content; phone: string; keepDays: number; onPage: (p: InfoPage) => void; onBack: () => void;
@@ -37,7 +36,7 @@ export function Info({ page, content, phone, keepDays, onPage, onBack }: {
             <li>نحمي الخدمة من الطلبات الوهمية (مثلاً منع رقم بيعمل طلبات وهمية).</li>
             <li>نحسّن الخدمة من التقييمات.</li>
           </ul>
-          <p><b>ما بنبيع معلوماتك ولا بنعطيها لحدا</b> لأغراض إعلانية. بنستعمل خدمات تقنية موثوقة لتشغيل الموقع وتخزين الطلبات بشكل آمن، وإذا تفعّل تأكيد الرقم، الكود بيوصلك عن طريق واتساب.</p>
+          <p><b>ما بنبيع معلوماتك ولا بنعطيها لحدا</b> لأغراض إعلانية. بنستعمل خدمات تقنية موثوقة لتشغيل الموقع وتخزين الطلبات بشكل آمن، وإذا تفعّل تأكيد الرقم مستقبلاً، الكود بيوصلك برسالة.</p>
           <h2>كم بنحتفظ فيها</h2>
           <p>الطلبات ومعلوماتها <b>بتنحذف تلقائياً بعد {keepDays} يوم</b>. بيضل بس ملخص مبيعات يومي بدون أي بيانات شخصية. الرقم المحظور بسبب طلبات وهمية بيضل محظور لحد ما ينفك.</p>
           <h2>على جهازك</h2>
@@ -74,10 +73,7 @@ export function Info({ page, content, phone, keepDays, onPage, onBack }: {
         {page === 'contact' && <>
           <h1 className="font-display text-3xl">تواصل معنا</h1>
           <p>لأي سؤال عن طلبك أو تعديل أو ملاحظة:</p>
-          <div className="grid grid-cols-2 gap-3">
-            <a href={`tel:${phone}`} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-asphalt font-bold text-white"><Phone size={18} /> <span className="num">{phone}</span></a>
-            <a href={wa(phone)} target="_blank" rel="noopener" className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-600 font-bold text-white"><MessageCircle size={18} /> واتساب</a>
-          </div>
+          <a href={`tel:${phone}`} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-asphalt font-bold text-white"><Phone size={18} /> اتصل فينا <span className="num">{phone}</span></a>
           {content.brand.hours && <p className="text-soft">ساعات الدوام: {content.brand.hours}</p>}
           <h2>فروعنا</h2>
           <ul className="flex flex-col gap-2 [&_li]:ms-0 [&_li]:list-none">
