@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { AlertTriangle, Bike, Check, ClipboardCopy, Headset, Minus, Pencil, Plus, Search, Trash2, LogOut, MapPin, MessageCircle, Pause, Phone, Play, Store as StoreIcon, Unlock, UserX, Wifi, WifiOff, X } from 'lucide-react';
+import { AlertTriangle, Bike, Check, ClipboardCopy, Headset, Minus, Pencil, Plus, Search, Trash2, LogOut, MapPin, Pause, Phone, Play, Store as StoreIcon, Unlock, UserX, Wifi, WifiOff, X } from 'lucide-react';
 import type { Content, Item } from '../../lib/types';
 import type { Order } from '../branch/api';
 import { keepAwake, ring, unlockAudio } from '../branch/alarm';
@@ -31,7 +31,6 @@ const minsAgo = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(i
 const heldBy = (o: CcOrder) => o.claimed_by;
 // one colour per branch so agents never enter an order on the wrong POS
 const TONES = ['bg-sky-100 text-sky-900 ring-sky-300', 'bg-amber-100 text-amber-900 ring-amber-300', 'bg-emerald-100 text-emerald-900 ring-emerald-300', 'bg-fuchsia-100 text-fuchsia-900 ring-fuchsia-300'];
-const waLink = (phone: string) => 'https://wa.me/' + phone.replace(/\D/g, '').replace(/^0/, '962');
 
 const rpc = async (fn: string, args: Record<string, unknown>) => {
   const { data, error } = await sb.rpc(fn, args);
@@ -494,7 +493,6 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
         <p className="font-bold">{o.customer_name}</p>
         <div className="flex gap-2">
           <a href={`tel:${o.customer_phone}`} className="num flex h-11 items-center gap-2 rounded-full bg-paper px-4 font-bold"><Phone size={16} />{o.customer_phone}</a>
-          <a href={waLink(o.customer_phone)} target="_blank" rel="noopener" className="grid size-11 place-items-center rounded-full bg-emerald-100 text-emerald-800" aria-label="واتساب"><MessageCircle size={18} /></a>
         </div>
       </div>
       {o.type === 'delivery' && a && (
