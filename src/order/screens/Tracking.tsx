@@ -75,7 +75,7 @@ export function Tracking({ token, onNewOrder, onReorder }: { token: string; onNe
 
       {stuck && (
         <div className="flex flex-col gap-3 rounded-3xl bg-mustard/30 p-5" role="alert">
-          <p className="font-bold">الفرع ما استلم طلبك لسا. اتصل فينا نتأكد.</p>
+          <p className="font-bold">طلبك لسا ما وصل للفرع. اتصل فينا نتأكد.</p>
           <a href={`tel:${o.contact_phone}`} className="num flex h-12 items-center justify-center gap-2 rounded-2xl bg-brand-deep font-bold text-white"><Phone size={18} />{o.contact_phone}</a>
         </div>
       )}

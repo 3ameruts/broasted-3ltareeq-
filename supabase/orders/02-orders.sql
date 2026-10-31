@@ -517,7 +517,7 @@ begin
   return jsonb_build_object('ok', true);
 end $$;
 
--- عدد الطلبات المرفوضة أو اللي ما انستلمت لنفس الرقم (تنبيه للكاشير)
+-- عدد الطلبات المرفوضة أو اللي لم يتم استلامها لنفس الرقم (تنبيه للكاشير)
 create or replace function public.phone_history(p_order uuid)
 returns jsonb language plpgsql stable security definer set search_path = public as $$
 declare o public.orders;

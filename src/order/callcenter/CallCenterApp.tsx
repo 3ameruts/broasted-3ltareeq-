@@ -446,7 +446,7 @@ function posText(o: CcOrder, branchName: string) {
 const REASONS = ['ما ردّ على الاتصال', 'طلب وهمي', 'صنف خلص', 'خارج منطقة التوصيل', 'الفرع مضغوط'];
 
 const itemsKey = (o: CcOrder) => o.order_items.map(i => `${i.name}×${i.qty}`).sort().join('|');
-const STATUS: Record<CcOrder['status'], string> = { new: 'لسا جديد', accepted: 'انأكّد', ready: 'جاهز', delivered: 'تم الاستلام', rejected: 'انلغى', no_show: 'ما انستلم' };
+const STATUS: Record<CcOrder['status'], string> = { new: 'لسا جديد', accepted: 'انأكّد', ready: 'جاهز', delivered: 'تم الاستلام', rejected: 'انلغى', no_show: 'لم يتم الاستلام' };
 
 function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, onChange }: { o: CcOrder; menu: MenuInfo | null; rating?: { stars: number; comment: string | null }; twins: CcOrder[]; userId: string; admin: boolean; branchName: string; tone: string; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
@@ -493,7 +493,7 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
         </div>
       </div>
 
-      {bad > 0 && <p className="flex items-center gap-2 rounded-2xl bg-mustard/30 px-3 py-2 text-sm font-bold"><AlertTriangle size={18} /> هالرقم إله {bad} طلب مرفوض أو ما انستلم قبل. اتصل تأكد.</p>}
+      {bad > 0 && <p className="flex items-center gap-2 rounded-2xl bg-mustard/30 px-3 py-2 text-sm font-bold"><AlertTriangle size={18} /> هالرقم إله {bad} طلب مرفوض أو لم يتم استلامه قبل. اتصل تأكد.</p>}
       {o.status === 'new' && twins.map(t => (
         <p key={t.id} className="flex items-center gap-2 rounded-2xl bg-brand/10 px-3 py-2 text-sm font-bold text-brand-deep">
           <AlertTriangle size={18} className="shrink-0" />
@@ -586,7 +586,7 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
       )}
       {['ready', 'delivered'].includes(o.status) && <p className="text-sm font-bold text-emerald-700">✓ {o.status === 'ready' ? 'جاهز' : `تم الاستلام${o.delivered_by ? ` · ${o.delivered_by}` : ''}`}</p>}
       {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">انلغى{o.reject_reason ? `: ${o.reject_reason}` : ''}{o.confirmed_name ? ` · ${o.confirmed_name}` : ''}</p>}
-      {o.status === 'no_show' && <p className="text-sm font-bold text-brand-deep">ما انستلم</p>}
+      {o.status === 'no_show' && <p className="text-sm font-bold text-brand-deep">لم يتم الاستلام</p>}
 
       {menu && sheet === 'edit' && <EditOrder o={o} menu={menu} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); onChange(); }} />}
       <RejectSheet open={sheet === 'reject'} onClose={() => setSheet(null)}

@@ -276,7 +276,7 @@ function OrderCard({ o, branch, cliqAlias, onChange }: { o: Order; branch: Branc
         </span>
       </div>
 
-      {bad > 0 && <p className="flex items-center gap-2 rounded-2xl bg-mustard/30 px-3 py-2 text-sm font-bold"><AlertTriangle size={18} /> هالرقم إله {bad} طلب مرفوض أو ما انستلم قبل. اتصل تأكد.</p>}
+      {bad > 0 && <p className="flex items-center gap-2 rounded-2xl bg-mustard/30 px-3 py-2 text-sm font-bold"><AlertTriangle size={18} /> هالرقم إله {bad} طلب مرفوض أو لم يتم استلامه قبل. اتصل تأكد.</p>}
 
       <div className="flex items-center justify-between gap-2">
         <p className="font-bold">{o.customer_name}</p>
@@ -332,7 +332,7 @@ function OrderCard({ o, branch, cliqAlias, onChange }: { o: Order; branch: Branc
       {o.status === 'ready' && (
         <div className="grid grid-cols-[1fr_auto_auto] gap-2">
           <Button size="lg" onClick={() => setSheet('paid')} disabled={busy}>تم التسليم والدفع</Button>
-          <Button size="lg" variant="outline" onClick={() => setSheet('noshow')} disabled={busy}>ما استلم</Button>
+          <Button size="lg" variant="outline" onClick={() => setSheet('noshow')} disabled={busy}>لم يتم الاستلام</Button>
           <Button size="lg" variant="outline" onClick={reprint} disabled={busy} aria-label="إعادة طباعة"><Printer size={20} /></Button>
         </div>
       )}
@@ -340,15 +340,15 @@ function OrderCard({ o, branch, cliqAlias, onChange }: { o: Order; branch: Branc
         ? <p className="text-sm font-bold text-emerald-700">✓ تم الاستلام والدفع {o.paid_method === 'cash' ? 'كاش' : 'كليك'}{o.paid_ref ? ` (${o.paid_ref})` : ''}</p>
         : <Button variant="outline" onClick={() => setSheet('paid')}>سجّل الدفع</Button>)}
       {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">انرفض{o.reject_reason ? `: ${o.reject_reason}` : ''}</p>}
-      {o.status === 'no_show' && <p className="text-sm font-bold text-brand-deep">ما انستلم</p>}
+      {o.status === 'no_show' && <p className="text-sm font-bold text-brand-deep">لم يتم الاستلام</p>}
 
       <RejectSheet open={sheet === 'reject'} onClose={() => setSheet(null)} onSubmit={(reason, block) => act(() => rejectOrder(o.id, reason, block), block ? 'انرفض وانحظر الرقم' : 'انرفض الطلب').then(() => setSheet(null))} />
       <PaidSheet open={sheet === 'paid'} defaultMethod={o.pay_method} onClose={() => setSheet(null)}
         onSubmit={(m, ref) => act(async () => { if (o.status !== 'delivered') await setStatus(o.id, 'delivered'); await markPaid(o.id, m, ref); }, 'تم').then(() => setSheet(null))} />
-      <Sheet open={sheet === 'noshow'} onOpenChange={x => !x && setSheet(null)} title="الزبون ما استلم؟">
+      <Sheet open={sheet === 'noshow'} onOpenChange={x => !x && setSheet(null)} title="الزبون لم يستلم الطلب؟">
         <div className="flex flex-col gap-3 pb-4">
-          <Button size="lg" onClick={() => act(() => setStatus(o.id, 'no_show', true), 'انحظر الرقم').then(() => setSheet(null))}>ما استلم، واحظر الرقم</Button>
-          <Button size="lg" variant="outline" onClick={() => act(() => setStatus(o.id, 'no_show', false)).then(() => setSheet(null))}>ما استلم، بدون حظر</Button>
+          <Button size="lg" onClick={() => act(() => setStatus(o.id, 'no_show', true), 'انحظر الرقم').then(() => setSheet(null))}>لم يتم الاستلام، واحظر الرقم</Button>
+          <Button size="lg" variant="outline" onClick={() => act(() => setStatus(o.id, 'no_show', false)).then(() => setSheet(null))}>لم يتم الاستلام، بدون حظر</Button>
         </div>
       </Sheet>
     </article>

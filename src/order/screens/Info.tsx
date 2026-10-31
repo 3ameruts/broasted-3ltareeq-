@@ -66,7 +66,7 @@ export function Info({ page, content, phone, keepDays, onPage, onBack }: {
           <h2>الإلغاء</h2>
           <ul>
             <li>بتقدر تلغي طلبك بالاتصال فينا قبل ما يبلّش تجهيزه.</li>
-            <li>الطلبات الوهمية، أو الطلب اللي ما انستلم بدون سبب، ممكن يوقف إمكانية الطلب أونلاين من هالرقم.</li>
+            <li>الطلبات الوهمية، أو الطلب اللي لم يتم استلامه بدون سبب، ممكن يوقف إمكانية الطلب أونلاين من هالرقم.</li>
           </ul>
           <p className="text-sm text-soft">أي سؤال؟ <a className="num font-bold underline" href={`tel:${phone}`}>{phone}</a></p>
         </>}
