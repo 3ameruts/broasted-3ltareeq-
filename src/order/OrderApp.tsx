@@ -11,19 +11,22 @@ import { CartPanel, CartSheet } from './screens/CartSheet';
 import { Checkout } from './screens/Checkout';
 import { Tracking } from './screens/Tracking';
 import { InstallPrompt } from './screens/InstallPrompt';
+import { Info, InfoLinks, type InfoPage } from './screens/Info';
 import { Sheet } from './ui/drawer';
 import { Button } from './ui/button';
 import { cn } from './ui/cn';
 
-type View = { name: 'menu' } | { name: 'checkout' } | { name: 'track'; token: string };
+type View = { name: 'menu' } | { name: 'checkout' } | { name: 'track'; token: string } | { name: 'info'; page: InfoPage };
 const readView = (): View => {
   const q = new URLSearchParams(location.search);
   const t = q.get('t');
   if (t && /^[0-9a-f]{32}$/.test(t)) return { name: 'track', token: t };
+  const info = q.get('info');
+  if (info === 'privacy' || info === 'terms' || info === 'contact') return { name: 'info', page: info };
   return q.get('step') === 'checkout' ? { name: 'checkout' } : { name: 'menu' };
 };
 const go = (v: View, replace = false) => {
-  const url = v.name === 'track' ? `?t=${v.token}` : v.name === 'checkout' ? '?step=checkout' : location.pathname;
+  const url = v.name === 'track' ? `?t=${v.token}` : v.name === 'checkout' ? '?step=checkout' : v.name === 'info' ? `?info=${v.page}` : location.pathname;
   history[replace ? 'replaceState' : 'pushState'](null, '', url);
   window.dispatchEvent(new PopStateEvent('popstate'));
 };
@@ -99,6 +102,10 @@ export default function OrderApp() {
   if (view.name === 'track') return <Shell><Tracking token={view.token} onNewOrder={() => go({ name: 'menu' })} onReorder={() => { setReorder(view.token); go({ name: 'menu' }); }} /></Shell>;
   if (loadError) return <Shell><div className="flex flex-col items-center gap-4 px-4 py-24 text-center"><p className="font-bold">ما قدرنا نحمّل المنيو. تأكد من الإنترنت.</p><Button onClick={load}>جرّب مرة ثانية</Button></div></Shell>;
   if (!store) return <Shell><MenuSkeleton /></Shell>;
+  if (view.name === 'info') return (
+    <Shell><Info page={view.page} content={store.content} phone={store.settings.phone} keepDays={store.settings.keep_days ?? 90}
+      onPage={p => go({ name: 'info', page: p }, true)} onBack={() => go({ name: 'menu' })} /></Shell>
+  );
 
   const s = store.settings;
   const open = hoursOpen(s);
@@ -199,6 +206,7 @@ function Shell({ children, header, wide }: { children: React.ReactNode; header?:
       </header>
       <div className="h-2.5 bg-[repeating-conic-gradient(var(--color-asphalt)_0_25%,#fff_0_50%)] bg-[length:10px_10px]" aria-hidden />
       <main className={cn('mx-auto', wide ? 'max-w-lg lg:max-w-6xl' : 'max-w-lg lg:max-w-5xl')}>{children}</main>
+      <InfoLinks onPage={p => go({ name: 'info', page: p })} />
     </div>
   );
 }
