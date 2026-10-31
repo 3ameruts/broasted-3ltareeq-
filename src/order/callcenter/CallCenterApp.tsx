@@ -103,7 +103,7 @@ function Shift({ userId }: { userId: string }) {
       if (!agent.data && !admin.data) return setRoleError(true);
       setAdmin(!!admin.data);
       const me = await sb.from('call_center_agents').select('name').eq('user_id', userId).maybeSingle();
-      setName((me.data?.name as string) ?? 'المدير');
+      setName((me.data?.name as string) ?? 'عامر');
     })().catch(() => setRoleError(true));
   }, [userId]);
 

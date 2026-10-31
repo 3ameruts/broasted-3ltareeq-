@@ -427,4 +427,11 @@ await db.exec(`update public.orders set created_at = now() - interval '5 days', 
 await db.exec(`update public.call_center_agents set active = true`);
 ok('another agent marks an old order received', (await A2(`select public.cc_mark_delivered($1) r`, [mdId])).rows[0].r.ok
   && (await BOSS(`select delivered_by from public.orders where id = $1`, [mdId])).rows[0].delivered_by === 'سارة');
+
+// admin name (20-admin-name.sql)
+await db.exec(readFileSync(dir + '/20-admin-name.sql', 'utf8'));
+const an = await order({ ...base0, branch_id: 'b2', phone: '0799898989', idempotency_key: key(), items: [{ item_id: 'broasted-1', qty: 1 }] });
+const anId = (await BOSS(`select id from public.orders where tracking_token = $1`, [an.token])).rows[0].id;
+await BOSS(`select public.cc_confirm($1, null)`, [anId]);
+ok('the admin shows as عامر', (await BOSS(`select confirmed_name from public.orders where id = $1`, [anId])).rows[0].confirmed_name === 'عامر');
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

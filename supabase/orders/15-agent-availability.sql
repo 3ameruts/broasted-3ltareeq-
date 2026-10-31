@@ -31,7 +31,7 @@ end $$;
 create or replace function public.availability_actor()
 returns text language sql stable security definer set search_path = public as $$
   select coalesce((select name from public.call_center_agents where user_id = auth.uid()),
-                  case when public.is_admin() then 'المدير' else 'الفرع' end);
+                  case when public.is_admin() then 'عامر' else 'الفرع' end);
 $$;
 revoke execute on function public.availability_actor() from public, anon, authenticated;
 

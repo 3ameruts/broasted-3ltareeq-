@@ -76,7 +76,7 @@ end $$;
 
 create or replace function public.agent_name()
 returns text language sql stable security definer set search_path = public as $$
-  select coalesce((select name from public.call_center_agents where user_id = auth.uid()), 'المدير');
+  select coalesce((select name from public.call_center_agents where user_id = auth.uid()), 'عامر');
 $$;
 
 -- استلام الطلب: بينقفل باسم الـ Agent. إذا حدا ثاني ماسكه بيرجع «مع فلان».

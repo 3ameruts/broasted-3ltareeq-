@@ -39,7 +39,7 @@ begin
   if not public.is_admin() then raise exception 'not_allowed' using errcode = '42501'; end if;
   return query
   select p.phone, p.reason, b.name,
-         coalesce(a.name, u.email::text, 'المدير'), p.blocked_at
+         coalesce(a.name, u.email::text, 'عامر'), p.blocked_at
   from public.blocked_phones p
   left join public.order_branches b on b.id = p.branch_id
   left join public.call_center_agents a on a.user_id = p.blocked_by
