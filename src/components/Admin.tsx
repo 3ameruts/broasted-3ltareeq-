@@ -55,7 +55,7 @@ export default function Admin() {
       <AdminShell>
         <section className="apanel alogin">
           <h3>هالحساب مش مسموحله يعدّل</h3>
-          <p>دخلت بـ <strong dir="ltr">{session.user.email}</strong>، بس هالإيميل مش مضاف بجدول <code>admins</code> بـ Supabase.</p>
+          <p>هالحساب ما إله صلاحية على لوحة التحكم.</p>
           <button className="abtn" onClick={() => supabase.auth.signOut()}>اطلع وادخل بحساب ثاني</button>
         </section>
       </AdminShell>
@@ -170,7 +170,7 @@ function Editor({ email }: { email: string }) {
       flash('انحفظت التعديلات وصارت على الموقع');
       return;
     }
-    const msg = r.reason === 'not-setup' ? 'قاعدة البيانات ناقصها صلاحيات. شغّل ملف الإعداد setup.sql من جديد بـ Supabase.'
+    const msg = r.reason === 'not-setup' ? 'ما قدرنا نحفظ.'
       : r.reason === 'not-admin' ? 'هالحساب مش مسموحله يحفظ. تأكّد إنه إيميلك بجدول admins.'
       : 'ما قدرنا نحفظ. شيّك على النت وجرّب مرة ثانية.';
     flash(`${msg} (${r.detail})`, true);
@@ -253,12 +253,12 @@ function autoStat(c: Content, key: Stat['key']) {
 
 type EdProps = { draft: Content; up: (fn: (d: Content) => void) => void };
 
-function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
+// hint: kept on the call sites for reference, not shown
+function Field({ label, children }: { label: string; children: ReactNode; hint?: string }) {
   return (
     <label className="afield">
       <span className="afield__label">{label}</span>
       {children}
-      {hint && <span className="afield__hint">{hint}</span>}
     </label>
   );
 }
@@ -436,7 +436,6 @@ function BrandEditor({ draft, up }: EdProps) {
             <ListInput id="a-story" multiline value={draft.about.paragraphs} join={'\n'} split={/\n/} onChange={v => up(d => { d.about.paragraphs = v; })} />
           </Field>
           <h4 className="asub">الأرقام تحت القصة</h4>
-          <p className="afield__hint">إذا تركت خانة الرقم فاضية، بينحسب لحاله من المنيو والفروع وأوقات الدوام.</p>
           <ul className="astats">
             {draft.about.stats.map((st, i) => (
               <li key={st.key} className="astat">
@@ -468,7 +467,6 @@ function OffersEditor({ draft, up }: EdProps) {
       <section className="apanel">
         <h3>نصوص قسم العروض</h3>
         <div className="apanel__body">
-          <p className="afield__hint">القسم بيطلع تحت الواجهة، وكلمة "العروض" بتطلع بالشريط العلوي، بس لما يكون في عرض واحد شغّال على الأقل.</p>
           <Field label="العنوان"><input id="of-title" value={t.title} onChange={e => up(d => { d.offersText.title = e.target.value; })} /></Field>
           <Field label="الجملة تحت العنوان" hint="اتركها فاضية إذا ما بدك ياها."><input id="of-lead" value={t.lead} onChange={e => up(d => { d.offersText.lead = e.target.value; })} /></Field>
           <Field label="نص الشريط المتحرّك فوق القسم"><input id="of-tape" value={t.tape} onChange={e => up(d => { d.offersText.tape = e.target.value; })} /></Field>
@@ -551,7 +549,6 @@ function TrackingPanel({ draft, up }: EdProps) {
     <section className="apanel">
       <h3>الإحصائيات والإعلانات</h3>
       <div className="apanel__body">
-        <p className="afield__hint">حط الرقم (ID) بس، مش الكود كامل. الخانة الفاضية ما بتشتغل. كبسات الاتصال وفتح خرائط الفروع بتنحسب لحالها.</p>
         {field('googleTag', 'Google Analytics / Google Ads', 'G-XXXXXXXXXX', 'من Google Analytics: Admin ← Data streams ← Measurement ID. أو رقم Google Ads اللي بيبلّش بـ AW-')}
         {field('metaPixel', 'Meta Pixel (فيسبوك وإنستغرام)', '123456789012345', 'من Meta Events Manager ← Data sources ← رقم البكسل (أرقام بس)')}
         {field('gtm', 'Google Tag Manager (اختياري)', 'GTM-XXXXXXX', 'إذا بتستعمل Tag Manager. ما تحطّه مع نفس رقم Google Analytics لحتى ما ينحسب الزائر مرتين.')}
@@ -594,7 +591,6 @@ function GalleryEditor({ draft, up }: EdProps) {
   return (
     <section className="apanel">
       <h3>صور المعرض</h3>
-      <p className="apanel__hint">هاي الصور بتطلع بشريط الصور بالموقع.</p>
       <div className="agallery">
         {draft.gallery.map((src, i) => (
           <ImagePicker key={i} label={`صورة ${i + 1}`} src={src} onChange={v => up(d => { d.gallery[i] = v; })} onRemove={() => up(d => { d.gallery.splice(i, 1); })} />

@@ -43,7 +43,7 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
     refresh();
   }, [refresh]);
 
-  if (missing) return <section className="apanel"><h3>مناطق التوصيل</h3><div className="apanel__body"><p>شغّل ملف 13-delivery-zones.sql بـ Supabase عشان يشتغل هالقسم.</p></div></section>;
+  if (missing) return <section className="apanel"><h3>مناطق التوصيل</h3><div className="apanel__body"><p>هالقسم مش مفعّل لسا.</p></div></section>;
   const mine = (zones ?? []).filter(z => z.branch_id === branch);
   const preview = parse(paste);
 
@@ -80,8 +80,6 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
       <h3>مناطق التوصيل</h3>
       <div className="apanel__body">
         <label className="acheck"><input type="checkbox" checked={!!enabled} disabled={enabled === null} onChange={e => toggle(e.target.checked)} /> شغّل حساب التوصيل حسب المنطقة</label>
-        <p className="afield__hint">لما يكون مطفي، كل إشي زي قبل: الزبون بيكتب منطقته والتوصيل بيتحدد بالاتصال. بتقدر تجهّز المناطق تحت وهو مطفي، وتشغّله لما تخلص.</p>
-        <p className="afield__hint">لما يكون شغّال: الزبون بيختار منطقته وبيشوف سعر التوصيل والمجموع. إذا الفرع ما إله مناطق، أو الزبون كبس «منطقتي مش بالقائمة»، التوصيل بيتحدد بالاتصال.</p>
         <div className="arow">
           {branches.map(b => (
             <button key={b.id} className={'abtn abtn--small' + (branch === b.id ? ' abtn--primary' : '')} onClick={() => setBranch(b.id)}>
@@ -92,7 +90,6 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
 
         <details className="asubpanel" open={!mine.length}>
           <summary className="asub" style={{ cursor: 'pointer' }}><strong>الصق قائمة مناطق (إضافة أو تحديث)</strong></summary>
-          <p className="afield__hint">كل سطر منطقة وسعرها، مثل: «الحصن - 1» أو «الحي الشرقي 0.75»، والسعر «من – لـ» هيك: «حتينا 2/2.5». أسماء ثانية للمنطقة بفاصلة قبل السعر: «القبة، دوار القبة - 1.25». إذا المنطقة موجودة، سعرها بيتحدّث.</p>
           <label className="afield"><textarea rows={6} value={paste} onChange={e => setPaste(e.target.value)} placeholder={'الحصن - 1\nالحي الشرقي - 0.75\nالقبة، دوار القبة - 1.25'} /></label>
           {paste.trim() && <p className="afield__hint">جاهز: <b>{preview.rows.length}</b> منطقة{preview.bad.length ? <> · <span className="afield__err">ما فهمنا: {preview.bad.join(' | ')}</span></> : null}</p>}
           <div className="arow"><button className="abtn abtn--primary" onClick={importList} disabled={busy || !preview.rows.length}>{busy ? 'بنحفظ…' : `احفظ لـ ${branches.find(b => b.id === branch)?.name ?? ''}`}</button></div>
@@ -100,7 +97,7 @@ export default function ZonesPanel({ flash }: { flash: Flash }) {
 
         {!zones ? <p>…</p> : !mine.length ? <p>ما في مناطق لهالفرع لسا (التوصيل بالاتصال).</p> : (
           <details className="asubpanel">
-            <summary className="asub" style={{ cursor: 'pointer' }}><strong>مناطق {branches.find(b => b.id === branch)?.name ?? ''} ({mine.length})</strong> <span className="afield__hint">اكبس لتفتحها وتعدّل</span></summary>
+            <summary className="asub" style={{ cursor: 'pointer' }}><strong>مناطق {branches.find(b => b.id === branch)?.name ?? ''} ({mine.length})</strong></summary>
             <ul className="aitems">{mine.map(z => <ZoneRow key={z.id} z={z} onSave={p => save(z, p)} onRemove={() => remove(z)} />)}</ul>
           </details>
         )}

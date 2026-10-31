@@ -10,7 +10,7 @@ type Blocked = { phone: string; reason: string | null; branch: string | null; bl
 type Flash = (text: string, bad?: boolean) => void;
 
 const when = (iso: string) => new Intl.DateTimeFormat('ar-JO-u-nu-latn', { timeZone: 'Asia/Amman', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
-const missing = <section className="apanel"><div className="apanel__body"><p>شغّل ملف 12-admin-tools.sql بـ Supabase عشان يشتغل هالقسم.</p></div></section>;
+const missing = <section className="apanel"><div className="apanel__body"><p>هالقسم مش مفعّل لسا.</p></div></section>;
 
 function download(name: string, data: unknown) {
   const a = document.createElement('a');
@@ -47,7 +47,7 @@ function Ratings() {
     supabase.from('order_ratings').select('*').gte('created_at', since).order('created_at', { ascending: false }).limit(200)
       .then(({ data }) => setRows((data ?? []) as RatingRow[]));
   }, [days]);
-  if (bad) return <section className="apanel"><h3>تقييمات الزباين</h3><div className="apanel__body"><p>شغّل ملف 14-ratings.sql بـ Supabase عشان يشتغل هالقسم.</p></div></section>;
+  if (bad) return <section className="apanel"><h3>تقييمات الزباين</h3><div className="apanel__body"><p>هالقسم مش مفعّل لسا.</p></div></section>;
   const name = (id: string) => sum?.find(s => s.branch_id === id)?.branch ?? id;
   const shown = rows.filter(r => filter === 'all' || (filter === 'low' ? r.stars <= 2 : !!r.comment));
   const stars = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -128,7 +128,6 @@ function Versions({ flash, onRestore }: { flash: Flash; onRestore: (c: Content) 
     <section className="apanel">
       <h3>النسخ الاحتياطي</h3>
       <div className="apanel__body">
-        <p className="afield__hint">كل ما تكبس «احفظ وانشر» بتنحفظ نسخة من المنيو والنصوص والصور (آخر 60 نسخة). إذا صار غلط، رجّع لنسخة قبل.</p>
         <div className="arow"><button className="abtn abtn--primary" onClick={backupNow}>نزّل نسخة كاملة على جهازي</button></div>
         {!list ? <p>…</p> : !list.length ? <p>لسا ما في نسخ.</p> : (
           <ul className="aitems">
@@ -173,13 +172,13 @@ function Agents({ flash }: { flash: Flash }) {
         import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_crkSQ5p2ntixzGDK5WRx6Q_2LAfmZee',
         { auth: { persistSession: false, autoRefreshToken: false, storageKey: 'broasted-agent-signup' } });
       const { data, error } = await temp.auth.signUp({ email, password: form.password });
-      if (error && !/already/i.test(error.message)) note = ` (ما قدرنا نعمل الحساب: ${error.message}. اعمله من Supabase ← Users وجرّب مرة ثانية)`;
+      if (error && !/already/i.test(error.message)) note = ` (ما قدرنا نعمل الحساب: ${error.message})`;
       else if (data?.user && !data.session) note = '. لازم يأكّد إيميله من الرسالة اللي وصلته قبل أول دخول.';
     }
     const { data, error } = await supabase.rpc('admin_add_agent', { p_email: email, p_name: name });
     setBusy(false);
     const r = data as { ok: boolean; error?: string } | null;
-    if (error || !r?.ok) return flash(r?.error === 'no_user' ? `ما في حساب بهالإيميل. حط كلمة سر لنعمله، أو اعمله من Supabase ← Users${note}` : 'ما انضاف', true);
+    if (error || !r?.ok) return flash(r?.error === 'no_user' ? `ما في حساب بهالإيميل. حط كلمة سر لنعمله${note}` : 'ما انضاف', true);
     setForm({ name: '', email: '', password: '' });
     flash(`انضاف ${name} عالكول سنتر${note}`);
     refresh();
@@ -209,7 +208,6 @@ function Agents({ flash }: { flash: Flash }) {
             <label className="afield"><span className="afield__label">الإيميل</span><input dir="ltr" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></label>
             <label className="afield"><span className="afield__label">كلمة سر (لحساب جديد)</span><input dir="ltr" type="password" autoComplete="new-password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} /></label>
           </div>
-          <p className="afield__hint">إذا الحساب موجود أصلاً اترك كلمة السر فاضية. كلمة السر بتعطيها للـ Agent بنفسك، وما بتنحفظ هون.</p>
           <div className="arow"><button className="abtn abtn--primary" onClick={add} disabled={busy}>{busy ? 'لحظة…' : 'ضيف'}</button></div>
         </div>
       </div>
@@ -258,7 +256,6 @@ function BlockedPhones({ flash }: { flash: Flash }) {
     <section className="apanel">
       <h3>الأرقام المحظورة</h3>
       <div className="apanel__body">
-        <p className="afield__hint">الرقم المحظور ما بيقدر يطلب أونلاين. الكول سنتر بيحظر لما يرفض طلب وهمي.</p>
         {!list ? <p>…</p> : !list.length ? <p>ما في أرقام محظورة.</p> : (
           <ul className="aitems">
             {list.map(b => (
