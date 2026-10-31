@@ -402,4 +402,20 @@ await A1(`select public.cc_confirm($1, null)`, [puId]);
 const last = (await db.query(`select body, url from net.sent order by ctid desc limit 1`)).rows[0];
 ok('confirming sends the notification to the function', last.url.endsWith('/functions/v1/order-push') && last.body.title.includes('تم تأكيد طلبك') && last.body.subscriptions.length === 1 && last.body.url.includes(pu.token), JSON.stringify(last.body?.title));
 ok('admin sees push status, others do not', (await BOSS('select public.push_ready() r')).rows[0].r.hook_secret === true && !!(await A1('select public.push_ready()')).error);
+
+// ── hot or regular (19-spice.sql) ──
+await db.exec(readFileSync(dir + '/19-spice.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/19-spice.sql', 'utf8'));
+const sp = await order({ ...base0, branch_id: 'b1', phone: '0799696969', idempotency_key: key(), items: [
+  { item_id: 'broasted-1', qty: 1, spice: 'hot' }, { item_id: 'sandwiches-1', qty: 1 }, { item_id: 'sides-1', qty: 1, spice: 'hot' }, { item_id: 'tender-1', qty: 1, spice: 'nonsense' }] });
+ok('order with hot/regular goes through', sp.ok, JSON.stringify(sp));
+const spItems = (await anon('select public.get_order($1) r', [sp.token])).rows[0].r.items.map(x => x.spice);
+ok('hot kept, missing becomes regular, sides get none, nonsense becomes regular', JSON.stringify(spItems) === JSON.stringify(['hot', 'regular', null, 'regular']), JSON.stringify(spItems));
+const spId = (await BOSS(`select id from public.orders where tracking_token = $1`, [sp.token])).rows[0].id;
+await A1(`select public.cc_claim($1)`, [spId]);
+ok('agent edit keeps the choice', (await A1(`select public.cc_edit_order($1, $2::jsonb) r`, [spId, JSON.stringify([{ item_id: 'sandwiches-1', qty: 2, spice: 'hot' }, { item_id: 'broasted-1', qty: 1, spice: 'regular' }])])).rows[0].r.ok
+  && JSON.stringify((await anon('select public.get_order($1) r', [sp.token])).rows[0].r.items.map(x => x.spice)) === '["hot","regular"]');
+await db.exec(`update public.orders set printed_at = null, print_claimed_at = null where id = '${spId}'`);
+let pzz = null; for (let i = 0; i < 30 && !(pzz && pzz.id === spId); i++) { const x = await pn(tok.b1); if (!x.order) break; pzz = x.order; await pd(tok.b1, x.order.id); }
+ok('printer gets hot/regular', pzz && pzz.items[0].spice === 'hot');
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

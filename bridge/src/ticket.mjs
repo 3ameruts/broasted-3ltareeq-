@@ -89,7 +89,7 @@ export function ticketSvg(o, look = {}) {
     const base = Number(it.line_total) - extras.reduce((s, x) => s + x.total, 0);
     if (n) { gap(14); rule(PAD + 40, right - 40, { width: 1, dashed: true }); }
     // long names wrap before the price column, so they never run into it on narrow paper
-    wrap(`${it.qty} × ${it.name}`, 28, WIDTH - PAD * 2 - 100).forEach((l, i) => {
+    wrap(`${it.qty} × ${it.name}${it.spice === 'hot' ? ' · حار' : it.spice === 'regular' ? ' · عادي' : ''}`, 28, WIDTH - PAD * 2 - 100).forEach((l, i) => {
       gap(i ? 28 * 1.3 : 38); parts.push(text(l, { size: 28 }));
       if (!i) parts.push(ltr(money(base), { size: 26 }));
     });

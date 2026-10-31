@@ -10,7 +10,7 @@ export const db = createClient(url, key, { auth: { persistSession: false, autoRe
 export type Settings = {
   enabled: boolean; open_time: string; last_order_time: string; phone: string;
   cliq_alias: string | null; cliq_name: string | null;
-  sauce_category: string; cheese_item_id: string | null; cheese_category: string; require_otp?: boolean; zones_enabled?: boolean; keep_days?: number;
+  sauce_category: string; cheese_item_id: string | null; cheese_category: string; require_otp?: boolean; zones_enabled?: boolean; keep_days?: number; spice_categories?: string[];
 };
 export type OrderBranch = { id: string; code: string; name: string; accepting: boolean; paused_until: string | null };
 export type Unavailable = { branch_id: string; item_id: string; until: string | null };
@@ -91,7 +91,7 @@ export type OrderPayload = {
   idempotency_key: string; branch_id: string; type: 'pickup' | 'delivery'; name: string; phone: string;
   address?: { area: string; street: string; building: string; floor?: string; landmark?: string };
   location?: { lat: number; lng: number } | null; note?: string; pay_method: 'cash' | 'cliq'; change_for?: number | null; device?: string; zone_id?: number;
-  items: { item_id: string; qty: number; note?: string; options: { id: string; qty: number }[] }[];
+  items: { item_id: string; qty: number; note?: string; spice?: 'regular' | 'hot'; options: { id: string; qty: number }[] }[];
 };
 export type CreateResult = { ok: true; token: string; number: number; subtotal: number; repeat?: boolean; delivery_fee?: number } | { ok: false; error: string; items?: string[]; number?: number; branch?: string; status?: string };
 
@@ -105,7 +105,7 @@ export type Tracked = {
   number: number; code: string; branch: string; status: 'new' | 'accepted' | 'ready' | 'delivered' | 'rejected' | 'no_show';
   type: 'pickup' | 'delivery'; name: string; phone: string; pay_method: 'cash' | 'cliq'; subtotal: number; reject_reason: string | null;
   created_at: string; accepted_at?: string | null; printed_at: string | null; contact_phone: string; delivery_fee?: number | null; delivery_zone?: string | null; delivery_range?: string | null; cliq_alias: string | null; cliq_name: string | null;
-  items: { name: string; qty: number; options: { name: string; qty: number; price?: number }[]; note: string | null; line_total: number }[];
+  items: { name: string; qty: number; options: { name: string; qty: number; price?: number }[]; note: string | null; line_total: number; spice?: 'regular' | 'hot' | null }[];
 };
 export type Rating = { stars: number; comment: string | null };
 export async function myRating(token: string): Promise<Rating | null> {
@@ -139,7 +139,7 @@ export const rememberDevice = (phone: string, token: string | null) => {
 };
 // orders placed on this device, so a customer can get back to a recent one (tracking links stay on the device only)
 export type RecentOrder = { token: string; number: number; phone: string; at: number;
-  lines?: { item_id: string; qty: number; note: string; options: { id: string; qty: number }[] }[] };
+  lines?: { item_id: string; qty: number; note: string; spice?: 'regular' | 'hot'; options: { id: string; qty: number }[] }[] };
 export const orderFor = (token: string) => recent().find(x => x.token === token) ?? null;
 // the last order on this device, any age (for «اطلب نفس الطلب»)
 export const lastOrder = () => recent()[0] ?? null;

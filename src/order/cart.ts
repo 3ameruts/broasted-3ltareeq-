@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 
 export type CartOption = { id: string; name: string; price: number; qty: number };
-export type CartLine = { key: string; item_id: string; name: string; price: number; image?: string; qty: number; options: CartOption[]; note: string };
+export type Spice = 'regular' | 'hot';
+export type CartLine = { key: string; item_id: string; name: string; price: number; image?: string; qty: number; options: CartOption[]; note: string; spice?: Spice };
+export const spiceLabel = (s?: Spice | null) => (s === 'hot' ? 'حار 🌶️' : s === 'regular' ? 'عادي' : '');
 
 const KEY = 'broasted-order-cart-v1';
 const read = <T,>(k: string, fallback: T): T => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
@@ -10,7 +12,7 @@ const write = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.st
 export const unitPrice = (l: Pick<CartLine, 'price' | 'options'>) => l.price + l.options.reduce((s, o) => s + o.price * o.qty, 0);
 export const lineTotal = (l: CartLine) => Math.round(unitPrice(l) * l.qty * 100) / 100;
 // Same item with the same add-ons and note merges into one line
-const sig = (l: Omit<CartLine, 'key' | 'qty'>) => [l.item_id, ...l.options.map(o => `${o.id}x${o.qty}`).sort(), l.note.trim()].join('|');
+const sig = (l: Omit<CartLine, 'key' | 'qty'>) => [l.item_id, l.spice ?? '', ...l.options.map(o => `${o.id}x${o.qty}`).sort(), l.note.trim()].join('|');
 
 export function useCart() {
   const [lines, setLines] = useState<CartLine[]>(() => read(KEY, []));

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient, type Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
-import { AlertTriangle, Bike, Check, ClipboardCopy, Headset, Minus, Pencil, Plus, Search, Trash2, LogOut, MapPin, Pause, Phone, Play, Store as StoreIcon, Unlock, UserX, Wifi, WifiOff, X } from 'lucide-react';
+import { AlertTriangle, Bike, Check, ClipboardCopy, Copy, Headset, Minus, Pencil, Plus, Search, Trash2, LogOut, MapPin, Pause, Phone, Play, Store as StoreIcon, Unlock, UserX, Wifi, WifiOff, X } from 'lucide-react';
 import type { Content, Item } from '../../lib/types';
 import type { Order } from '../branch/api';
 import { keepAwake, ring, unlockAudio } from '../branch/alarm';
@@ -17,7 +17,7 @@ const url = import.meta.env.VITE_ORDERS_SUPABASE_URL || 'https://qzglmmkrnasgocu
 const key = import.meta.env.VITE_ORDERS_SUPABASE_KEY || 'sb_publishable_crkSQ5p2ntixzGDK5WRx6Q_2LAfmZee';
 const sb = createClient(url, key, { auth: { persistSession: true, storageKey: 'broasted-cc-auth' } });
 
-type MenuInfo = { content: Content; sauce: string; cheese: string | null; cheeseCat: string };
+type MenuInfo = { content: Content; sauce: string; cheese: string | null; cheeseCat: string; spice: string[] };
 type CcOrder = Order & { delivered_by?: string | null; edited_by?: string | null; fee_set_by?: string | null; claimed_by: string | null; claimed_name: string | null; claimed_at: string | null; confirmed_name: string | null; confirmed_at: string | null; pos_ref: string | null };
 type Branch = { id: string; code: string; name: string; accepting: boolean; paused_until: string | null };
 type Unavail = { branch_id: string; item_id: string; until: string | null; updated_by: string | null };
@@ -25,6 +25,7 @@ type Res = { ok: boolean; error?: string; name?: string; repeat?: boolean };
 
 const money = (n: number) => Number(n).toFixed(2);
 const clock = (iso: string) => new Intl.DateTimeFormat('ar-JO-u-nu-latn', { timeZone: 'Asia/Amman', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+const hot = (s?: string | null) => (s === 'hot' ? ' · حار 🌶️' : s === 'regular' ? ' · عادي' : '');
 const day = (iso: string) => new Intl.DateTimeFormat('ar-JO-u-nu-latn', { timeZone: 'Asia/Amman', weekday: 'long', day: 'numeric', month: 'numeric' }).format(new Date(iso));
 const minsAgo = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
 // a taken order stays with that agent until they confirm or cancel it (only an admin can unlock it)
@@ -122,8 +123,8 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
   // the menu and add-on rules, for editing an order when a customer calls back
   const [menu, setMenu] = useState<MenuInfo | null>(null);
   useEffect(() => {
-    Promise.all([sb.from('site_content').select('content').eq('id', 1).single(), sb.from('order_settings').select('sauce_category, cheese_item_id, cheese_category').eq('id', 1).single()])
-      .then(([c, s]) => { if (c.data && s.data) setMenu({ content: c.data.content as Content, sauce: s.data.sauce_category, cheese: s.data.cheese_item_id, cheeseCat: s.data.cheese_category }); });
+    Promise.all([sb.from('site_content').select('content').eq('id', 1).single(), sb.from('order_settings').select('*').eq('id', 1).single()])
+      .then(([c, s]) => { if (c.data && s.data) setMenu({ content: c.data.content as Content, sauce: s.data.sauce_category, cheese: s.data.cheese_item_id, cheeseCat: s.data.cheese_category, spice: (s.data.spice_categories as string[] | undefined) ?? [] }); });
   }, []);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [filter, setFilter] = useState<string>('all');
@@ -420,7 +421,7 @@ function posText(o: CcOrder, branchName: string) {
   lines.push('');
   for (const i of o.order_items) {
     const { base, extras } = splitLine(i.line_total, i.qty, i.options);
-    lines.push(`${i.qty} × ${i.name}  ${money(base)}`);
+    lines.push(`${i.qty} × ${i.name}${hot(i.spice)}  ${money(base)}`);
     for (const x of extras) lines.push(`   + ${x.name}${x.qty > 1 ? ' ×' + x.qty : ''}  ${money(x.total)}`);
     if (i.note) lines.push(`   ملاحظة: ${i.note}`);
   }
@@ -493,6 +494,8 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
         <p className="font-bold">{o.customer_name}</p>
         <div className="flex gap-2">
           <a href={`tel:${o.customer_phone}`} className="num flex h-11 items-center gap-2 rounded-full bg-paper px-4 font-bold"><Phone size={16} />{o.customer_phone}</a>
+          <button onClick={() => navigator.clipboard.writeText(o.customer_phone).then(() => toast.success('انتسخ الرقم'), () => toast.error('ما قدرت أنسخ'))}
+            className="grid size-11 place-items-center rounded-full bg-paper" aria-label="انسخ الرقم" title="انسخ الرقم"><Copy size={18} /></button>
         </div>
       </div>
       {o.type === 'delivery' && a && (
@@ -509,7 +512,7 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
           const { base, extras } = splitLine(i.line_total, i.qty, i.options);
           return (
             <li key={i.id}>
-              <div className="flex justify-between gap-2 font-bold"><span><span className="num">{i.qty}×</span> {i.name}</span><span className="num">{money(base)}</span></div>
+              <div className="flex justify-between gap-2 font-bold"><span><span className="num">{i.qty}×</span> {i.name}{i.spice === 'hot' ? <span className="text-brand-deep"> · حار 🌶️</span> : i.spice === 'regular' ? <span className="font-normal text-soft"> · عادي</span> : null}</span><span className="num">{money(base)}</span></div>
               {extras.map((x, j) => (
                 <div key={j} className="flex justify-between gap-2 ps-5 text-sm text-soft">
                   <span>+ {x.name}{x.qty > 1 ? ` ×${x.qty}` : ''}</span><span className="num">{money(x.total)}</span>
@@ -567,7 +570,7 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
       {rating && <p className={cn('rounded-2xl px-3 py-2 text-sm font-bold', rating.stars <= 2 ? 'bg-brand/10 text-brand-deep' : 'bg-mustard/25')}>
         تقييم الزبون: {'★'.repeat(rating.stars)}{'☆'.repeat(5 - rating.stars)}{rating.comment ? ` «${rating.comment}»` : ''}</p>}
       {['accepted', 'ready'].includes(o.status) && (
-        <Button variant="outline" onClick={() => act(() => rpc('cc_mark_delivered', { p_order: o.id }), 'تم الاستلام ✓')} disabled={busy}><Check size={16} /> تم الاستلام (الزبون بيقدر يطلب من جديد)</Button>
+        <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => act(() => rpc('cc_mark_delivered', { p_order: o.id }), 'تم الاستلام ✓ الزبون بيقدر يطلب من جديد')} disabled={busy}><Check size={20} /> الزبون استلم</Button>
       )}
       {['ready', 'delivered'].includes(o.status) && <p className="text-sm font-bold text-emerald-700">✓ {o.status === 'ready' ? 'جاهز' : `تم الاستلام${o.delivered_by ? ` · ${o.delivered_by}` : ''}`}</p>}
       {o.status === 'rejected' && <p className="text-sm font-bold text-brand-deep">انلغى{o.reject_reason ? `: ${o.reject_reason}` : ''}{o.confirmed_name ? ` · ${o.confirmed_name}` : ''}</p>}
@@ -587,18 +590,19 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
   );
 }
 
-type EditLine = { key: string; item_id: string; name: string; price: number; qty: number; note: string; options: { id: string; name: string; price: number; qty: number }[] };
+type EditLine = { key: string; item_id: string; name: string; price: number; qty: number; note: string; spice?: 'regular' | 'hot' | null; options: { id: string; name: string; price: number; qty: number }[] };
 
 // edit an order on the phone: change quantities, remove or add items and add-ons; the database prices it from the menu
 function EditOrder({ o, menu, onClose, onSaved }: { o: CcOrder; menu: MenuInfo; onClose: () => void; onSaved: () => void }) {
   const items = useMemo(() => menu.content.categories.flatMap(c => c.items.map(i => ({ ...i, cat: c.id }))), [menu]);
   const byId = (id: string) => items.find(i => i.id === id);
   const [lines, setLines] = useState<EditLine[]>(() => o.order_items.map((l, n) => ({
-    key: String(n), item_id: l.item_id, name: l.name, qty: l.qty, note: l.note ?? '',
+    key: String(n), item_id: l.item_id, name: l.name, qty: l.qty, note: l.note ?? '', spice: l.spice,
     price: byId(l.item_id)?.price ?? 0, options: l.options.map(x => ({ id: x.id, name: x.name, price: Number(x.price), qty: x.qty })),
   })));
   const [find, setFind] = useState('');
   const [busy, setBusy] = useState(false);
+  const spiceCats = menu.spice;
   const addonsFor = (itemId: string): Item[] => {
     const it = byId(itemId); if (!it || it.cat === menu.sauce || it.cat === 'sides') return [];
     const sauces = menu.content.categories.find(c => c.id === menu.sauce)?.items ?? [];
@@ -610,7 +614,7 @@ function EditOrder({ o, menu, onClose, onSaved }: { o: CcOrder; menu: MenuInfo; 
   const results = find.trim() ? items.filter(i => i.name.includes(find.trim())).slice(0, 8) : [];
   const save = async () => {
     setBusy(true);
-    const payload = lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note.trim() || undefined, options: l.options.map(x => ({ id: x.id, qty: x.qty })) }));
+    const payload = lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note.trim() || undefined, spice: l.spice ?? undefined, options: l.options.map(x => ({ id: x.id, qty: x.qty })) }));
     const r = await rpc('cc_edit_order', { p_order: o.id, p_items: payload }).catch(e => { failed(e); return null; });
     setBusy(false);
     if (!r) return;
@@ -628,6 +632,10 @@ function EditOrder({ o, menu, onClose, onSaved }: { o: CcOrder; menu: MenuInfo; 
             <div key={l.key} className="flex flex-col gap-2 rounded-2xl bg-paper p-3">
               <div className="flex items-center gap-2">
                 <span className="flex-1 font-bold">{l.name}</span>
+                {spiceCats.includes(byId(l.item_id)?.cat ?? '') && (
+                  <button className={cn('h-9 rounded-full px-3 text-sm font-bold', l.spice === 'hot' ? 'bg-brand text-white' : 'bg-white')}
+                    onClick={() => upd(l.key, x => ({ ...x, spice: x.spice === 'hot' ? 'regular' : 'hot' }))}>{l.spice === 'hot' ? 'حار 🌶️' : 'عادي'}</button>
+                )}
                 <button className="grid size-9 place-items-center rounded-full bg-white" aria-label="نقّص" onClick={() => upd(l.key, x => (x.qty > 1 ? { ...x, qty: x.qty - 1 } : x))}><Minus size={16} /></button>
                 <span className="num w-6 text-center font-bold">{l.qty}</span>
                 <button className="grid size-9 place-items-center rounded-full bg-white" aria-label="زيد" onClick={() => upd(l.key, x => ({ ...x, qty: Math.min(20, x.qty + 1) }))}><Plus size={16} /></button>
@@ -650,7 +658,7 @@ function EditOrder({ o, menu, onClose, onSaved }: { o: CcOrder; menu: MenuInfo; 
         <div className="flex flex-col gap-2">
           <Input value={find} onChange={e => setFind(e.target.value)} placeholder="+ زيد صنف: اكتب اسمه…" />
           {results.map(i => (
-            <button key={i.id} onClick={() => { setLines(ls => [...ls, { key: crypto.randomUUID(), item_id: i.id, name: i.name, price: i.price, qty: 1, note: '', options: [] }]); setFind(''); }}
+            <button key={i.id} onClick={() => { setLines(ls => [...ls, { key: crypto.randomUUID(), item_id: i.id, name: i.name, price: i.price, qty: 1, note: '', spice: spiceCats.includes(i.cat) ? 'regular' : null, options: [] }]); setFind(''); }}
               className="flex min-h-11 items-center justify-between rounded-xl bg-white px-3 text-start shadow-[0_0_0_2px_var(--color-line)]">
               <span className="font-semibold">{i.name}</span><span className="num text-sm text-soft">{money(i.price)}</span>
             </button>

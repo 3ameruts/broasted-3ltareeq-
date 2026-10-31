@@ -77,7 +77,7 @@ export default function OrderApp() {
         const x = find(o.id);
         return x && !unavailable(x.item.id) ? [{ id: x.item.id, name: x.item.name, price: x.item.price, qty: o.qty }] : [];
       });
-      cart.add({ item_id: f.item.id, name: f.item.name, price: f.item.price, image: f.item.image || f.cat.image, qty: l.qty, options, note: l.note });
+      cart.add({ item_id: f.item.id, name: f.item.name, price: f.item.price, image: f.item.image || f.cat.image, qty: l.qty, options, note: l.note, spice: l.spice });
     }
     toast.success(missing.length ? `رجّعنا طلبك للسلة، بس في إشي مش متوفر هسّا: ${missing.join('، ')}` : 'رجّعنا طلبك للسلة بأسعار اليوم. راجعه وكمّل', { duration: 4000 });
     setCartOpen(true);
@@ -139,8 +139,10 @@ export default function OrderApp() {
     if (!canOrder) return toast(closedNote);
     setSheet({ item, cat });
   };
+  const askSpice = (cat: Category) => (s.spice_categories ?? []).includes(cat.id);
   const quickAdd = (item: Item, cat: Category) => {
     if (!canOrder) return toast(closedNote);
+    if (askSpice(cat)) return setSheet({ item, cat });  // hot or regular has to be chosen first
     cart.add({ item_id: item.id, name: item.name, price: item.price, image: item.image || cat.image, qty: 1, options: [], note: '' });
     toast.success(`انضاف ${item.name}`, { duration: 1500 });
   };
@@ -175,10 +177,10 @@ export default function OrderApp() {
 
       <ItemSheet item={sheet?.item ?? null} category={sheet?.cat ?? null}
         addons={sheet ? addonsFor(sheet.cat, store.content, s) : { sauces: [], cheese: null }} unavailable={unavailable}
-        onClose={() => setSheet(null)}
-        onAdd={(qty, options, note) => {
+        onClose={() => setSheet(null)} askSpice={!!sheet && askSpice(sheet.cat)}
+        onAdd={(qty, options, note, spice) => {
           if (!sheet) return;
-          cart.add({ item_id: sheet.item.id, name: sheet.item.name, price: sheet.item.price, image: sheet.item.image || sheet.cat.image, qty, options, note: note.trim() });
+          cart.add({ item_id: sheet.item.id, name: sheet.item.name, price: sheet.item.price, image: sheet.item.image || sheet.cat.image, qty, options, note: note.trim(), spice });
           toast.success(`انضاف ${sheet.item.name}`, { duration: 1500 });
           setSheet(null);
         }} />

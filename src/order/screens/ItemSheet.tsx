@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import type { Category, Item } from '../../lib/types';
-import type { CartOption } from '../cart';
+import type { CartOption, Spice } from '../cart';
 import { imgUrl, money } from '../data';
 import { Sheet } from '../ui/drawer';
 import { Button } from '../ui/button';
@@ -12,14 +12,16 @@ import { cn } from '../ui/cn';
 export type Addons = { sauces: Item[]; cheese: Item | null };
 
 // Item details: sauces (each +price), cheese slice for sandwiches, a note and the quantity
-export function ItemSheet({ item, category, addons, unavailable, onClose, onAdd }: {
+export function ItemSheet({ item, category, addons, unavailable, onClose, onAdd, askSpice }: {
   item: Item | null; category: Category | null; addons: Addons; unavailable: (id: string) => boolean;
-  onClose: () => void; onAdd: (qty: number, options: CartOption[], note: string) => void;
+  onClose: () => void; onAdd: (qty: number, options: CartOption[], note: string, spice?: Spice) => void; askSpice?: boolean;
 }) {
   const [qty, setQty] = useState(1);
   const [picked, setPicked] = useState<Record<string, boolean>>({});
   const [note, setNote] = useState('');
-  useEffect(() => { if (item) { setQty(1); setPicked({}); setNote(''); } }, [item]);
+  const [spice, setSpice] = useState<Spice | null>(null);
+  const [needSpice, setNeedSpice] = useState(false);
+  useEffect(() => { if (item) { setQty(1); setPicked({}); setNote(''); setSpice(null); setNeedSpice(false); } }, [item]);
 
   const extras = [...(addons.cheese ? [addons.cheese] : []), ...addons.sauces];
   const options: CartOption[] = extras.filter(e => picked[e.id]).map(e => ({ id: e.id, name: e.name, price: e.price, qty: 1 }));
@@ -32,7 +34,10 @@ export function ItemSheet({ item, category, addons, unavailable, onClose, onAdd 
       footer={item && (
         <div className="flex items-center gap-3">
           <Stepper value={qty} onChange={setQty} label="الكمية" />
-          <Button size="lg" className="flex-1 justify-between whitespace-nowrap" onClick={() => onAdd(qty, options, note)}>
+          <Button size="lg" className="flex-1 justify-between whitespace-nowrap" onClick={() => {
+            if (askSpice && !spice) { setNeedSpice(true); document.getElementById('spice-choice')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+            onAdd(qty, options, note, askSpice ? spice! : undefined);
+          }}>
             <span>أضف للسلة</span><span className="num">{money(unit * qty)}</span>
           </Button>
         </div>
@@ -49,6 +54,17 @@ export function ItemSheet({ item, category, addons, unavailable, onClose, onAdd 
             {item.contents && <p className="mt-1 leading-relaxed text-soft">{item.contents}</p>}
           </div>
 
+          {askSpice && (
+            <div id="spice-choice" className="flex flex-col gap-2">
+              <p className={cn('font-bold', needSpice && 'text-brand-deep')}>حار ولا عادي؟ {needSpice && <span className="text-sm">(اختار عشان تكمّل)</span>}</p>
+              <div className={cn('grid grid-cols-2 gap-2 rounded-2xl', needSpice && 'shadow-[0_0_0_2px_var(--color-brand)]')} role="radiogroup" aria-label="حار ولا عادي">
+                {([['regular', 'عادي'], ['hot', 'حار 🌶️']] as const).map(([v, l]) => (
+                  <button key={v} role="radio" aria-checked={spice === v} onClick={() => { setSpice(v); setNeedSpice(false); }}
+                    className={cn('h-13 rounded-2xl border-2 bg-white text-lg font-bold', spice === v ? 'border-brand-deep text-brand-deep' : 'border-line')}>{l}</button>
+                ))}
+              </div>
+            </div>
+          )}
           {addons.cheese && (
             <OptionGroup title="زيادة على الساندويش">
               <OptionRow item={addons.cheese} on={!!picked[addons.cheese.id]} disabled={unavailable(addons.cheese.id)} onToggle={() => toggle(addons.cheese!.id)} />

@@ -98,7 +98,7 @@ export function Tracking({ token, onNewOrder, onReorder }: { token: string; onNe
             return (
               <li key={i}>
                 <div className="flex justify-between gap-2">
-                  <span><span className="num">{it.qty}×</span> {it.name}{it.note ? ` («${it.note}»)` : ''}</span><span className="num shrink-0">{money(base)}</span>
+                  <span><span className="num">{it.qty}×</span> {it.name}{it.spice ? ` · ${it.spice === 'hot' ? 'حار 🌶️' : 'عادي'}` : ''}{it.note ? ` («${it.note}»)` : ''}</span><span className="num shrink-0">{money(base)}</span>
                 </div>
                 {extras.map((x, j) => (
                   <div key={j} className="flex justify-between gap-2 ps-5 text-soft">

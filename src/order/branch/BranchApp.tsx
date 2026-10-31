@@ -296,7 +296,7 @@ function OrderCard({ o, branch, cliqAlias, onChange }: { o: Order; branch: Branc
           const { base, extras } = splitLine(i.line_total, i.qty, i.options);
           return (
           <li key={i.id}>
-            <div className="flex justify-between gap-2 font-bold"><span><span className="num">{i.qty}×</span> {i.name}</span><span className="num">{money(base)}</span></div>
+            <div className="flex justify-between gap-2 font-bold"><span><span className="num">{i.qty}×</span> {i.name}{i.spice === 'hot' ? ' · حار 🌶️' : i.spice === 'regular' ? ' · عادي' : ''}</span><span className="num">{money(base)}</span></div>
             {extras.map((x, j) => (
               <div key={j} className="flex justify-between gap-2 ps-5 text-sm text-soft">
                 <span>+ {x.name}{x.qty > 1 ? ` ×${x.qty}` : ''}</span><span className="num">{money(x.total)}</span>

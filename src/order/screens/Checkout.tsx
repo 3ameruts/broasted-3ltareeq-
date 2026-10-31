@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Banknote, LocateFixed, MapPin, Smartphone } from 'lucide-react';
-import { usePersisted, type Cart } from '../cart';
+import { spiceLabel, usePersisted, type Cart } from '../cart';
 import { createOrder, deviceFor, ERRORS, latestOrder, money, normPhone, rememberDevice, rememberOrder, zoneFee, type OrderPayload, type Zone } from '../data';
 import { PhoneCheck } from './PhoneCheck';
 import { ZonePicker } from './ZonePicker';
@@ -79,7 +79,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
       location: mode === 'delivery' ? loc : null,
       device: requireOtp ? deviceFor(c.phone) : undefined,
       zone_id: picked ? picked.id : undefined,
-      items: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note || undefined, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })),
+      items: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note || undefined, spice: l.spice, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })),
     };
     setMessage('');
     // retry the same key a few times if the connection drops; the database returns the same order if it already got it
@@ -90,7 +90,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         if (r.ok) {
           sessionStorage.removeItem(ATTEMPT);
           rememberOrder({ token: r.token, number: r.number, phone: normPhone(c.phone) ?? c.phone, at: Date.now(),
-            lines: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })) });
+            lines: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note, spice: l.spice, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })) });
           onPlaced(r.token); return;
         }
         sessionStorage.removeItem(ATTEMPT);
@@ -225,7 +225,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         <ul className="flex flex-col gap-1 text-sm">
           {cart.lines.map(l => (
             <li key={l.key}>
-              <div className="flex justify-between gap-2"><span><span className="num">{l.qty}×</span> {l.name}</span><span className="num shrink-0">{money(l.price * l.qty)}</span></div>
+              <div className="flex justify-between gap-2"><span><span className="num">{l.qty}×</span> {l.name}{l.spice ? ` · ${spiceLabel(l.spice)}` : ''}</span><span className="num shrink-0">{money(l.price * l.qty)}</span></div>
               {l.options.map(o => (
                 <div key={o.id} className="flex justify-between gap-2 ps-5 text-soft">
                   <span>+ {o.name}{o.qty > 1 ? ` ×${o.qty}` : ''}</span><span className="num shrink-0">{money(o.price * o.qty * l.qty)}</span>

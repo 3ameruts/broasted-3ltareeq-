@@ -1,5 +1,5 @@
 import { Plus, ShoppingBag } from 'lucide-react';
-import { lineTotal, type Cart } from '../cart';
+import { lineTotal, spiceLabel, type Cart } from '../cart';
 import { money } from '../data';
 import type { Item } from '../../lib/types';
 import { Sheet } from '../ui/drawer';
@@ -25,7 +25,7 @@ function CartLines({ cart, unavailable, onEmpty }: Pick<Props, 'cart' | 'unavail
           <li key={l.key} className="flex flex-col gap-2 py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-bold">{l.name} {l.options.length > 0 && <span className="num font-normal text-soft">({money(l.price * l.qty)})</span>}</p>
+                <p className="font-bold">{l.name}{l.spice ? <span className="font-normal"> · {spiceLabel(l.spice)}</span> : null} {l.options.length > 0 && <span className="num font-normal text-soft">({money(l.price * l.qty)})</span>}</p>
                 {l.options.map(o => <p key={o.id} className="text-sm text-soft">+ {o.name}{o.qty > 1 ? ` ×${o.qty}` : ''} <span className="num">({money(o.price * o.qty * l.qty)})</span></p>)}
                 {l.note && <p className="text-sm text-soft">«{l.note}»</p>}
                 {out && <p className="text-sm font-bold text-brand-deep">خلص هسّا بهالفرع</p>}

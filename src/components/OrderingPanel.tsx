@@ -86,6 +86,7 @@ export default function OrderingPanel({ flash }: { flash: (text: string, bad?: b
           </div>
         </div>
       </section>
+      <SpicePanel flash={flash} />
       <ZonesPanel flash={flash} />
       <PushPanel flash={flash} />
       <WhatsAppPanel flash={flash} />
@@ -200,6 +201,36 @@ function PushPanel({ flash }: { flash: (text: string, bad?: boolean) => void }) 
             ))}
           </div>
         )}
+      </div>
+    </section>
+  );
+}
+
+// «حار ولا عادي»: the menu sections where the customer has to choose
+function SpicePanel({ flash }: { flash: (text: string, bad?: boolean) => void }) {
+  const [cats, setCats] = useState<{ id: string; name: string }[]>([]);
+  const [on, setOn] = useState<string[] | null>(null);
+  useEffect(() => {
+    Promise.all([supabase.from('site_content').select('content').eq('id', 1).single(), supabase.from('order_settings').select('*').eq('id', 1).single()])
+      .then(([c, o]) => {
+        setCats(((c.data?.content as { categories?: { id: string; name: string }[] })?.categories ?? []).map(x => ({ id: x.id, name: x.name })));
+        setOn(o.data && 'spice_categories' in o.data ? (o.data.spice_categories as string[]) : null);
+      });
+  }, []);
+  if (!on) return null;
+  const toggle = async (id: string) => {
+    const next = on.includes(id) ? on.filter(x => x !== id) : [...on, id];
+    const { error } = await supabase.from('order_settings').update({ spice_categories: next }).eq('id', 1);
+    if (error) return flash(`ما انحفظ (${error.message})`, true);
+    setOn(next); flash('انحفظ');
+  };
+  return (
+    <section className="apanel">
+      <h3>حار ولا عادي 🌶️</h3>
+      <div className="apanel__body">
+        <div className="arow">
+          {cats.map(c => <label key={c.id} className="acheck"><input type="checkbox" checked={on.includes(c.id)} onChange={() => toggle(c.id)} /> {c.name}</label>)}
+        </div>
       </div>
     </section>
   );
