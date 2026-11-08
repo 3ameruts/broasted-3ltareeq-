@@ -38,7 +38,6 @@ export function BranchPicker({ branches, places, branchId, mode, onDone }: {
             </button>
           ))}
         </div>
-        {m === 'delivery' && <p className="mt-2 text-sm text-soft">سعر التوصيل بيحددلك ياه الفرع لما يتصل يأكد طلبك.</p>}
       </section>
 
       <section>
