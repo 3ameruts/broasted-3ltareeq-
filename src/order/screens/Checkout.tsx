@@ -77,7 +77,8 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
       change_for: pay === 'cash' ? change : null, note: note.trim() || undefined,
       address: mode === 'delivery' ? { area: c.area, street: c.street, building: c.building, floor: c.floor, landmark: c.landmark } : undefined,
       location: mode === 'delivery' ? loc : null,
-      device: requireOtp ? deviceFor(c.phone) : undefined,
+      // always send this device's proof when there is one: test numbers need it even while the check is off for everyone
+      device: deviceFor(c.phone) || undefined,
       zone_id: picked ? picked.id : undefined,
       items: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note || undefined, spice: l.spice, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })),
     };
