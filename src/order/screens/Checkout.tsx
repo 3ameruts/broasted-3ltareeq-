@@ -251,7 +251,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
       <div className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 pt-3 backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-lg flex-col gap-2">{alert}{submitButton}</div>
       </div>
-      <PhoneCheck open={checking} phone={c.phone} onClose={() => setChecking(false)} onVerified={() => { setChecking(false); setTimeout(submit, 0); }} />
+      <PhoneCheck open={checking} phone={c.phone} contactPhone={contactPhone} onClose={() => setChecking(false)} onVerified={() => { setChecking(false); setTimeout(submit, 0); }} />
     </div>
   );
 }

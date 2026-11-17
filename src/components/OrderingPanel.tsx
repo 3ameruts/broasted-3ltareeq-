@@ -6,7 +6,7 @@ import ZonesPanel from './ZonesPanel';
 // CliQ details shown to customers, and whether each branch's printer PC is connected.
 type Settings = { enabled: boolean; show_button: boolean; order_url: string; open_time: string; last_order_time: string; cliq_alias: string | null; cliq_name: string | null; auto_complete_hours?: number };
 type Printer = { branch_id: string; last_seen: string | null };
-type WhatsApp = { phone_number_id: string; template: string; template_lang: string; test_phones: string; require_otp: boolean };
+type WhatsApp = { phone_number_id: string; template: string; template_lang: string; test_phones: string; require_otp: boolean; otp_days: number | null };
 const SPLIT_URL = 'https://order.broasted3ltareeq.com/';
 
 const ago = (iso: string | null) => {
@@ -115,11 +115,12 @@ function WhatsAppPanel({ flash }: { flash: (text: string, bad?: boolean) => void
     (async () => {
       const [c, o, r] = await Promise.all([
         supabase.from('whatsapp_config').select('phone_number_id, template, template_lang, test_phones').eq('id', 1).maybeSingle(),
-        supabase.from('order_settings').select('require_otp').eq('id', 1).maybeSingle(),
+        supabase.from('order_settings').select('*').eq('id', 1).maybeSingle(),
         supabase.rpc('whatsapp_ready'),
       ]);
       if (c.error || !c.data || o.error) return setMissing(true);
-      const v = { phone_number_id: c.data.phone_number_id ?? '', template: c.data.template, template_lang: c.data.template_lang, test_phones: (c.data.test_phones ?? []).join('، '), require_otp: !!o.data?.require_otp };
+      const v = { phone_number_id: c.data.phone_number_id ?? '', template: c.data.template, template_lang: c.data.template_lang, test_phones: (c.data.test_phones ?? []).join('، '), require_otp: !!o.data?.require_otp,
+        otp_days: typeof o.data?.otp_days === 'number' ? o.data.otp_days : null };   // null until 21-otp-refresh.sql runs
       setW(v); setSaved(v); setReady(!!r.data);
     })();
   }, []);
@@ -133,10 +134,11 @@ function WhatsAppPanel({ flash }: { flash: (text: string, bad?: boolean) => void
     // test phones in the stored 07XXXXXXXX form
     const tests = w.test_phones.split(/[\s,،]+/).map(x => x.replace(/\D/g, '').replace(/^(00962|962)/, '0').replace(/^7/, '07')).filter(x => /^07[789]\d{7}$/.test(x));
     const a = await supabase.from('whatsapp_config').update({ phone_number_id: w.phone_number_id.trim() || null, template: w.template.trim(), template_lang: w.template_lang.trim(), test_phones: tests }).eq('id', 1);
-    const b = a.error ? a : await supabase.from('order_settings').update({ require_otp: w.require_otp }).eq('id', 1);
+    const days = w.otp_days === null ? null : Math.max(0, Math.min(365, Math.round(w.otp_days || 0)));
+    const b = a.error ? a : await supabase.from('order_settings').update(days === null ? { require_otp: w.require_otp } : { require_otp: w.require_otp, otp_days: days }).eq('id', 1);
     setSaving(false);
     if (b.error) return flash(`ما تم حفظ إعدادات الواتساب (${b.error.message})`, true);
-    setW({ ...w, test_phones: tests.join('، ') }); setSaved({ ...w, test_phones: tests.join('، ') });
+    const next = { ...w, test_phones: tests.join('، '), otp_days: days }; setW(next); setSaved(next);
     flash(w.require_otp ? 'تأكيد الرقم بالواتساب شغّال للكل' : tests.length ? `التأكيد شغّال على أرقام التجربة بس (${tests.length})` : 'تأكيد الرقم بالواتساب مطفي');
   };
   return (
@@ -150,6 +152,10 @@ function WhatsAppPanel({ flash }: { flash: (text: string, bad?: boolean) => void
           <label className="afield"><span>لغة القالب</span><input dir="ltr" value={w.template_lang} onChange={e => set({ template_lang: e.target.value })} /></label>
         </div>
         <label className="afield"><span>أرقام التجربة</span><input dir="ltr" placeholder="0791234567، 0781234567" value={w.test_phones} onChange={e => set({ test_phones: e.target.value })} /></label>
+        {w.otp_days !== null && (
+          <label className="afield"><span>الرقم المأكّد بيتأكّد من جديد كل (يوم، 0 = أبداً)</span>
+            <input dir="ltr" inputMode="numeric" value={w.otp_days} onChange={e => set({ otp_days: Number(e.target.value.replace(/\D/g, '').slice(0, 3)) || 0 })} /></label>
+        )}
         <label className="acheck"><input type="checkbox" checked={w.require_otp} onChange={e => set({ require_otp: e.target.checked })} /> شغّل تأكيد الرقم بالواتساب</label>
         <div className="arow">
           <button className="abtn abtn--primary" onClick={save} disabled={JSON.stringify(w) === JSON.stringify(saved) || saving}>{saving ? 'بنحفظ…' : 'احفظ إعدادات الواتساب'}</button>

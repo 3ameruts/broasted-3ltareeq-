@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Phone } from 'lucide-react';
 import { rememberDevice, sendOtp, verifyOtp, type OtpResult } from '../data';
 import { Sheet } from '../ui/drawer';
 import { Button } from '../ui/button';
@@ -14,8 +14,9 @@ const SEND_ERRORS: Record<string, string> = {
 };
 
 // One-time WhatsApp code: sent when the sheet opens, the customer types it, the device remembers the phone
-export function PhoneCheck({ open, phone, onClose, onVerified }: { open: boolean; phone: string; onClose: () => void; onVerified: () => void }) {
+export function PhoneCheck({ open, phone, contactPhone, onClose, onVerified }: { open: boolean; phone: string; contactPhone?: string; onClose: () => void; onVerified: () => void }) {
   const [code, setCode] = useState('');
+  const [late, setLate] = useState(false);   // the first wait is over: offer a phone call instead
   const [wait, setWait] = useState(0);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -31,8 +32,8 @@ export function PhoneCheck({ open, phone, onClose, onVerified }: { open: boolean
     } catch { setMessage('ما زبط نبعت الكود، تأكد من الإنترنت.'); }
     setBusy(false);
   };
-  useEffect(() => { if (open) { setCode(''); if (sentFor.current !== phone) send(); } }, [open, phone]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (!wait) return; const t = setTimeout(() => setWait(w => w - 1), 1000); return () => clearTimeout(t); }, [wait]);
+  useEffect(() => { if (open) { setCode(''); setLate(false); if (sentFor.current !== phone) send(); } }, [open, phone]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!wait) return; const t = setTimeout(() => { setWait(w => w - 1); if (wait === 1) setLate(true); }, 1000); return () => clearTimeout(t); }, [wait]);
 
   const check = async (value = code) => {
     if (value.length !== 6 || busy) return;
@@ -53,7 +54,7 @@ export function PhoneCheck({ open, phone, onClose, onVerified }: { open: boolean
       <div className="flex flex-col gap-4 pb-2">
         <p className="flex items-start gap-2">
           <MessageCircle size={22} className="mt-0.5 shrink-0 text-emerald-600" />
-          <span>بعتنالك كود من 6 أرقام على <b>الواتساب</b> على رقم <b className="num" dir="ltr">{phone}</b>. اكتبه هون. (مرة وحدة بس على هالجهاز)</span>
+          <span>بعتنالك كود من 6 أرقام على <b>الواتساب</b> على رقم <b className="num" dir="ltr">{phone}</b>. اكتبه هون، وبعدها الجهاز بيتذكّر رقمك.</span>
         </p>
         <Input value={code} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 6); setCode(v); if (v.length === 6) check(v); }}
           inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder="••••••" aria-label="كود التأكيد"
@@ -64,6 +65,12 @@ export function PhoneCheck({ open, phone, onClose, onVerified }: { open: boolean
           {wait > 0 ? <span className="text-soft">بتقدر تطلب كود جديد بعد <span className="num">{wait}</span> ث</span>
             : <button className="font-bold text-brand-deep underline disabled:opacity-50" onClick={send} disabled={busy}>ابعتلي كود جديد</button>}
         </div>
+        {(late || message) && contactPhone && (
+          <a href={`tel:${contactPhone}`} className="flex items-center gap-3 rounded-2xl bg-paper px-4 py-3 text-sm shadow-[0_0_0_2px_var(--color-line)]">
+            <Phone size={20} className="shrink-0 text-brand-deep" />
+            <span><b>ما وصلك الكود أو ما عندك واتساب؟</b> اتصل فينا على <b className="num" dir="ltr">{contactPhone}</b> ومنسجّلك الطلب.</span>
+          </a>
+        )}
       </div>
     </Sheet>
   );

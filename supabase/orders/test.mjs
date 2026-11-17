@@ -434,4 +434,36 @@ const an = await order({ ...base0, branch_id: 'b2', phone: '0799898989', idempot
 const anId = (await BOSS(`select id from public.orders where tracking_token = $1`, [an.token])).rows[0].id;
 await BOSS(`select public.cc_confirm($1, null)`, [anId]);
 ok('the admin shows as عامر', (await BOSS(`select confirmed_name from public.orders where id = $1`, [anId])).rows[0].confirmed_name === 'عامر');
+// WhatsApp check renews (21-otp-refresh.sql)
+await db.exec(readFileSync(dir + '/21-otp-refresh.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/21-otp-refresh.sql', 'utf8'));
+await db.exec(`delete from public.otp_log; delete from public.otp_requests; update public.order_settings set require_otp = false, otp_days = 30; update public.whatsapp_config set test_phones = '{0796161616}'`);
+const pR = { ...base0, branch_id: 'b1', phone: '0796161616', items: [{ item_id: 'broasted-1', qty: 1 }] };
+await send('0796161616'); const dR = (await verify('0796161616', (await lastCode()).c)).device;
+const r1 = await order({ ...pR, idempotency_key: key(), device: dR });
+ok('a verified test phone orders', r1.ok, JSON.stringify(r1));
+const r1Id = (await BOSS(`select id from public.orders where tracking_token = $1`, [r1.token])).rows[0].id;
+await B1(`select public.reject_order($1, 'ما ردّ على الاتصال', false)`, [r1Id]);
+ok('«ما ردّ على الاتصال» forgets the phone on every device', !(await db.query(`select 1 from public.phone_devices where phone = '0796161616'`)).rows.length);
+ok('so the next order asks for a code again', (await order({ ...pR, idempotency_key: key(), device: dR })).error === 'verify_phone');
+await db.exec(`update public.otp_requests set sent_at = now() - interval '2 minutes'`);
+await send('0796161616'); const dR2 = (await verify('0796161616', (await lastCode()).c)).device;
+const r2 = await order({ ...pR, idempotency_key: key(), device: dR2 });
+const r2Id = (await BOSS(`select id from public.orders where tracking_token = $1`, [r2.token])).rows[0].id;
+await B1(`select public.reject_order($1, 'صنف خلص', false)`, [r2Id]);
+ok('other reasons keep the device', (await order({ ...pR, idempotency_key: key(), device: dR2 })).ok);
+await db.exec(`update public.orders set status = 'no_show' where customer_phone = '0796161616' and status = 'new'`);
+ok('«لم يتم الاستلام» forgets the phone too', !(await db.query(`select 1 from public.phone_devices where phone = '0796161616'`)).rows.length);
+await db.exec(`update public.otp_requests set sent_at = now() - interval '2 minutes'`);
+await send('0796161616'); const dR3 = (await verify('0796161616', (await lastCode()).c)).device;
+await db.exec(`update public.phone_devices set created_at = now() - interval '31 days' where phone = '0796161616'`);
+ok('after 30 days the device must confirm again', (await order({ ...pR, idempotency_key: key(), device: dR3 })).error === 'verify_phone'
+  && !(await db.query(`select 1 from public.phone_devices where phone = '0796161616'`)).rows.length);
+await db.exec(`update public.order_settings set otp_days = 0; update public.otp_requests set sent_at = now() - interval '2 minutes'; update public.orders set created_at = now() - interval '2 hours' where customer_phone = '0796161616'`); // past the per-phone hourly order limit
+await send('0796161616'); const dR4 = (await verify('0796161616', (await lastCode()).c)).device;
+await db.exec(`update public.phone_devices set created_at = now() - interval '400 days' where phone = '0796161616'`);
+const r4 = await order({ ...pR, idempotency_key: key(), device: dR4 });
+ok('0 days = never renews', r4.ok, JSON.stringify(r4) + ' dev=' + dR4);
+ok('customers cannot call the guard directly', !!(await anon(`select public.order_guard('{}'::jsonb)`)).error);
+await db.exec(`update public.whatsapp_config set test_phones = '{}'; update public.order_settings set otp_days = 30`);
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);
