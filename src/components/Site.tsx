@@ -4,7 +4,7 @@ import { useContent, isOpenNow, telHref, formatPrice, type Category, type Item, 
 import { useSmoothScroll, scrollToId, gsap, ScrollTrigger } from '../lib/motion';
 import { locate, directionsUrl, type Located } from '../lib/geo';
 import { useTracking } from '../lib/tracking';
-import { buildSchema } from '../lib/seo';
+import { buildSchema, LEGAL_LINE } from '../lib/seo';
 import { liveOffers } from '../lib/offers';
 import Offers from './Offers';
 import ScrollVelocity from './bits/ScrollVelocity';
@@ -597,6 +597,7 @@ function Footer() {
         <p className="footer__legal">
           © {new Date().getFullYear()} {brand.name}.
         </p>
+        <p className="footer__legal footer__note">{LEGAL_LINE}</p>
         {brand.footerNote?.trim() && <p className="footer__legal footer__note" dir="auto">{brand.footerNote}</p>}
       </div>
     </footer>

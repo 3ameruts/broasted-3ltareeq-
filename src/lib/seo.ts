@@ -5,6 +5,9 @@ import type { Content } from './types';
 
 export const SITE_URL = 'https://www.broasted3ltareeq.com/';
 const CITY = 'إربد';
+// the company that owns the brand, as on its registration (Meta business verification reads it from the site)
+export const LEGAL_NAME = 'شركة قرطبة للمطاعم /ذات مسؤولية محدودة';
+export const LEGAL_LINE = `بروستد عالطريق علامة تجارية مملوكة لـ ${LEGAL_NAME} · الرقم الوطني للمنشأة 200198002 · إربد، الأردن`;
 
 const intl = (phone: string) => '+962' + phone.replace(/\D/g, '').replace(/^0/, '');
 const price = (n: number) => n.toFixed(2);
@@ -45,6 +48,7 @@ export function buildSchema(c: Content) {
     '@context': 'https://schema.org',
     '@type': 'Restaurant',
     '@id': SITE_URL + '#restaurant',
+    legalName: LEGAL_NAME,
     name: c.brand.name,
     alternateName: 'Broasted 3al Tareeq',
     description: `${c.brand.name}: بروستد مقرمش، تندر وساندويشات في ${CITY}. ${c.branches.length} فروع، ${c.brand.hours}.`,
@@ -88,5 +92,6 @@ export function buildFallbackHtml(c: Content) {
     <h2>المنيو</h2>${sections}
     <h2>فروعنا في ${CITY}</h2><ul>${branches}</ul>
     <h2>${esc(c.about.title)}</h2>${c.about.paragraphs.map(p => `<p>${esc(p)}</p>`).join('')}
+    <p><small>© ${new Date().getFullYear()} ${esc(LEGAL_LINE)}</small></p>
   </div>`;
 }
