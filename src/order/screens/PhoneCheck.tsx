@@ -14,7 +14,7 @@ const SEND_ERRORS: Record<string, string> = {
 };
 
 // WhatsApp code for this order: sent when the sheet opens, the customer types it, and the pass is good for one order
-export function PhoneCheck({ open, phone, contactPhone, onClose, onVerified }: { open: boolean; phone: string; contactPhone?: string; onClose: () => void; onVerified: (device: string) => void }) {
+export function PhoneCheck({ open, phone, contactPhone, onClose, onVerified, onOpenOrder }: { open: boolean; phone: string; contactPhone?: string; onClose: () => void; onVerified: (device: string) => void; onOpenOrder?: (r: OtpResult) => void }) {
   const [code, setCode] = useState('');
   const [late, setLate] = useState(false);   // the first wait is over: offer a phone call instead
   const [wait, setWait] = useState(0);
@@ -27,6 +27,7 @@ export function PhoneCheck({ open, phone, contactPhone, onClose, onVerified }: {
     try {
       const r = await sendOtp(phone);
       if (r.ok) { setWait(60); sentFor.current = phone; }
+      else if (r.error === 'open_order' && onOpenOrder) { onOpenOrder(r); }   // no code for a phone with an order still open
       else if (r.error === 'wait') setWait(r.seconds ?? 60);
       else setMessage(SEND_ERRORS[r.error ?? ''] ?? 'ما زبط نبعت الكود، جرّب مرة ثانية.');
     } catch { setMessage('ما زبط نبعت الكود، تأكد من الإنترنت.'); }

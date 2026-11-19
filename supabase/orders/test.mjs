@@ -531,4 +531,16 @@ ok('call center sets a split', (await A1(`select public.cc_edit_order($1, $2::js
 ok('call center cannot save a wrong split', (await A1(`select public.cc_edit_order($1, $2::jsonb) r`, [sEoId, JSON.stringify([{ item_id: 'broasted-2', qty: 1, spice: 'mixed', hot: 5 }])])).rows[0].r.error === 'bad_spice');
 ok('customers cannot call the split helpers', !!(await anon(`select public.spice_ok('[]'::jsonb)`)).error && !!(await anon(`select public.apply_spice(gen_random_uuid(), '[]'::jsonb)`)).error);
 await closeAll();
+// ── no code for a phone with an open order (23-otp-checks-open-order.sql) ──
+await db.exec(readFileSync(dir + '/23-otp-checks-open-order.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/23-otp-checks-open-order.sql', 'utf8'));
+await db.exec(`delete from public.otp_log; delete from public.otp_requests; update public.order_settings set require_otp = false`);
+const p23 = '0798282828';
+const o23 = await order({ ...base0, branch_id: 'b2', phone: p23, idempotency_key: key(), items: [{ item_id: 'broasted-1', qty: 1, spice: 'hot' }] });
+const sent23 = (await db.query('select count(*)::int n from net.sent')).rows[0].n;
+const s23 = await send(p23);
+ok('a phone with an open order gets no code, and hears about its order', s23.error === 'open_order' && s23.number === o23.number && s23.branch === 'فرع دوار الدرة', JSON.stringify(s23));
+ok('…and nothing was sent to WhatsApp', (await db.query('select count(*)::int n from net.sent')).rows[0].n === sent23);
+await db.exec(`update public.orders set status = 'delivered' where customer_phone = '${p23}'`);
+ok('once received, the code goes out', (await send(p23)).ok);
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

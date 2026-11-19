@@ -153,7 +153,7 @@ export const markOrderDone = (token: string) => {
   try { localStorage.setItem(RECENT, JSON.stringify(recent().map(x => x.token === token ? { ...x, done: true } : x))); } catch { /* storage is optional */ }
 };
 
-export type OtpResult = { ok: boolean; error?: string; seconds?: number; left?: number; device?: string };
+export type OtpResult = { ok: boolean; error?: string; seconds?: number; left?: number; device?: string; number?: number; branch?: string; status?: string };
 export async function sendOtp(phone: string): Promise<OtpResult> {
   const { data, error } = await db.rpc('otp_send', { p_phone: phone });
   if (error) throw error;

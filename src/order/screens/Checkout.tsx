@@ -68,6 +68,14 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
     return !first;
   };
 
+  // the phone still has an order that wasn't received: say which one, and link to it
+  const openOrderText = (r: { number?: number; branch?: string; status?: string }) =>
+    `عندك طلب #${r.number} من ${r.branch ?? 'الفرع'} لسا ${r.status === 'new' ? 'قيد المراجعة' : 'ما تم استلامه'}. ما بتقدر تطلب طلب ثاني لحد ما يخلص، ولأي تعديل تواصل معنا على الرقم`;
+  const showOpenOrder = (r: { number?: number; branch?: string; status?: string }) => {
+    setChecking(false); setState('idle');
+    setOpenToken(latestOrder(c.phone)?.token ?? null);
+    setMessage(r.number ? openOrderText(r) : ERRORS.open_order);
+  };
   const submit = async () => {
     if (state === 'sending' || state === 'checking' || !validate()) return;
     // every order is confirmed with a WhatsApp code to the number on it
@@ -102,7 +110,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         if (r.error === 'verify_phone') { pass.current = null; setChecking(true); }
         else if (r.error === 'unavailable') { onUnavailable(r.items ?? []); setMessage(`${ERRORS.unavailable} ${(r.items ?? []).join('، ')}`); }
         else if (r.error === 'bad_phone' || r.error === 'bad_name' || r.error === 'bad_address') { setMessage(ERRORS[r.error]); validate(); }
-        else if (r.error === 'open_order' && r.number) setMessage(`عندك طلب #${r.number} من ${r.branch ?? 'الفرع'} لسا ${r.status === 'new' ? 'قيد المراجعة' : 'ما تم استلامه'}. ما بتقدر تطلب طلب ثاني لحد ما يخلص، ولأي تعديل تواصل معنا على الرقم`);
+        else if (r.error === 'open_order' && r.number) setMessage(openOrderText(r));
         else setMessage(ERRORS[r.error] ?? 'صار خطأ، جرّب مرة ثانية.');
         return;
       } catch {
@@ -254,7 +262,8 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         <div className="mx-auto flex max-w-lg flex-col gap-2">{alert}{submitButton}</div>
       </div>
       <PhoneCheck open={checking} phone={c.phone} contactPhone={contactPhone} onClose={() => setChecking(false)}
-        onVerified={device => { pass.current = { phone: normPhone(c.phone) ?? c.phone, device }; setChecking(false); setTimeout(submit, 0); }} />
+        onVerified={device => { pass.current = { phone: normPhone(c.phone) ?? c.phone, device }; setChecking(false); setTimeout(submit, 0); }}
+        onOpenOrder={showOpenOrder} />
     </div>
   );
 }
