@@ -10,6 +10,7 @@ import { cn } from '../ui/cn';
 import { splitLine } from '../split';
 import { acceptOrder, loadOrders, markPaid, pauseBranch, phoneHistory, rejectOrder, reprintOrder, sb, setAvailability, setStatus, type Order } from './api';
 import { spiceText } from '../spice';
+import { SplitBadges } from '../ui/split-badges';
 import { keepAwake, ring, unlockAudio } from './alarm';
 import { printTicket, ticketHtml } from './print';
 
@@ -297,7 +298,8 @@ function OrderCard({ o, branch, cliqAlias, onChange }: { o: Order; branch: Branc
           const { base, extras } = splitLine(i.line_total, i.qty, i.options);
           return (
           <li key={i.id}>
-            <div className="flex justify-between gap-2 font-bold"><span><span className="num">{i.qty}×</span> {i.name}{i.spice ? ` · ${spiceText(i.spice, i.spice_hot, i.spice_regular)}` : ''}</span><span className="num">{money(base)}</span></div>
+            <div className="flex justify-between gap-2 font-bold"><span><span className="num">{i.qty}×</span> {i.name}{i.spice && i.spice !== 'mixed' ? ` · ${spiceText(i.spice)}` : ''}</span><span className="num">{money(base)}</span></div>
+            {i.spice === 'mixed' && <SplitBadges hot={i.spice_hot} regular={i.spice_regular} perMeal={i.qty > 1} />}
             {extras.map((x, j) => (
               <div key={j} className="flex justify-between gap-2 ps-5 text-sm text-soft">
                 <span>+ {x.name}{x.qty > 1 ? ` ×${x.qty}` : ''}</span><span className="num">{money(x.total)}</span>

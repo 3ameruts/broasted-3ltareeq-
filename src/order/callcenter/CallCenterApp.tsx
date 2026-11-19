@@ -11,6 +11,7 @@ import { Sheet } from '../ui/drawer';
 import { cn } from '../ui/cn';
 import { splitLine } from '../split';
 import { spiceText, splitFor, type Spice, type SplitRules } from '../spice';
+import { SplitBadges } from '../ui/split-badges';
 
 // Call center: every agent sees new online orders from all branches with a sound and a notification,
 // takes one (it locks to them), checks with the customer if needed, enters it on the branch POS and confirms here.
@@ -525,7 +526,8 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
           const { base, extras } = splitLine(i.line_total, i.qty, i.options);
           return (
             <li key={i.id}>
-              <div className="flex justify-between gap-2 font-bold"><span><span className="num">{i.qty}×</span> {i.name}{i.spice === 'hot' || i.spice === 'mixed' ? <span className="text-brand-deep">{hot(i)}</span> : i.spice === 'regular' ? <span className="font-normal text-soft"> · عادي</span> : null}</span><span className="num">{money(base)}</span></div>
+              <div className="flex justify-between gap-2 font-bold"><span><span className="num">{i.qty}×</span> {i.name}{i.spice === 'hot' ? <span className="text-brand-deep">{hot(i)}</span> : i.spice === 'regular' ? <span className="font-normal text-soft"> · عادي</span> : null}</span><span className="num">{money(base)}</span></div>
+              {i.spice === 'mixed' && <SplitBadges hot={i.spice_hot} regular={i.spice_regular} perMeal={i.qty > 1} />}
               {extras.map((x, j) => (
                 <div key={j} className="flex justify-between gap-2 ps-5 text-sm text-soft">
                   <span>+ {x.name}{x.qty > 1 ? ` ×${x.qty}` : ''}</span><span className="num">{money(x.total)}</span>
