@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Banknote, LocateFixed, MapPin, Smartphone } from 'lucide-react';
 import { spiceLabel, usePersisted, type Cart } from '../cart';
-import { createOrder, deviceFor, ERRORS, latestOrder, money, normPhone, rememberDevice, rememberOrder, zoneFee, type OrderPayload, type Zone } from '../data';
+import { createOrder, ERRORS, latestOrder, money, normPhone, rememberOrder, zoneFee, type OrderPayload, type Zone } from '../data';
 import { PhoneCheck } from './PhoneCheck';
 import { ZonePicker } from './ZonePicker';
 import type { Mode } from './BranchPicker';
@@ -31,6 +31,8 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
   const [state, setState] = useState<'idle' | 'sending' | 'checking' | 'failed'>('idle');
   const [message, setMessage] = useState('');
   const [checking, setChecking] = useState(false);
+  // the WhatsApp code gives a pass for ONE order (15 minutes); nothing is remembered between orders
+  const pass = useRef<{ phone: string; device: string } | null>(null);
   const [openToken, setOpenToken] = useState<string | null>(null);
   // delivery area from the branch's list (fee shown now), or «منطقتي مش بالقائمة» (fee by phone)
   const hasZones = mode === 'delivery' && zones.length > 0;
@@ -68,8 +70,9 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
 
   const submit = async () => {
     if (state === 'sending' || state === 'checking' || !validate()) return;
-    // first order from this phone on this device: confirm it with a WhatsApp code
-    if (requireOtp && !deviceFor(c.phone)) { setChecking(true); return; }
+    // every order is confirmed with a WhatsApp code to the number on it
+    const myPass = pass.current && pass.current.phone === normPhone(c.phone) ? pass.current.device : undefined;
+    if (requireOtp && !myPass) { setChecking(true); return; }
     let key = sessionStorage.getItem(ATTEMPT);
     if (!key) { key = crypto.randomUUID(); sessionStorage.setItem(ATTEMPT, key); }
     const payload: OrderPayload = {
@@ -77,10 +80,9 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
       change_for: pay === 'cash' ? change : null, note: note.trim() || undefined,
       address: mode === 'delivery' ? { area: c.area, street: c.street, building: c.building, floor: c.floor, landmark: c.landmark } : undefined,
       location: mode === 'delivery' ? loc : null,
-      // always send this device's proof when there is one: test numbers need it even while the check is off for everyone
-      device: deviceFor(c.phone) || undefined,
+      device: myPass,
       zone_id: picked ? picked.id : undefined,
-      items: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note || undefined, spice: l.spice, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })),
+      items: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note || undefined, spice: l.spice, hot: l.spice === 'mixed' ? l.hot : undefined, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })),
     };
     setMessage('');
     // retry the same key a few times if the connection drops; the database returns the same order if it already got it
@@ -89,15 +91,15 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
       try {
         const r = await createOrder(payload);
         if (r.ok) {
-          sessionStorage.removeItem(ATTEMPT);
+          sessionStorage.removeItem(ATTEMPT); pass.current = null;
           rememberOrder({ token: r.token, number: r.number, phone: normPhone(c.phone) ?? c.phone, at: Date.now(),
-            lines: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note, spice: l.spice, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })) });
+            lines: cart.lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note, spice: l.spice, hot: l.hot, options: l.options.map(o => ({ id: o.id, qty: o.qty })) })) });
           onPlaced(r.token); return;
         }
         sessionStorage.removeItem(ATTEMPT);
         setState('idle');
         setOpenToken(r.error === 'open_order' ? latestOrder(c.phone)?.token ?? null : null);
-        if (r.error === 'verify_phone') { rememberDevice(c.phone, null); setChecking(true); }
+        if (r.error === 'verify_phone') { pass.current = null; setChecking(true); }
         else if (r.error === 'unavailable') { onUnavailable(r.items ?? []); setMessage(`${ERRORS.unavailable} ${(r.items ?? []).join('، ')}`); }
         else if (r.error === 'bad_phone' || r.error === 'bad_name' || r.error === 'bad_address') { setMessage(ERRORS[r.error]); validate(); }
         else if (r.error === 'open_order' && r.number) setMessage(`عندك طلب #${r.number} من ${r.branch ?? 'الفرع'} لسا ${r.status === 'new' ? 'قيد المراجعة' : 'ما تم استلامه'}. ما بتقدر تطلب طلب ثاني لحد ما يخلص، ولأي تعديل تواصل معنا على الرقم`);
@@ -226,7 +228,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
         <ul className="flex flex-col gap-1 text-sm">
           {cart.lines.map(l => (
             <li key={l.key}>
-              <div className="flex justify-between gap-2"><span><span className="num">{l.qty}×</span> {l.name}{l.spice ? ` · ${spiceLabel(l.spice)}` : ''}</span><span className="num shrink-0">{money(l.price * l.qty)}</span></div>
+              <div className="flex justify-between gap-2"><span><span className="num">{l.qty}×</span> {l.name}{l.spice ? ` · ${spiceLabel(l)}` : ''}</span><span className="num shrink-0">{money(l.price * l.qty)}</span></div>
               {l.options.map(o => (
                 <div key={o.id} className="flex justify-between gap-2 ps-5 text-soft">
                   <span>+ {o.name}{o.qty > 1 ? ` ×${o.qty}` : ''}</span><span className="num shrink-0">{money(o.price * o.qty * l.qty)}</span>
@@ -251,7 +253,8 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
       <div className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper/95 px-4 pt-3 backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-lg flex-col gap-2">{alert}{submitButton}</div>
       </div>
-      <PhoneCheck open={checking} phone={c.phone} contactPhone={contactPhone} onClose={() => setChecking(false)} onVerified={() => { setChecking(false); setTimeout(submit, 0); }} />
+      <PhoneCheck open={checking} phone={c.phone} contactPhone={contactPhone} onClose={() => setChecking(false)}
+        onVerified={device => { pass.current = { phone: normPhone(c.phone) ?? c.phone, device }; setChecking(false); setTimeout(submit, 0); }} />
     </div>
   );
 }

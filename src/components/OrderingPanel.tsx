@@ -152,10 +152,7 @@ function WhatsAppPanel({ flash }: { flash: (text: string, bad?: boolean) => void
           <label className="afield"><span>لغة القالب</span><input dir="ltr" value={w.template_lang} onChange={e => set({ template_lang: e.target.value })} /></label>
         </div>
         <label className="afield"><span>أرقام التجربة</span><input dir="ltr" placeholder="0791234567، 0781234567" value={w.test_phones} onChange={e => set({ test_phones: e.target.value })} /></label>
-        {w.otp_days !== null && (
-          <label className="afield"><span>الرقم المأكّد بيتأكّد من جديد كل (يوم، 0 = أبداً)</span>
-            <input dir="ltr" inputMode="numeric" value={w.otp_days} onChange={e => set({ otp_days: Number(e.target.value.replace(/\D/g, '').slice(0, 3)) || 0 })} /></label>
-        )}
+        <p className="apanel__hint">لما يكون شغّال: كل طلب بيوصل عليه كود على الواتساب للرقم المكتوب، والطلب ما بينبعت إلا بعد ما ينكتب الكود. الكود لطلب واحد وصالح 15 دقيقة.</p>
         <label className="acheck"><input type="checkbox" checked={w.require_otp} onChange={e => set({ require_otp: e.target.checked })} /> شغّل تأكيد الرقم بالواتساب</label>
         <div className="arow">
           <button className="abtn abtn--primary" onClick={save} disabled={JSON.stringify(w) === JSON.stringify(saved) || saving}>{saving ? 'بنحفظ…' : 'احفظ إعدادات الواتساب'}</button>

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { Spice, SplitRules } from './spice';
 import type { Category, Content } from '../lib/types';
 
 // Orders live in the site's Supabase project; VITE_ORDERS_SUPABASE_URL/KEY can point a build at another project.
@@ -11,6 +12,7 @@ export type Settings = {
   enabled: boolean; open_time: string; last_order_time: string; phone: string;
   cliq_alias: string | null; cliq_name: string | null;
   sauce_category: string; cheese_item_id: string | null; cheese_category: string; require_otp?: boolean; zones_enabled?: boolean; keep_days?: number; spice_categories?: string[];
+  spice_split?: SplitRules;
 };
 export type OrderBranch = { id: string; code: string; name: string; accepting: boolean; paused_until: string | null };
 export type Unavailable = { branch_id: string; item_id: string; until: string | null };
@@ -91,7 +93,7 @@ export type OrderPayload = {
   idempotency_key: string; branch_id: string; type: 'pickup' | 'delivery'; name: string; phone: string;
   address?: { area: string; street: string; building: string; floor?: string; landmark?: string };
   location?: { lat: number; lng: number } | null; note?: string; pay_method: 'cash' | 'cliq'; change_for?: number | null; device?: string; zone_id?: number;
-  items: { item_id: string; qty: number; note?: string; spice?: 'regular' | 'hot'; options: { id: string; qty: number }[] }[];
+  items: { item_id: string; qty: number; note?: string; spice?: Spice; hot?: number; options: { id: string; qty: number }[] }[];
 };
 export type CreateResult = { ok: true; token: string; number: number; subtotal: number; repeat?: boolean; delivery_fee?: number } | { ok: false; error: string; items?: string[]; number?: number; branch?: string; status?: string };
 
@@ -105,7 +107,7 @@ export type Tracked = {
   number: number; code: string; branch: string; status: 'new' | 'accepted' | 'ready' | 'delivered' | 'rejected' | 'no_show';
   type: 'pickup' | 'delivery'; name: string; phone: string; pay_method: 'cash' | 'cliq'; subtotal: number; reject_reason: string | null;
   created_at: string; accepted_at?: string | null; printed_at: string | null; contact_phone: string; delivery_fee?: number | null; delivery_zone?: string | null; delivery_range?: string | null; cliq_alias: string | null; cliq_name: string | null;
-  items: { name: string; qty: number; options: { name: string; qty: number; price?: number }[]; note: string | null; line_total: number; spice?: 'regular' | 'hot' | null }[];
+  items: { name: string; qty: number; options: { name: string; qty: number; price?: number }[]; note: string | null; line_total: number; spice?: Spice | null; spice_hot?: number | null; spice_regular?: number | null }[];
 };
 export type Rating = { stars: number; comment: string | null };
 export async function myRating(token: string): Promise<Rating | null> {
@@ -124,22 +126,14 @@ export async function getOrder(token: string): Promise<Tracked | null> {
   return data as Tracked | null;
 }
 
-// WhatsApp phone check: a 6-digit code once per phone on each device; the device then keeps a token for that phone
+// WhatsApp phone check: a 6-digit code with every order; the database gives a pass for that one order
 export const normPhone = (p: string) => {
   const d = p.replace(/\D/g, '').replace(/^00962/, '0').replace(/^962/, '0').replace(/^7(\d{8})$/, '07$1');
   return /^07[789]\d{7}$/.test(d) ? d : null;
 };
-const DEVICES = 'broasted-order-devices-v1';
-const devices = (): Record<string, string> => { try { return JSON.parse(localStorage.getItem(DEVICES) || '{}'); } catch { return {}; } };
-export const deviceFor = (phone: string) => devices()[normPhone(phone) ?? ''];
-export const rememberDevice = (phone: string, token: string | null) => {
-  const all = devices(), k = normPhone(phone); if (!k) return;
-  if (token) all[k] = token; else delete all[k];
-  try { localStorage.setItem(DEVICES, JSON.stringify(all)); } catch { /* storage is optional */ }
-};
 // orders placed on this device, so a customer can get back to a recent one (tracking links stay on the device only)
 export type RecentOrder = { token: string; number: number; phone: string; at: number; done?: boolean;
-  lines?: { item_id: string; qty: number; note: string; spice?: 'regular' | 'hot'; options: { id: string; qty: number }[] }[] };
+  lines?: { item_id: string; qty: number; note: string; spice?: Spice; hot?: number; options: { id: string; qty: number }[] }[] };
 export const orderFor = (token: string) => recent().find(x => x.token === token) ?? null;
 // the last order on this device, any age (for «اطلب نفس الطلب»)
 export const lastOrder = () => recent()[0] ?? null;
@@ -181,7 +175,8 @@ export const ERRORS: Record<string, string> = {
   bad_address: 'عبّي المنطقة والشارع والبناية.',
   blocked: 'للأسف ما بنقدر نستقبل طلبك أونلاين. تواصل معنا على الرقم.',
   too_many: 'بعتت كذا طلب ورا بعض. استنى كم دقيقة وجرّب.',
-  open_order: 'عندك طلب لسا قيد المراجعة. استنى لحد ما يتم تأكيده، أو تواصل معنا على الرقم.',
+  open_order: 'عندك طلب لسا ما تم استلامه. بتقدر تطلب من جديد بعد ما تستلمه، ولأي تعديل تواصل معنا على الرقم.',
+  bad_spice: 'في وجبة تقسيم الحار والعادي فيها مش مزبوط. ارجع للسلة وعدّلها.',
   unavailable: 'في أصناف خلصت هسّا بهالفرع:',
   note_too_long: 'الملاحظة طويلة، اختصرها شوي.',
 };

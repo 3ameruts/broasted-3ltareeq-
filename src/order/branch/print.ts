@@ -1,5 +1,6 @@
 import type { Order } from './api';
 import { splitLine } from '../split';
+import { spiceText } from '../spice';
 
 // One place for printing. In the browser it opens the print dialog; the branch app (APK) will provide
 // window.BroastedPrinter.printHtml to print straight to the device printer without a dialog.
@@ -36,7 +37,7 @@ hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
 <div class="ltr" style="text-align:right;font-size:16px;font-weight:700">${esc(o.customer_phone)}</div>
 ${o.type === 'delivery' && a ? `<div class="box">${esc([a.area, a.street, a.building && 'بناية ' + a.building, a.floor].filter(Boolean).join('، '))}${a.landmark ? '<br>قرب: ' + esc(a.landmark) : ''}${maps ? '<br><span class="ltr" style="font-size:10px">' + esc(maps) + '</span>' : ''}</div>` : ''}
 <hr>
-${o.order_items.map(i => { const { base, extras } = splitLine(i.line_total, i.qty, i.options); return `<div class="item"><div class="row"><b>${i.qty} × ${esc(i.name)}${i.spice === 'hot' ? ' · حار' : i.spice === 'regular' ? ' · عادي' : ''}</b><span>${money(base)}</span></div>${extras.map(x => `<div class="row sub"><span>+ ${esc(x.name)}${x.qty > 1 ? ' ×' + x.qty : ''}</span><span>${money(x.total)}</span></div>`).join('')}${i.note ? `<div class="sub">ملاحظة: ${esc(i.note)}</div>` : ''}</div>`; }).join('')}
+${o.order_items.map(i => { const { base, extras } = splitLine(i.line_total, i.qty, i.options); return `<div class="item"><div class="row"><b>${i.qty} × ${esc(i.name)}${i.spice && i.spice !== 'mixed' ? ' · ' + spiceText(i.spice, null, null, false) : ''}</b><span>${money(base)}</span></div>${i.spice === 'mixed' ? `<div class="sub"><b>${spiceText(i.spice, i.spice_hot, i.spice_regular, false)}${i.qty > 1 ? ' (لكل وجبة)' : ''}</b></div>` : ''}${extras.map(x => `<div class="row sub"><span>+ ${esc(x.name)}${x.qty > 1 ? ' ×' + x.qty : ''}</span><span>${money(x.total)}</span></div>`).join('')}${i.note ? `<div class="sub">ملاحظة: ${esc(i.note)}</div>` : ''}</div>`; }).join('')}
 <hr>
 ${o.type === 'delivery' && o.delivery_fee != null ? `<div class="row"><span>التوصيل${o.delivery_zone ? ' (' + esc(o.delivery_zone) + ')' : ''}</span><span>${money(o.delivery_fee)}</span></div>` : ''}
 <div class="row total"><span>المجموع</span><span>${money(Number(o.subtotal) + Number(o.delivery_fee ?? 0))} د.أ</span></div>

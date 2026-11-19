@@ -10,6 +10,7 @@ import { Input } from '../ui/field';
 import { Sheet } from '../ui/drawer';
 import { cn } from '../ui/cn';
 import { splitLine } from '../split';
+import { spiceText, splitFor, type Spice, type SplitRules } from '../spice';
 
 // Call center: every agent sees new online orders from all branches with a sound and a notification,
 // takes one (it locks to them), checks with the customer if needed, enters it on the branch POS and confirms here.
@@ -17,7 +18,7 @@ const url = import.meta.env.VITE_ORDERS_SUPABASE_URL || 'https://qzglmmkrnasgocu
 const key = import.meta.env.VITE_ORDERS_SUPABASE_KEY || 'sb_publishable_crkSQ5p2ntixzGDK5WRx6Q_2LAfmZee';
 const sb = createClient(url, key, { auth: { persistSession: true, storageKey: 'broasted-cc-auth' } });
 
-type MenuInfo = { content: Content; sauce: string; cheese: string | null; cheeseCat: string; spice: string[] };
+type MenuInfo = { content: Content; sauce: string; cheese: string | null; cheeseCat: string; spice: string[]; split?: SplitRules };
 type CcOrder = Order & { delivered_by?: string | null; edited_by?: string | null; fee_set_by?: string | null; claimed_by: string | null; claimed_name: string | null; claimed_at: string | null; confirmed_name: string | null; confirmed_at: string | null; pos_ref: string | null };
 type Branch = { id: string; code: string; name: string; accepting: boolean; paused_until: string | null };
 type Unavail = { branch_id: string; item_id: string; until: string | null; updated_by: string | null };
@@ -31,12 +32,12 @@ const copyText = (t: string) => {
   const fallback = () => {
     const el = document.createElement('textarea'); el.value = t; el.style.position = 'fixed'; el.style.opacity = '0';
     document.body.appendChild(el); el.select();
-    try { document.execCommand('copy') ? done() : toast.error('ما قدرت أنسخ'); } catch { toast.error('ما قدرت أنسخ'); }
+    try { if (document.execCommand('copy')) done(); else toast.error('ما قدرت أنسخ'); } catch { toast.error('ما قدرت أنسخ'); }
     el.remove();
   };
   if (navigator.clipboard?.writeText) navigator.clipboard.writeText(t).then(done, fallback); else fallback();
 };
-const hot = (s?: string | null) => (s === 'hot' ? ' · حار 🌶️' : s === 'regular' ? ' · عادي' : '');
+const hot = (i: { spice?: string | null; spice_hot?: number | null; spice_regular?: number | null }) => { const t = spiceText(i.spice, i.spice_hot, i.spice_regular); return t ? ` · ${t}` : ''; };
 const day = (iso: string) => new Intl.DateTimeFormat('ar-JO-u-nu-latn', { timeZone: 'Asia/Amman', weekday: 'long', day: 'numeric', month: 'numeric' }).format(new Date(iso));
 const minsAgo = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
 // a taken order stays with that agent until they confirm or cancel it (only an admin can unlock it)
@@ -135,7 +136,7 @@ function Board({ userId, name, admin }: { userId: string; name: string; admin: b
   const [menu, setMenu] = useState<MenuInfo | null>(null);
   useEffect(() => {
     Promise.all([sb.from('site_content').select('content').eq('id', 1).single(), sb.from('order_settings').select('*').eq('id', 1).single()])
-      .then(([c, s]) => { if (c.data && s.data) setMenu({ content: c.data.content as Content, sauce: s.data.sauce_category, cheese: s.data.cheese_item_id, cheeseCat: s.data.cheese_category, spice: (s.data.spice_categories as string[] | undefined) ?? [] }); });
+      .then(([c, s]) => { if (c.data && s.data) setMenu({ content: c.data.content as Content, sauce: s.data.sauce_category, cheese: s.data.cheese_item_id, cheeseCat: s.data.cheese_category, spice: (s.data.spice_categories as string[] | undefined) ?? [], split: s.data.spice_split as SplitRules | undefined }); });
   }, []);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [filter, setFilter] = useState<string>('all');
@@ -432,7 +433,7 @@ function posText(o: CcOrder, branchName: string) {
   lines.push('');
   for (const i of o.order_items) {
     const { base, extras } = splitLine(i.line_total, i.qty, i.options);
-    lines.push(`${i.qty} × ${i.name}${hot(i.spice)}  ${money(base)}`);
+    lines.push(`${i.qty} × ${i.name}${hot(i)}  ${money(base)}`);
     for (const x of extras) lines.push(`   + ${x.name}${x.qty > 1 ? ' ×' + x.qty : ''}  ${money(x.total)}`);
     if (i.note) lines.push(`   ملاحظة: ${i.note}`);
   }
@@ -524,7 +525,7 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
           const { base, extras } = splitLine(i.line_total, i.qty, i.options);
           return (
             <li key={i.id}>
-              <div className="flex justify-between gap-2 font-bold"><span><span className="num">{i.qty}×</span> {i.name}{i.spice === 'hot' ? <span className="text-brand-deep"> · حار 🌶️</span> : i.spice === 'regular' ? <span className="font-normal text-soft"> · عادي</span> : null}</span><span className="num">{money(base)}</span></div>
+              <div className="flex justify-between gap-2 font-bold"><span><span className="num">{i.qty}×</span> {i.name}{i.spice === 'hot' || i.spice === 'mixed' ? <span className="text-brand-deep">{hot(i)}</span> : i.spice === 'regular' ? <span className="font-normal text-soft"> · عادي</span> : null}</span><span className="num">{money(base)}</span></div>
               {extras.map((x, j) => (
                 <div key={j} className="flex justify-between gap-2 ps-5 text-sm text-soft">
                   <span>+ {x.name}{x.qty > 1 ? ` ×${x.qty}` : ''}</span><span className="num">{money(x.total)}</span>
@@ -602,14 +603,14 @@ function OrderCard({ o, menu, rating, twins, userId, admin, branchName, tone, on
   );
 }
 
-type EditLine = { key: string; item_id: string; name: string; price: number; qty: number; note: string; spice?: 'regular' | 'hot' | null; options: { id: string; name: string; price: number; qty: number }[] };
+type EditLine = { key: string; item_id: string; name: string; price: number; qty: number; note: string; spice?: Spice | null; hot?: number; options: { id: string; name: string; price: number; qty: number }[] };
 
 // edit an order on the phone: change quantities, remove or add items and add-ons; the database prices it from the menu
 function EditOrder({ o, menu, onClose, onSaved }: { o: CcOrder; menu: MenuInfo; onClose: () => void; onSaved: () => void }) {
   const items = useMemo(() => menu.content.categories.flatMap(c => c.items.map(i => ({ ...i, cat: c.id }))), [menu]);
   const byId = (id: string) => items.find(i => i.id === id);
   const [lines, setLines] = useState<EditLine[]>(() => o.order_items.map((l, n) => ({
-    key: String(n), item_id: l.item_id, name: l.name, qty: l.qty, note: l.note ?? '', spice: l.spice,
+    key: String(n), item_id: l.item_id, name: l.name, qty: l.qty, note: l.note ?? '', spice: l.spice, hot: l.spice_hot ?? undefined,
     price: byId(l.item_id)?.price ?? 0, options: l.options.map(x => ({ id: x.id, name: x.name, price: Number(x.price), qty: x.qty })),
   })));
   const [find, setFind] = useState('');
@@ -626,13 +627,13 @@ function EditOrder({ o, menu, onClose, onSaved }: { o: CcOrder; menu: MenuInfo; 
   const results = find.trim() ? items.filter(i => i.name.includes(find.trim())).slice(0, 8) : [];
   const save = async () => {
     setBusy(true);
-    const payload = lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note.trim() || undefined, spice: l.spice ?? undefined, options: l.options.map(x => ({ id: x.id, qty: x.qty })) }));
+    const payload = lines.map(l => ({ item_id: l.item_id, qty: l.qty, note: l.note.trim() || undefined, spice: l.spice ?? undefined, hot: l.spice === 'mixed' ? l.hot : undefined, options: l.options.map(x => ({ id: x.id, qty: x.qty })) }));
     const r = await rpc('cc_edit_order', { p_order: o.id, p_items: payload }).catch(e => { failed(e); return null; });
     setBusy(false);
     if (!r) return;
     if (r.ok) { toast.success('تم تعديل الطلب'); onSaved(); return; }
     const err = r as Res & { items?: string[] };
-    toast.error(err.error === 'unavailable' ? `خالص هسّا: ${(err.items ?? []).join('، ')}` : err.error === 'bad_items' ? 'الطلب لازم يكون فيه صنف واحد على الأقل' : err.error === 'taken' ? `الطلب مع ${err.name}` : 'ما زبط التعديل');
+    toast.error(err.error === 'unavailable' ? `خالص هسّا: ${(err.items ?? []).join('، ')}` : err.error === 'bad_items' ? 'الطلب لازم يكون فيه صنف واحد على الأقل' : err.error === 'taken' ? `الطلب مع ${err.name}` : err.error === 'bad_spice' ? 'تقسيم الحار والعادي مش مزبوط' : 'ما زبط التعديل');
   };
   return (
     <Sheet open onOpenChange={x => !x && onClose()} title={`تعديل طلب #${o.number}`}
@@ -644,7 +645,7 @@ function EditOrder({ o, menu, onClose, onSaved }: { o: CcOrder; menu: MenuInfo; 
             <div key={l.key} className="flex flex-col gap-2 rounded-2xl bg-paper p-3">
               <div className="flex items-center gap-2">
                 <span className="flex-1 font-bold">{l.name}</span>
-                {spiceCats.includes(byId(l.item_id)?.cat ?? '') && (
+                {spiceCats.includes(byId(l.item_id)?.cat ?? '') && !splitFor(menu.split, byId(l.item_id)?.cat ?? '', l.name) && (
                   <button className={cn('h-9 rounded-full px-3 text-sm font-bold', l.spice === 'hot' ? 'bg-brand text-white' : 'bg-white')}
                     onClick={() => upd(l.key, x => ({ ...x, spice: x.spice === 'hot' ? 'regular' : 'hot' }))}>{l.spice === 'hot' ? 'حار 🌶️' : 'عادي'}</button>
                 )}
@@ -653,6 +654,27 @@ function EditOrder({ o, menu, onClose, onSaved }: { o: CcOrder; menu: MenuInfo; 
                 <button className="grid size-9 place-items-center rounded-full bg-white" aria-label="زيد" onClick={() => upd(l.key, x => ({ ...x, qty: Math.min(20, x.qty + 1) }))}><Plus size={16} /></button>
                 <button className="grid size-9 place-items-center rounded-full bg-white text-brand-deep" aria-label="شيل" onClick={() => upd(l.key, () => null)}><Trash2 size={16} /></button>
               </div>
+              {spiceCats.includes(byId(l.item_id)?.cat ?? '') && (() => {
+                const sp = splitFor(menu.split, byId(l.item_id)?.cat ?? '', l.name);
+                if (!sp) return null;
+                const h = l.spice === 'mixed' && l.hot ? l.hot : Math.max(sp.step, Math.round(sp.pieces / 2 / sp.step) * sp.step);
+                const setH = (n: number) => upd(l.key, x => ({ ...x, spice: 'mixed', hot: Math.min(sp.pieces - sp.step, Math.max(sp.step, n)) }));
+                return (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {([['regular', 'كله عادي'], ['hot', 'كله حار 🌶️'], ['mixed', 'مقسوم']] as const).map(([v, t]) => (
+                      <button key={v} className={cn('h-9 rounded-full px-3 text-sm font-bold', (l.spice ?? 'regular') === v ? 'bg-brand text-white' : 'bg-white')}
+                        onClick={() => (v === 'mixed' ? setH(h) : upd(l.key, x => ({ ...x, spice: v, hot: undefined })))}>{t}</button>
+                    ))}
+                    {l.spice === 'mixed' && (
+                      <span className="flex items-center gap-1.5 text-sm font-bold">
+                        <button className="grid size-8 place-items-center rounded-full bg-white" aria-label="حار أقل" onClick={() => setH(h - sp.step)}><Minus size={14} /></button>
+                        <span className="num text-brand-deep">{h} حار</span> + <span className="num">{sp.pieces - h} عادي</span>
+                        <button className="grid size-8 place-items-center rounded-full bg-white" aria-label="حار أكثر" onClick={() => setH(h + sp.step)}><Plus size={14} /></button>
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
               {l.options.length > 0 && <div className="flex flex-wrap gap-1">{l.options.map(x => (
                 <button key={x.id} onClick={() => upd(l.key, y => ({ ...y, options: y.options.filter(z => z.id !== x.id) }))} className="rounded-full bg-white px-3 py-1 text-sm">+ {x.name} ×</button>
               ))}</div>}

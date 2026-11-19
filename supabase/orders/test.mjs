@@ -466,4 +466,69 @@ const r4 = await order({ ...pR, idempotency_key: key(), device: dR4 });
 ok('0 days = never renews', r4.ok, JSON.stringify(r4) + ' dev=' + dR4);
 ok('customers cannot call the guard directly', !!(await anon(`select public.order_guard('{}'::jsonb)`)).error);
 await db.exec(`update public.whatsapp_config set test_phones = '{}'; update public.order_settings set otp_days = 30`);
+// ── code with every order, one open order until received, hot/regular split (22-otp-every-order-and-spice-split.sql) ──
+await db.exec(readFileSync(dir + '/22-otp-every-order-and-spice-split.sql', 'utf8'));
+await db.exec(readFileSync(dir + '/22-otp-every-order-and-spice-split.sql', 'utf8'));
+await db.exec(`delete from public.otp_log; delete from public.otp_requests; update public.whatsapp_config set hourly_cap = 300, test_phones = '{}'; update public.order_settings set require_otp = true; delete from public.item_availability`);
+const ph = '0798181818', pO = { ...base0, branch_id: 'b1', phone: ph, items: [{ item_id: 'broasted-1', qty: 1, spice: 'hot' }] };
+const pass = async () => { await db.exec(`update public.otp_requests set sent_at = now() - interval '2 minutes', window_start = now() - interval '2 hours'`); await send(ph); return (await verify(ph, (await lastCode()).c)).device; };
+const closeAll = async () => db.exec(`update public.orders set status = 'delivered' where customer_phone = '${ph}'`);
+ok('no code, no order', (await order({ ...pO, idempotency_key: key() })).error === 'verify_phone');
+const d1 = await pass();
+const o1 = await order({ ...pO, idempotency_key: key(), device: d1 });
+ok('a fresh code places one order', o1.ok, JSON.stringify(o1));
+await closeAll();
+ok('the same code cannot place a second order (same phone, same device)', (await order({ ...pO, idempotency_key: key(), device: d1 })).error === 'verify_phone');
+const d2 = await pass();
+await db.exec(`update public.phone_devices set created_at = now() - interval '16 minutes' where phone = '${ph}'`);
+ok('a code is good for 15 minutes', (await order({ ...pO, idempotency_key: key(), device: d2 })).error === 'verify_phone');
+const d3 = await pass();
+ok('a refused order (bad split) keeps the code', (await order({ ...pO, idempotency_key: key(), device: d3, items: [{ item_id: 'broasted-2', qty: 1, spice: 'mixed', hot: 6 }] })).error === 'bad_spice');
+const k3 = key(), o3 = await order({ ...pO, idempotency_key: k3, device: d3 });
+ok('…and the customer fixes it and orders with the same code', o3.ok, JSON.stringify(o3));
+ok('a retry of the same order (same key) is not asked again', (await order({ ...pO, idempotency_key: k3, device: d3 })).ok);
+// one open order until it is received
+await db.exec(`update public.order_settings set require_otp = false`);
+ok('an open order blocks a new one', (await order({ ...pO, idempotency_key: key() })).error === 'open_order');
+await db.exec(`update public.orders set created_at = now() - interval '5 hours' where customer_phone = '${ph}' and status = 'new'`);
+ok('still blocked after 5 hours while nobody handled it', (await order({ ...pO, idempotency_key: key() })).error === 'open_order');
+ok('…from another branch too', (await order({ ...pO, branch_id: 'b2', idempotency_key: key() })).error === 'open_order');
+await db.exec(`update public.orders set status = 'accepted', accepted_at = now() where customer_phone = '${ph}' and status = 'new'`);
+ok('a confirmed order blocks until received', (await order({ ...pO, idempotency_key: key() })).error === 'open_order');
+await db.exec(`update public.orders set status = 'ready' where customer_phone = '${ph}' and status = 'accepted'`);
+ok('a ready order blocks until received', (await order({ ...pO, idempotency_key: key() })).error === 'open_order');
+await closeAll();
+ok('after «تم الاستلام» the customer can order again', (await order({ ...pO, idempotency_key: key() })).ok);
+await db.exec(`update public.orders set status = 'rejected' where customer_phone = '${ph}' and status = 'new'`);
+ok('after a cancel the customer can order again', (await order({ ...pO, idempotency_key: key() })).ok);
+await db.exec(`update public.orders set created_at = now() - interval '25 hours' where customer_phone = '${ph}' and status = 'new'`);
+ok('an order nobody touched for a day stops blocking', (await order({ ...pO, idempotency_key: key() })).ok);
+await closeAll();
+// hot / regular split
+const spl = async (items) => { await closeAll(); await db.exec(`update public.orders set created_at = now() - interval '2 hours' where customer_phone = '${ph}'`); return order({ ...pO, idempotency_key: key(), items }); };
+const sOk = await spl([{ item_id: 'broasted-2', qty: 1, spice: 'mixed', hot: 8 }, { item_id: 'tender-3', qty: 2, spice: 'mixed', hot: 15 }, { item_id: 'tender-2', qty: 1, spice: 'mixed', hot: 3 }, { item_id: 'broasted-4', qty: 1, spice: 'hot' }]);
+ok('12 broasted: 8 hot + 4 regular; 20 tender: 15 + 5; 8 tender: 3 + 5', sOk.ok, JSON.stringify(sOk));
+const rows = (await BOSS(`select i.item_id, i.spice, i.spice_hot, i.spice_regular from public.order_items i join public.orders o on o.id = i.order_id where o.tracking_token = $1 order by i.id`, [sOk.token])).rows;
+ok('stored as hot / regular pieces', JSON.stringify(rows.map(x => [x.spice, x.spice_hot, x.spice_regular])) === JSON.stringify([['mixed', 8, 4], ['mixed', 15, 5], ['mixed', 3, 5], ['hot', null, null]]), JSON.stringify(rows));
+const go = (await anon('select public.get_order($1) r', [sOk.token])).rows[0].r;
+ok('the tracking page gets the split', go.items[0].spice_hot === 8 && go.items[0].spice_regular === 4);
+for (const [why, items] of [
+  ['broasted not in steps of 4 (10 + 2)', [{ item_id: 'broasted-2', qty: 1, spice: 'mixed', hot: 10 }]],
+  ['all pieces as «split»', [{ item_id: 'broasted-2', qty: 1, spice: 'mixed', hot: 12 }]],
+  ['zero hot as «split»', [{ item_id: 'tender-3', qty: 1, spice: 'mixed', hot: 0 }]],
+  ['a single meal cannot be split', [{ item_id: 'broasted-1', qty: 1, spice: 'mixed', hot: 2 }]],
+  ['a sandwich cannot be split', [{ item_id: 'sandwiches-1', qty: 1, spice: 'mixed', hot: 1 }]],
+  ['a broken value', [{ item_id: 'tender-3', qty: 1, spice: 'mixed', hot: 'x' }]],
+  ['an unknown choice', [{ item_id: 'tender-3', qty: 1, spice: 'spicy' }]],
+]) ok(`refused: ${why}`, (await spl(items)).error === 'bad_spice');
+ok('the database refuses a split without its numbers', !!(await db.query(`update public.order_items set spice = 'mixed', spice_hot = null where id = (select min(id) from public.order_items)`).catch(e => ({ error: e }))).error);
+// call center edit keeps / validates the split
+const sEo = await spl([{ item_id: 'tender-3', qty: 1, spice: 'regular' }]);
+const sEoId = (await BOSS(`select id from public.orders where tracking_token = $1`, [sEo.token])).rows[0].id;
+await A1(`select public.cc_claim($1)`, [sEoId]);
+ok('call center sets a split', (await A1(`select public.cc_edit_order($1, $2::jsonb) r`, [sEoId, JSON.stringify([{ item_id: 'tender-3', qty: 1, spice: 'mixed', hot: 12 }])])).rows[0].r.ok
+  && (await BOSS(`select spice_hot, spice_regular from public.order_items where order_id = $1`, [sEoId])).rows[0].spice_regular === 8);
+ok('call center cannot save a wrong split', (await A1(`select public.cc_edit_order($1, $2::jsonb) r`, [sEoId, JSON.stringify([{ item_id: 'broasted-2', qty: 1, spice: 'mixed', hot: 5 }])])).rows[0].r.error === 'bad_spice');
+ok('customers cannot call the split helpers', !!(await anon(`select public.spice_ok('[]'::jsonb)`)).error && !!(await anon(`select public.apply_spice(gen_random_uuid(), '[]'::jsonb)`)).error);
+await closeAll();
 console.log(`\n${r.filter(Boolean).length}/${r.length} passed`);

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { MessageCircle, Phone } from 'lucide-react';
-import { rememberDevice, sendOtp, verifyOtp, type OtpResult } from '../data';
+import { sendOtp, verifyOtp, type OtpResult } from '../data';
 import { Sheet } from '../ui/drawer';
 import { Button } from '../ui/button';
 import { Input } from '../ui/field';
@@ -13,8 +13,8 @@ const SEND_ERRORS: Record<string, string> = {
   not_configured: 'التأكيد بالواتساب مش متاح هسّا. تواصل معنا على الرقم.',
 };
 
-// One-time WhatsApp code: sent when the sheet opens, the customer types it, the device remembers the phone
-export function PhoneCheck({ open, phone, contactPhone, onClose, onVerified }: { open: boolean; phone: string; contactPhone?: string; onClose: () => void; onVerified: () => void }) {
+// WhatsApp code for this order: sent when the sheet opens, the customer types it, and the pass is good for one order
+export function PhoneCheck({ open, phone, contactPhone, onClose, onVerified }: { open: boolean; phone: string; contactPhone?: string; onClose: () => void; onVerified: (device: string) => void }) {
   const [code, setCode] = useState('');
   const [late, setLate] = useState(false);   // the first wait is over: offer a phone call instead
   const [wait, setWait] = useState(0);
@@ -40,7 +40,7 @@ export function PhoneCheck({ open, phone, contactPhone, onClose, onVerified }: {
     setBusy(true); setMessage('');
     try {
       const r: OtpResult = await verifyOtp(phone, value);
-      if (r.ok && r.device) { rememberDevice(phone, r.device); sentFor.current = ''; onVerified(); }
+      if (r.ok && r.device) { sentFor.current = ''; onVerified(r.device); }
       else if (r.error === 'wrong_code') { setMessage(r.left ? `الكود غلط. ضايلك ${r.left} محاولات.` : 'الكود غلط. اطلب كود جديد.'); setCode(''); }
       else if (r.error === 'expired') setMessage('الكود انتهى. اطلب كود جديد.');
       else setMessage('محاولات كثير. اطلب كود جديد.');
@@ -54,7 +54,7 @@ export function PhoneCheck({ open, phone, contactPhone, onClose, onVerified }: {
       <div className="flex flex-col gap-4 pb-2">
         <p className="flex items-start gap-2">
           <MessageCircle size={22} className="mt-0.5 shrink-0 text-emerald-600" />
-          <span>بعتنالك كود من 6 أرقام على <b>الواتساب</b> على رقم <b className="num" dir="ltr">{phone}</b>. اكتبه هون، وبعدها الجهاز بيتذكّر رقمك.</span>
+          <span>بعتنالك كود من 6 أرقام على <b>الواتساب</b> على رقم <b className="num" dir="ltr">{phone}</b>. اكتبه هون عشان نأكّد طلبك.</span>
         </p>
         <Input value={code} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 6); setCode(v); if (v.length === 6) check(v); }}
           inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder="••••••" aria-label="كود التأكيد"

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Copy, Phone, RotateCcw } from 'lucide-react';
 import { FINAL_STATUSES, getOrder, markOrderDone, money, orderFor, splitLine, type Tracked } from '../data';
+import { spiceText } from '../spice';
 import { Button } from '../ui/button';
 import { InstallPrompt } from './InstallPrompt';
 import { RateOrder } from './RateOrder';
@@ -98,7 +99,7 @@ export function Tracking({ token, onNewOrder, onReorder }: { token: string; onNe
             return (
               <li key={i}>
                 <div className="flex justify-between gap-2">
-                  <span><span className="num">{it.qty}×</span> {it.name}{it.spice ? ` · ${it.spice === 'hot' ? 'حار 🌶️' : 'عادي'}` : ''}{it.note ? ` («${it.note}»)` : ''}</span><span className="num shrink-0">{money(base)}</span>
+                  <span><span className="num">{it.qty}×</span> {it.name}{it.spice ? ` · ${spiceText(it.spice, it.spice_hot, it.spice_regular)}` : ''}{it.note ? ` («${it.note}»)` : ''}</span><span className="num shrink-0">{money(base)}</span>
                 </div>
                 {extras.map((x, j) => (
                   <div key={j} className="flex justify-between gap-2 ps-5 text-soft">

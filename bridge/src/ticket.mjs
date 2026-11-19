@@ -29,6 +29,10 @@ export function ticketLayout(look = {}) {
   return { dots, width: Math.round(dots / (SCALE[look.textSize] ?? 1)) };
 }
 
+// hot / regular, or a split big meal: «8 حار + 4 عادي»
+const spiceOf = (it) => (it.spice === 'hot' ? ' · حار' : it.spice === 'regular' ? ' · عادي' : '');
+const splitOf = (it) => (it.spice === 'mixed' && it.spice_hot && it.spice_regular ? `${it.spice_hot} حار + ${it.spice_regular} عادي` : '');
+
 export function ticketSvg(o, look = {}) {
   const WIDTH = ticketLayout(look).width;
   const parts = []; let y = 0;
@@ -89,10 +93,12 @@ export function ticketSvg(o, look = {}) {
     const base = Number(it.line_total) - extras.reduce((s, x) => s + x.total, 0);
     if (n) { gap(14); rule(PAD + 40, right - 40, { width: 1, dashed: true }); }
     // long names wrap before the price column, so they never run into it on narrow paper
-    wrap(`${it.qty} × ${it.name}${it.spice === 'hot' ? ' · حار' : it.spice === 'regular' ? ' · عادي' : ''}`, 28, WIDTH - PAD * 2 - 100).forEach((l, i) => {
+    wrap(`${it.qty} × ${it.name}${spiceOf(it)}`, 28, WIDTH - PAD * 2 - 100).forEach((l, i) => {
       gap(i ? 28 * 1.3 : 38); parts.push(text(l, { size: 28 }));
       if (!i) parts.push(ltr(money(base), { size: 26 }));
     });
+    // a split meal gets its own line, so the kitchen reads it at a glance
+    if (splitOf(it)) { gap(26 * 1.45); parts.push(text(`${splitOf(it)}${it.qty > 1 ? ' (لكل وجبة)' : ''}`, { size: 26, x: right - 22 })); }
     for (const x of extras) {
       wrap(`+ ${x.name}${x.qty > 1 ? ' ×' + x.qty : ''}`, 22, WIDTH - PAD * 2 - 122).forEach((l, i) => {
         gap(22 * 1.4); parts.push(text(l, { size: 22, weight: 400, x: right - 22 }));
