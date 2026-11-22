@@ -31,7 +31,7 @@ export function ZonePicker({ zones, value, onPick, invalid }: { zones: Zone[]; v
             </button>
           </li>
         ))}
-        {!found.length && <li className="px-4 py-3 text-sm text-soft">ما لقينا هالمنطقة. جرّب اسم ثاني، أو كبس «منطقتي مش بالقائمة» فوق.</li>}
+        {!found.length && <li className="px-4 py-3 text-sm text-soft">ما لقينا هالمنطقة. جرّب اسم ثاني، أو اكبس «منطقتي مش بالقائمة» فوق.</li>}
       </ul>
     </div>
   );

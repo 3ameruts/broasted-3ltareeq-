@@ -14,7 +14,7 @@ function CartLines({ cart, unavailable, onEmpty }: Pick<Props, 'cart' | 'unavail
     <div className="flex flex-col items-center gap-3 py-12 text-center text-soft">
       <ShoppingBag size={44} strokeWidth={1.6} />
       <p className="font-semibold">سلتك فاضية</p>
-      {onEmpty ? <Button variant="outline" onClick={onEmpty}>شوف المنيو</Button> : <p className="text-sm">اختار من المنيو وكبس +</p>}
+      {onEmpty ? <Button variant="outline" onClick={onEmpty}>شوف المنيو</Button> : <p className="text-sm">اختار من المنيو واكبس +</p>}
     </div>
   );
   return (

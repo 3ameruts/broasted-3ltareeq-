@@ -57,7 +57,7 @@ export function Checkout({ cart, branchId, branchName, mode, onModeChange, onBac
     if (c.name.trim().length < 2) e.name = 'اكتب اسمك.';
     if (!phoneOk(c.phone)) e.phone = 'رقم أردني، مثل 0791234567.';
     if (mode === 'delivery') {
-      if (hasZones && !notListed) { if (!zone) e.area = 'اختار منطقتك من القائمة، أو كبس «منطقتي مش بالقائمة».'; }
+      if (hasZones && !notListed) { if (!zone) e.area = 'اختار منطقتك من القائمة، أو اكبس «منطقتي مش بالقائمة».'; }
       else if (!c.area.trim()) e.area = 'اكتب المنطقة أو الحي.';
       if (!c.street.trim()) e.street = 'اكتب الشارع.';
       if (!c.building.trim()) e.building = 'اكتب رقم أو اسم البناية.';
