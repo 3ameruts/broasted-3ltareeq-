@@ -1,0 +1,10 @@
+[
+ ["whoosh", 0.05], ["logo", 0.3], ["hardpop", 0.55], ["hardpop", 0.67], ["hardpop", 0.79], ["swoosh", 1.45], ["pop", 1.8], ["hit", 2.4], ["sparkle", 2.95],
+ ["whoosh", 3.0], ["reveal", 3.45], ["pop", 3.9], ["pop", 4.1], ["pop", 4.3], ["swoosh", 5.05],
+ ["scroll", 5.65], ["tap", 6.35], ["pop", 6.45], ["tap", 7.5], ["focus", 7.6], ["hardpop", 7.7], ["tap", 8.15], ["cart", 8.25], ["tap", 8.75], ["pop", 8.85],
+ ["tap", 9.35], ["tap", 10.05], ["pop", 10.15], ["notify", 10.4], ["tap", 10.95], ["tap", 11.2], ["uiok", 11.3], ["whoosh", 11.55], ["confirm", 11.65],
+ ["transmit", 12.6], ["deep", 13.8], ["notify", 13.9], ["chime", 14.2], ["swoosh", 14.8],
+ ["whoosh", 15.55], ["swoosh", 16.75], ["tap", 17.5], ["uiok", 17.6], ["notify", 18.05], ["whoosh", 19.2],
+ ["fry", 19.5], ["hit", 19.5], ["whip", 20.36], ["hit", 20.5], ["whip", 21.36], ["hit", 21.5], ["whip", 22.36], ["hit", 22.5], ["box", 22.85],
+ ["logo", 23.5], ["whoosh", 23.55], ["pop", 24.25], ["sparkle", 24.9], ["hit", 25.0], ["pop", 25.5]
+]

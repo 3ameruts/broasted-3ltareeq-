@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "studio": "remotion studio src/index.ts",
-    "render": "remotion render src/index.ts Reel out/online-order-reel.mp4 --muted",
+    "sound": "bash audio/get_mixkit.sh && python3 audio/mix.py && ffmpeg -y -i audio/out/effects.wav -af loudnorm=I=-15:TP=-1.5:LRA=11 -ar 48000 public/audio.wav",
+    "render": "remotion render src/index.ts Reel out/online-order-reel.mp4",
     "capture": "node capture/site.cjs && node capture/branch.cjs"
   },
   "dependencies": {

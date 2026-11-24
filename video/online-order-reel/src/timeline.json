@@ -1,1 +1,1 @@
-{ "fps": 30, "duration": 25, "scenes": { "order": [0, 9.5], "transmit": [9.5, 12.5], "branch": [12.5, 16.5], "kitchen": [16.5, 20.5], "hero": [20.5, 25] } }
+{ "fps": 30, "duration": 28, "scenes": { "order": [0, 12.5], "transmit": [12.5, 15.5], "branch": [15.5, 19.5], "kitchen": [19.5, 23.5], "hero": [23.5, 28] } }

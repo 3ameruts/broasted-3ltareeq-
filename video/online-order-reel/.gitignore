@@ -1,3 +1,6 @@
 node_modules/
 build/
 out/stills/
+audio/mixkit/
+audio/out/
+public/audio.wav
