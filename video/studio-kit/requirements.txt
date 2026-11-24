@@ -1,0 +1,16 @@
+moviepy
+opencv-python-headless
+numpy
+scipy
+pydub
+pyloudnorm
+noisereduce
+librosa
+soundfile
+pedalboard
+pillow
+rembg[cpu]
+faster-whisper
+piper-tts
+scenedetect
+imageio-ffmpeg
