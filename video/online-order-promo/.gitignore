@@ -1,0 +1,7 @@
+node_modules
+build
+out/stills
+audio/mixkit
+audio/music
+audio/out
+public/audio.wav

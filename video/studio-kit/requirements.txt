@@ -9,7 +9,7 @@ librosa
 soundfile
 pedalboard
 pillow
-rembg[cpu]
+rembg[cpu,cli]
 faster-whisper
 piper-tts
 scenedetect

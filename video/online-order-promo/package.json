@@ -1,0 +1,31 @@
+{
+  "name": "broasted-online-order-promo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "assets": "bash assets/build.sh",
+    "sound": "bash audio/get_mixkit.sh && /root/.studio/bin/python audio/mix.py",
+    "render": "remotion render src/index.ts Promo out/online-order-promo.mp4"
+  },
+  "dependencies": {
+    "@fontsource/cairo": "^5.3.0",
+    "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
+    "@fontsource/tajawal": "^5.3.0",
+    "@remotion/cli": "^4.0.539",
+    "@remotion/motion-blur": "^4.0.539",
+    "@remotion/noise": "^4.0.539",
+    "@remotion/paths": "^4.0.539",
+    "@remotion/shapes": "^4.0.539",
+    "@remotion/transitions": "^4.0.539",
+    "gsap": "^3.15.0",
+    "lucide-react": "^1.66.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "remotion": "^4.0.539"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "typescript": "^5.9.3"
+  }
+}
