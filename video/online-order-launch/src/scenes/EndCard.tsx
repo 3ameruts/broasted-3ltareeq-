@@ -8,9 +8,9 @@ import { Rays } from './Open';
 
 // the final card, in the first video's spirit: logo (+ «جديد»), «اطلب أونلاين هلأ!», the link, cash or CliQ on delivery,
 // the three branches popping in one by one, and the mascot waving goodbye
-export const END0 = b(59);
+export const END0 = b(60);
 export const BRANCHES = ['دوار العيادات', 'دوار الدرة', 'مجمع عمّان'];
-export const EC = { badge: END0 + .55, cta: b(59.5), url: b(60.5), pay: b(61.5), label: b(62.5), pills: [b(63), b(63.5), b(64)] };
+export const EC = { badge: END0 + .55, cta: b(60.5), url: b(61.5), pay: b(62.5), label: b(63.5), pills: [b(64), b(64.5), b(65)] };
 
 export const EndCard: React.FC<{ t: number }> = ({ t }) => {
   const logo = backOut(ramp(t, END0, END0 + .5), 2.2), badge = backOut(ramp(t, EC.badge, EC.badge + .35), 3);
@@ -47,7 +47,7 @@ export const EndCard: React.FC<{ t: number }> = ({ t }) => {
             opacity: Math.min(1, k * 2), transform: `scale(${Math.max(0, k)}) rotate(${(i - 1) * 3}deg)` }}>{n}</div>;
         })}
       </div>
-      <Mascot t={t} x={200} y={1560} h={300} enter={b(61)} hops={[b(62), b(64.5)]} wave bubbleSide="right" says={[{ at: b(61.5), end: b(62.7), text: 'يلا اطلب! 😋' }]} />
+      <Mascot t={t} x={200} y={1560} h={300} enter={b(62)} hops={[b(63), b(65.5)]} wave bubbleSide="right" says={[{ at: b(62.5), end: b(63.7), text: 'يلا اطلب! 😋' }]} />
     </AbsoluteFill>
   );
 };

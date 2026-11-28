@@ -22,7 +22,7 @@ import TM from './timing.json';
 //   22.8–27.7 the order flies to the branch, the branch accepts (played faster: 1.84× and 1.33×)
 //   27.7–34.7 the kitchen, then the hero shot
 //   34.7–end  the final card: logo + «جديد», link, cash or CliQ, the three branches, the mascot waving
-export const AT = { transmit: b(37), branch: b(40), kitchen: b(46), hero: b(54), end: END0 };
+export const AT = { transmit: b(41), branch: b(44), kitchen: b(50), hero: b(56), end: END0 };
 const END = TM.duration;
 
 export const Launch: React.FC = () => {

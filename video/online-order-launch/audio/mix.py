@@ -41,9 +41,9 @@ GAIN = dict(impact=.75, logo=.7, whoosh=.42, swoosh=.36, whip=.42, reveal=.32, p
             whistle=.32, longpop=.42, sillypop=.4, coin=.38, positive=.45, jump=.3, slide=.36, bubbles=.38, fallwhistle=.3, bells=.35, crunch=.8,
             **{f'tick{i}': .3 for i in range(8)})
 dr = len(S['drumroll']) / SR
-AT = dict(transmit=b(37), branch=b(40), kitchen=b(46), hero=b(54), end=b(59)); LEN = 2 * B
-SP = dict(transmit=3 / (b(40) - b(37)), branch=4.36 / (b(46) - b(40)))
-SENT = b(35) + .05
+AT = dict(transmit=b(41), branch=b(44), kitchen=b(50), hero=b(56), end=b(60)); LEN = 2 * B
+SP = dict(transmit=3 / (b(44) - b(41)), branch=4.36 / (b(50) - b(44)))
+SENT = b(39) + .05
 REEL = json.load(open(os.path.join(HERE, '../../online-order-reel/audio/cues.json')))
 def from_reel(a, z, at, speed=1.0, until=99):  # the original reel's cues for one scene, moved (and sped up) to where it plays here
     return [(n, at + (t - a) / speed) for n, t in REEL if a <= t < z and (t - a) / speed < until]
@@ -56,26 +56,26 @@ CUES = [
     ('impact', b(4)), ('whoosh', b(4)), ('sillypop', b(4) + .1), ('hardpop', b(4.5)), ('sparkle', b(5)),
     # cream studio: logo slam + ring, meals burst, «وجبتك المفضلة… صارت أقرب!», the phone flies up, the 3 chips
     ('slide', b(8) - .1), ('logo', b(8) + .05), ('bubbles', b(8) + .35), ('whoosh', b(10)), ('pop', b(10) + .2), ('bells', b(11)),
-    ('whoosh', b(12)), ('pop', b(12.5)), ('pop', b(13)), ('coin', b(13.5)), ('swoosh', b(14)),
+    ('whoosh', b(12)), ('pop', b(12.5)), ('pop', b(13.5)), ('coin', b(14.5)), ('swoosh', b(18)),
     # the real order: a sticker per step, a tap per press, a pop per sheet; the mascot's comments
-    ('scroll', b(14.6)), *[('longpop', a) for a in [b(14), b(18), b(21), b(26), b(29), b(32)]],
-    *[('tap', a) for a in [b(18), b(21), b(26), b(27.5), b(29), b(32), b(35) - .1]],
-    *[('bubbles', a) for a in [b(15), b(22), b(29.6), b(33)]], *[('jump', a - .05) for a in [b(14.3), b(21.5), b(24), b(26), b(29), b(32.6)]],
-    ('pop', b(18) + .1), ('focus', b(19.5) + .1), ('pop', b(21) + .25), *[(f'tick{i}', b(22) + i * .136) for i in range(8)], ('hit', b(24)), ('confirm', b(24) + .05),
-    ('cart', b(26) + .1), ('pop', b(27.5) + .1), ('pop', b(29) + .1), ('pop', b(32) + .1),
-    ('notify', b(32.6)), *[('tap', b(33.4) + i * .08) for i in range(6)], ('uiok', b(34)),
+    ('scroll', b(18.6)), *[('longpop', a) for a in [b(18), b(22), b(25), b(30), b(33), b(36)]],
+    *[('tap', a) for a in [b(22), b(25), b(30), b(31.5), b(33), b(36), b(39) - .1]],
+    *[('bubbles', a) for a in [b(19), b(26), b(33.6), b(37)]], *[('jump', a - .05) for a in [b(18.3), b(25.5), b(28), b(30), b(33), b(36.6)]],
+    ('pop', b(22) + .1), ('focus', b(23.5) + .1), ('pop', b(25) + .25), *[(f'tick{i}', b(26) + i * .136) for i in range(8)], ('hit', b(28)), ('confirm', b(28) + .05),
+    ('cart', b(30) + .1), ('pop', b(31.5) + .1), ('pop', b(33) + .1), ('pop', b(36) + .1),
+    ('notify', b(36.6)), *[('tap', b(37.4) + i * .08) for i in range(6)], ('uiok', b(38)),
     # sent: the celebration (the first video's «احتفال ألوان وصوت نجاح»)
-    ('whoosh', SENT), ('positive', SENT), ('sillypop', SENT + .05), ('cheer', SENT + .1), ('jump', b(35.2) - .05), ('jump', b(35.7) - .05),
+    ('whoosh', SENT), ('positive', SENT), ('sillypop', SENT + .05), ('cheer', SENT + .1), ('jump', b(39.2) - .05), ('jump', b(39.7) - .05),
     # the original reel's sound for the hand-off to the branch and the branch (sped up like the picture)
     *from_reel(12.5, 15.5, AT['transmit'], SP['transmit']), *from_reel(15.5, 19.5, AT['branch'], SP['branch']),
     # kitchen: whips on the cuts, a crunch, the sizzle
-    ('fry', AT['kitchen']), ('hit', AT['kitchen']), ('crunch', AT['kitchen'] + .15), *[('whip', AT['kitchen'] + i * LEN) for i in (1, 2, 3)], *[('hit', AT['kitchen'] + i * LEN) for i in (1, 2, 3)],
-    ('box', AT['kitchen'] + 3 * LEN + .35),
+    ('fry', AT['kitchen']), ('hit', AT['kitchen']), ('crunch', AT['kitchen'] + .15), *[('whip', AT['kitchen'] + i * LEN) for i in (1, 2)], *[('hit', AT['kitchen'] + i * LEN) for i in (1, 2)],
+    ('box', AT['kitchen'] + 2 * LEN + .35),
     # hero shot (the reel's, up to the cut)
-    *[c for c in from_reel(23.5, 28, AT['hero'], 1, until=b(59) - b(54)) if c[0] not in ('logo', 'hit')],
+    *[c for c in from_reel(23.5, 28, AT['hero'], 1, until=b(60) - b(56)) if c[0] not in ('logo', 'hit')],
     # final card
-    ('impact', AT['end']), ('horn', AT['end']), ('cheer', AT['end'] + .05), ('hardpop', AT['end'] + .55), ('pop', b(59.5)), ('pop', b(60.5)), ('sparkle', b(60.5) + .5),
-    ('coin', b(61.5)), ('whistle', b(61)), ('bubbles', b(61.5)), ('pop', b(62.5)), *[('longpop', b(n)) for n in (63, 63.5, 64)], ('jump', b(62) - .05), ('done', b(64) + .3),
+    ('impact', AT['end']), ('horn', AT['end']), ('cheer', AT['end'] + .05), ('hardpop', AT['end'] + .55), ('pop', b(60.5)), ('pop', b(61.5)), ('sparkle', b(61.5) + .5),
+    ('coin', b(62.5)), ('whistle', b(62)), ('bubbles', b(62.5)), ('pop', b(63.5)), *[('longpop', b(n)) for n in (63, 63.5, 64)], ('jump', b(63) - .05), ('done', b(65) + .3),
 ]
 n = int(SR * TOTAL); fx = np.zeros((n + SR * 6, 2), np.float32)
 for name, at in CUES:

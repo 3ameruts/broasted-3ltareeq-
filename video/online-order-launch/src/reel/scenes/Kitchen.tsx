@@ -10,8 +10,7 @@ type ShotDef = { bg: string; fg?: string; fgW?: number; fgX?: number; fgY?: numb
 const SHOTS: ShotDef[] = [
   { bg: 'food/k16.jpg', fg: 'food/cut16.webp', fgW: 1500, fgX: -260, fgY: 520, dir: 1, zoom: [1.15, 1.32] },
   { bg: 'food/k20.jpg', fg: 'food/cut20.webp', fgW: 1450, fgX: -300, fgY: 560, dir: -1, zoom: [1.1, 1.26] },
-  { bg: 'food/k13.jpg', dir: 1, zoom: [1.35, 1.12] },
-  { bg: 'food/k11.jpg', fg: 'food/cut11.webp', fgW: 1100, fgX: -10, fgY: 640, dir: -1, zoom: [1.05, 1.3] },
+  { bg: 'food/k11.jpg', fg: 'food/cut11.webp', fgW: 1100, fgX: -10, fgY: 640, dir: 1, zoom: [1.05, 1.3] },
 ];
 // one shot every 2 beats of the launch music (0.5448 s)
 const LEN = 2 * 0.5448, WHIP = .14;
@@ -31,7 +30,7 @@ export const Kitchen: React.FC = () => {
       </AbsoluteFill>
       <AbsoluteFill style={{ background: 'radial-gradient(120% 80% at 50% 45%, transparent 50%, rgba(40,10,0,.55) 100%), linear-gradient(180deg, rgba(0,0,0,.35), transparent 22%, transparent 78%, rgba(0,0,0,.35))', mixBlendMode: 'multiply' }} />
       <AbsoluteFill style={{ background: '#fff', opacity: Math.max(0, 1 - local / .08) * (i > 0 ? .55 : 0) }} />
-      <div style={{ position: 'absolute', top: 262, width: '100%', display: 'flex', justifyContent: 'center', opacity: ramp(t, .05, .3) * (1 - ramp(t, 4.12, 4.32)) }}>
+      <div style={{ position: 'absolute', top: 262, width: '100%', display: 'flex', justifyContent: 'center', opacity: ramp(t, .05, .3) * (1 - ramp(t, 3.07, 3.27)) }}>
         <Pill dark style={{ font: `800 46px ${F.head}` }}><Flame size={42} color="#fcb712" /> بلّشنا نجهّز طلبك فريش</Pill>
       </div>
     </AbsoluteFill>
