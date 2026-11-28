@@ -1,11 +1,13 @@
 import { gsap } from 'gsap';
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { createContext, useContext, useLayoutEffect, useRef } from 'react';
+// played faster inside «جديدنا!» (the hand-off to the branch is shortened)
+export const Speed = createContext(1);
 import { AbsoluteFill, interpolate, random, useCurrentFrame, useVideoConfig } from 'remotion';
 import { C } from './theme';
 
 // GSAP, frame-accurate: build a paused timeline once, seek it to the current frame on every render.
 export function useGsap<T extends HTMLElement = HTMLDivElement>(build: (tl: gsap.core.Timeline, q: (s: string) => Element[]) => void) {
-  const frame = useCurrentFrame(); const { fps } = useVideoConfig();
+  const frame = useCurrentFrame() * useContext(Speed); const { fps } = useVideoConfig();
   const scope = useRef<T>(null); const tl = useRef<gsap.core.Timeline | null>(null);
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -18,7 +20,7 @@ export function useGsap<T extends HTMLElement = HTMLDivElement>(build: (tl: gsap
   useLayoutEffect(() => { tl.current?.seek(frame / fps, false); }, [frame, fps]);
   return scope;
 }
-export const useT = () => { const f = useCurrentFrame(); const { fps } = useVideoConfig(); return f / fps; };
+export const useT = () => { const f = useCurrentFrame() * useContext(Speed); const { fps } = useVideoConfig(); return f / fps; };
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 export const ramp = (t: number, a: number, b: number, from = 0, to = 1, ease?: (x: number) => number) => interpolate(t, [a, b], [from, to], { ...clamp, easing: ease });
 export const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);

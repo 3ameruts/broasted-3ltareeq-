@@ -1,4 +1,4 @@
-# «جديدنا!» v2 soundtrack: «Upbeat Jazz» (Mixkit) cut so its drop lands on the picture's drop (2.6s), plus Mixkit effects on
+# «جديدنا!» v3 soundtrack: «Upbeat Jazz» (Mixkit) cut so its drop lands on the picture's drop (2.6s), plus Mixkit effects on
 # every visual hit, effects-keyed ducking on the music, bus compression, limiting and a -14 LUFS / -1 dBTP master.
 # usage: bash audio/get_mixkit.sh && /root/.studio/bin/python audio/mix.py
 import json, os, subprocess
@@ -30,37 +30,52 @@ for name, mid, _t, ext in rows:
     if name == 'logo': x = fade(x[:int(SR * 3.2)], .002, 1.0)
     if name == 'fry': x = fade(x[int(SR * 6):int(SR * 9)], .3, .6)
     if name == 'transmit': x = fade(x, .01, .3)
+    if name in ('positive', 'bells'): x = fade(x[:int(SR * 1.6)], .002, .5)
+    if name == 'fallwhistle': x = fade(x[:int(SR * 1.3)], .002, .3)
     S[name] = fade(rms(x), .002, .03)
 for i in range(8):
     S[f'tick{i}'] = fade(librosa.effects.pitch_shift(S['hardpop'].T.copy(), sr=SR, n_steps=i * 1.5).T, .001, .03)
 ALIGN = {'whoosh': .25, 'swoosh': .12, 'whip': .12, 'transmit': 1.2}  # these peak ON the cue; everything else starts on it
 GAIN = dict(impact=.75, logo=.7, whoosh=.42, swoosh=.36, whip=.42, reveal=.32, pop=.42, hardpop=.45, tap=.5, cart=.5, focus=.32, confirm=.5, deep=.7,
-            notify=.5, chime=.42, uiok=.5, hit=.42, sparkle=.35, drumroll=.55, horn=.5, cheer=.32, bell=.4, done=.45, transmit=.5, box=.6, fry=.3, scroll=.32,
+            notify=.5, chime=.42, uiok=.5, hit=.42, sparkle=.35, drumroll=.55, horn=.5, cheer=.3, bell=.4, done=.45, transmit=.5, box=.6, fry=.3, scroll=.32,
+            whistle=.32, longpop=.42, sillypop=.4, coin=.38, positive=.45, jump=.3, slide=.36, bubbles=.38, fallwhistle=.3, bells=.35, crunch=.8,
             **{f'tick{i}': .3 for i in range(8)})
 dr = len(S['drumroll']) / SR
-AT = dict(transmit=b(24), branch=b(30), kitchen=b(38), hero=b(46)); LEN = 2 * B
-SENT = b(22) + .05
+AT = dict(transmit=b(37), branch=b(40), kitchen=b(46), hero=b(54), end=b(59)); LEN = 2 * B
+SP = dict(transmit=3 / (b(40) - b(37)), branch=4.36 / (b(46) - b(40)))
+SENT = b(35) + .05
 REEL = json.load(open(os.path.join(HERE, '../../online-order-reel/audio/cues.json')))
-def from_reel(a, z, at):  # the original reel's cues for one scene, moved to where that scene starts here
-    return [(n, at + (t - a)) for n, t in REEL if a <= t < z]
+def from_reel(a, z, at, speed=1.0, until=99):  # the original reel's cues for one scene, moved (and sped up) to where it plays here
+    return [(n, at + (t - a) / speed) for n, t in REEL if a <= t < z and (t - a) / speed < until]
 CUES = [
-    # teaser: «عنّا خبر حلو…» «جاهزين؟» and a drum roll into the drop
-    ('pop', .04), ('pop', b(-4)), ('pop', b(-3)), ('hardpop', b(-2)), ('hit', b(-1)), ('drumroll', b(0) - dr),
-    # the drop: «جديدنا!» with confetti, horn and a cheer; «صار فيك تطلب أونلاين!»; the phone spins in
-    ('impact', b(0)), ('deep', b(0)), ('horn', b(0)), ('cheer', b(0) + .05), ('sparkle', b(0) + .45), ('pop', b(2)),
-    ('whoosh', b(4)), ('hardpop', b(4.5)), ('sparkle', b(5)), ('whoosh', b(6.6)), ('reveal', b(6)),
-    # the studio wipe and the real order: a sticker per step, a tap per press, a pop per sheet
-    ('swoosh', b(8)), ('scroll', b(8.4)),
-    *[('hardpop', a) for a in [b(8), b(10), b(12), b(16), b(18), b(20)]],
-    *[('tap', a) for a in [b(10), b(12), b(16), b(17), b(18), b(20), b(22) - .1]],
-    ('pop', b(10) + .1), ('focus', b(11) + .1), ('pop', b(12) + .25), *[(f'tick{i}', b(13) + i * .136) for i in range(8)], ('hit', b(15)), ('confirm', b(15) + .05),
-    ('cart', b(16) + .1), ('pop', b(17) + .1), ('pop', b(18.5)), ('pop', b(19)), ('pop', b(19.5)), ('pop', b(20) + .1),
-    ('notify', b(20.5)), *[('tap', b(21) + .1 + i * .07) for i in range(5)], ('uiok', b(21.5)),
-    ('whoosh', SENT), ('sparkle', SENT), ('chime', SENT + .1),
-    # the original reel's sound design for the branch hand-off, the branch, the kitchen and the hero shot
-    *from_reel(12.5, 15.5, AT['transmit']), *from_reel(15.5, 19.5, AT['branch']),
-    ('fry', AT['kitchen']), ('hit', AT['kitchen']), *[('whip', AT['kitchen'] + i * LEN) for i in (1, 2, 3)], *[('hit', AT['kitchen'] + i * LEN) for i in (1, 2, 3)], ('box', AT['kitchen'] + 3 * LEN + .35),
-    *from_reel(23.5, 28, AT['hero']), ('horn', AT['hero'] + 1.5), ('cheer', AT['hero'] + 1.55), ('hardpop', AT['hero'] + 2.05),
+    # teaser: «عنّا خبر حلو…» «جاهزين؟», the mascot pops up, a drum roll into the drop
+    ('pop', .04), ('pop', b(-4)), ('pop', b(-3)), ('hardpop', b(-2)), ('whistle', b(-2) + .25), ('jump', b(-1) - .05), ('drumroll', b(0) - dr),
+    # the drop: «جديدنا!» + confetti + horn + cheer; the mascot hops on the beat
+    ('impact', b(0)), ('deep', b(0)), ('horn', b(0)), ('cheer', b(0) + .05), ('sparkle', b(0) + .45), ('pop', b(2)), *[('jump', b(n) - .05) for n in (1, 3, 5, 7)],
+    # «صار فيك تطلب أونلاين!» with a strong hit, the broasted zooms in
+    ('impact', b(4)), ('whoosh', b(4)), ('sillypop', b(4) + .1), ('hardpop', b(4.5)), ('sparkle', b(5)),
+    # cream studio: logo slam + ring, meals burst, «وجبتك المفضلة… صارت أقرب!», the phone flies up, the 3 chips
+    ('slide', b(8) - .1), ('logo', b(8) + .05), ('bubbles', b(8) + .35), ('whoosh', b(10)), ('pop', b(10) + .2), ('bells', b(11)),
+    ('whoosh', b(12)), ('pop', b(12.5)), ('pop', b(13)), ('coin', b(13.5)), ('swoosh', b(14)),
+    # the real order: a sticker per step, a tap per press, a pop per sheet; the mascot's comments
+    ('scroll', b(14.6)), *[('longpop', a) for a in [b(14), b(18), b(21), b(26), b(29), b(32)]],
+    *[('tap', a) for a in [b(18), b(21), b(26), b(27.5), b(29), b(32), b(35) - .1]],
+    *[('bubbles', a) for a in [b(15), b(22), b(29.6), b(33)]], *[('jump', a - .05) for a in [b(14.3), b(21.5), b(24), b(26), b(29), b(32.6)]],
+    ('pop', b(18) + .1), ('focus', b(19.5) + .1), ('pop', b(21) + .25), *[(f'tick{i}', b(22) + i * .136) for i in range(8)], ('hit', b(24)), ('confirm', b(24) + .05),
+    ('cart', b(26) + .1), ('pop', b(27.5) + .1), ('pop', b(29) + .1), ('pop', b(32) + .1),
+    ('notify', b(32.6)), *[('tap', b(33.4) + i * .08) for i in range(6)], ('uiok', b(34)),
+    # sent: the celebration (the first video's «احتفال ألوان وصوت نجاح»)
+    ('whoosh', SENT), ('positive', SENT), ('sillypop', SENT + .05), ('cheer', SENT + .1), ('jump', b(35.2) - .05), ('jump', b(35.7) - .05),
+    # the original reel's sound for the hand-off to the branch and the branch (sped up like the picture)
+    *from_reel(12.5, 15.5, AT['transmit'], SP['transmit']), *from_reel(15.5, 19.5, AT['branch'], SP['branch']),
+    # kitchen: whips on the cuts, a crunch, the sizzle
+    ('fry', AT['kitchen']), ('hit', AT['kitchen']), ('crunch', AT['kitchen'] + .15), *[('whip', AT['kitchen'] + i * LEN) for i in (1, 2, 3)], *[('hit', AT['kitchen'] + i * LEN) for i in (1, 2, 3)],
+    ('box', AT['kitchen'] + 3 * LEN + .35),
+    # hero shot (the reel's, up to the cut)
+    *[c for c in from_reel(23.5, 28, AT['hero'], 1, until=b(59) - b(54)) if c[0] not in ('logo', 'hit')],
+    # final card
+    ('impact', AT['end']), ('horn', AT['end']), ('cheer', AT['end'] + .05), ('hardpop', AT['end'] + .55), ('pop', b(59.5)), ('pop', b(60.5)), ('sparkle', b(60.5) + .5),
+    ('coin', b(61.5)), ('whistle', b(61)), ('bubbles', b(61.5)), ('pop', b(62.5)), *[('longpop', b(n)) for n in (63, 63.5, 64)], ('jump', b(62) - .05), ('done', b(64) + .3),
 ]
 n = int(SR * TOTAL); fx = np.zeros((n + SR * 6, 2), np.float32)
 for name, at in CUES:

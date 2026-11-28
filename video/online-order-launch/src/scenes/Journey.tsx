@@ -2,68 +2,103 @@ import { Check, Flame, Send } from 'lucide-react';
 import React from 'react';
 import { AbsoluteFill, Img, staticFile } from 'remotion';
 import { PH, Phone, PW, SH, Shot, SW, Tap } from '../devices';
-import { backOut, Confetti, io } from '../fx';
+import { backOut, Confetti, io, Mascot } from '../fx';
 import { easeOut, expoOut, punch, ramp, RedWorld } from '../lib';
 import { Cream } from '../reel/lib';
 import { b, C, F } from '../theme';
 import { Headline, Rays } from './Open';
 import taps from '../../public/ui/taps.json';
 
-// 2.6–15.7s. The drop («جديدنا!», «صار فيك تطلب أونلاين!») on red; the phone spins in, the world wipes to the cream studio
-// and the phone walks through a REAL order, one step every bar, each step slapped on as a numbered sticker:
-// menu → meal → split hot/regular → cart → details → code → «انبعت الطلب».
-const DROP = b(0), WIPE = b(8), SENT = b(22) + .05;
+// 2.6–22.8s.
+//  b0–b8   the drop on red: «جديدنا!», «صار فيك تطلب أونلاين!» over the broasted zooming in (the first video's opening)
+//  b8–b14  wipe to the cream studio: the logo slams in with a ring, the meals burst out, «وجبتك المفضلة… صارت أقرب!»,
+//          the phone flies up with the three ways to order (the first reel's intro)
+//  b14–b37 a REAL order, step by step, 3–5 beats per step so every screen reads; the mascot peeks from behind the phone
+const DROP = b(0), WIPE = b(8), SENT = b(35) + .05;
 const FULL_W = 975, SCROLL_END = Math.round(taps.scrollY * 2.5 * SW / FULL_W), STICKY = Math.round(300 * SW / FULL_W);
 type Scr = { at: number; src: string; how: 'cut' | 'fade' | 'sheet' | 'scroll' | 'close' };
 const SCREENS: Scr[] = [
   { at: 0, src: 'ui/01-menu.png', how: 'cut' },
-  { at: b(8.4), src: 'menu-scroll', how: 'cut' },
-  { at: b(10) + .1, src: 'ui/03-sheet.png', how: 'sheet' },
-  { at: b(11) + .1, src: 'ui/04-sheet-spice.png', how: 'scroll' },
-  { at: b(12) + .1, src: 'ui/05-split.png', how: 'fade' },
-  { at: b(16) + .1, src: 'ui/06-added.png', how: 'close' },
-  { at: b(17) + .1, src: 'ui/07-cart.png', how: 'sheet' },
-  { at: b(18) + .1, src: 'ui/08-checkout.png', how: 'fade' },
-  { at: b(20) + .1, src: 'ui/10-code.png', how: 'sheet' },
-  { at: b(21) + .1, src: 'ui/11-code-typing.png', how: 'cut' },
-  { at: b(21.5), src: 'ui/12-code-done.png', how: 'cut' },
+  { at: b(14.6), src: 'menu-scroll', how: 'cut' },
+  { at: b(18) + .1, src: 'ui/03-sheet.png', how: 'sheet' },
+  { at: b(19.5) + .1, src: 'ui/04-sheet-spice.png', how: 'scroll' },
+  { at: b(21) + .1, src: 'ui/05-split.png', how: 'fade' },
+  { at: b(26) + .1, src: 'ui/06-added.png', how: 'close' },
+  { at: b(27.5) + .1, src: 'ui/07-cart.png', how: 'sheet' },
+  { at: b(29) + .1, src: 'ui/08-checkout.png', how: 'fade' },
+  { at: b(32) + .1, src: 'ui/10-code.png', how: 'sheet' },
+  { at: b(33.4), src: 'ui/11-code-typing.png', how: 'cut' },
+  { at: b(34), src: 'ui/12-code-done.png', how: 'cut' },
 ];
-export const TAPS: [number, { x: number; y: number }][] = [[b(10), taps.item], [b(12), taps.split], [b(16), taps.add], [b(17), taps.cart], [b(18), taps.next], [b(20), taps.confirm], [b(22) - .1, taps.code]];
-export const STEPS: [number, string][] = [[b(8), 'تصفّح المنيو'], [b(10), 'اختار وجبتك'], [b(12), 'حار ولا عادي؟ أو قسّمها!'], [b(16), 'ضيفها للسلة'], [b(18), 'اسمك وعنوانك'], [b(20), 'أكّد طلبك بالكود']];
-export const J = { DROP, WIPE, SENT, flip0: b(13), flipStep: .136, counters: b(15), wa: b(20.5) };
+export const TAPS: [number, { x: number; y: number }][] = [[b(18), taps.item], [b(21), taps.split], [b(26), taps.add], [b(27.5), taps.cart], [b(29), taps.next], [b(32), taps.confirm], [b(35) - .1, taps.code]];
+export const STEPS: [number, string][] = [[b(14), 'تصفّح المنيو'], [b(18), 'اختار وجبتك'], [b(21), 'حار ولا عادي؟ أو قسّمها!'], [b(26), 'ضيفها للسلة'], [b(29), 'اسمك وعنوانك'], [b(32), 'أكّد طلبك بالكود']];
+export const J = { DROP, WIPE, SENT, flip0: b(22), flipStep: .136, counters: b(24), wa: b(32.6), chips: [b(12.5), b(13), b(13.5)] };
 
 export const Journey: React.FC<{ t: number }> = ({ t }) => {
   const wipe = expoOut(ramp(t, WIPE, WIPE + .5));
   return (
-    <AbsoluteFill style={{ transform: `scale(${punch(t, [DROP, b(2), b(4), b(4.5)], .035)})` }}>
+    <AbsoluteFill style={{ transform: `scale(${punch(t, [DROP, b(2), b(4), b(4.5), WIPE], .035)})` }}>
       <RedWorld t={t} />
       <Rays t={t} />
-      {wipe > 0 && <AbsoluteFill style={{ clipPath: `circle(${wipe * 1500}px at 540px 980px)` }}><Cream /></AbsoluteFill>}
-      <Headline t={t} />
-      <PhoneRig t={t} />
-      <Steps t={t} />
-      <SplitCallout t={t} />
-      <Chips t={t} />
       <Confetti t={t} at={DROP} x={80} y={1950} spread={.7} power={1.25} seed="l" n={70} />
       <Confetti t={t} at={DROP} x={1000} y={1950} spread={.7} power={1.25} seed="r" n={70} />
       <Confetti t={t} at={b(4.5)} x={540} y={-80} spread={2.2} power={.35} seed="t" n={60} up={1} />
-      <Confetti t={t} at={SENT} x={540} y={900} spread={2.6} power={.75} seed="s" n={80} />
+      {wipe > 0 && <AbsoluteFill style={{ clipPath: `circle(${wipe * 1500}px at 540px 900px)` }}><Cream /></AbsoluteFill>}
+      <Headline t={t} />
+      <Mascot t={t} x={170} y={1560} h={330} enter={DROP + .1} exit={WIPE - .3} hops={[b(1), b(2), b(3), b(5), b(6), b(7)]} flip />
+      <LogoIntro t={t} />
+      {/* the mascot peeks from behind the phone and comments */}
+      <Mascot t={t} x={905} y={1530} h={300} enter={b(14.3)} exit={b(36.5)} hops={[b(14.3), b(21.5), b(24), b(26), b(29), b(32.6), b(35.2), b(35.7)]} bubbleSide="left"
+        says={[{ at: b(15), end: b(17.4), text: 'شوف شو في! 😋' }, { at: b(22), end: b(25.4), text: 'أنا بحب الحار 🔥' }, { at: b(29.6), end: b(31.6), text: 'لباب البيت؟ ولا من الفرع؟' },
+          { at: b(33), end: b(34.7), text: 'وصلك الكود؟' }, { at: SENT + .1, end: b(36.6), text: 'يااااي! 🎉' }]} />
+      <PhoneRig t={t} />
+      <Chips t={t} />
+      <Steps t={t} />
+      <SplitCallout t={t} />
+      <Confetti t={t} at={SENT} x={540} y={900} spread={2.6} power={.8} seed="s" n={70} />
     </AbsoluteFill>
   );
 };
 
-// the phone: spins in on the drop world, grows into the studio, walks the order, pulls back when it's sent
+// the first reel's intro on cream: logo slam + ring + meals bursting from behind it, then the line
+const MEALS = [{ src: 'cut16', x: 600, y: 200, w: 560, r: 14, fx: 380, fy: 280 }, { src: 'cut-zinger', x: -150, y: 1160, w: 500, r: -16, fx: -420, fy: -380 }, { src: 'cut20', x: 640, y: 1330, w: 520, r: 8, fx: -60, fy: -560 }];
+const LogoIntro: React.FC<{ t: number }> = ({ t }) => {
+  if (t < WIPE || t > b(14) + .3) return null;
+  const slam = expoOut(ramp(t, WIPE + .05, WIPE + .75)), up = io(ramp(t, b(10), b(10) + .6)), gone = ramp(t, b(14) - .25, b(14) + .05);
+  const ring = ramp(t, WIPE + .2, WIPE + 1.2), h1 = expoOut(ramp(t, b(10) + .2, b(10) + .8)), h2 = backOut(ramp(t, b(11), b(11) + .7), 2.4);
+  return (
+    <AbsoluteFill>
+      {MEALS.map((m, i) => {
+        const k = backOut(ramp(t, WIPE + .3 + i * .12, WIPE + 1.2 + i * .12), 1.5), out = ramp(t, b(13.6), b(13.6) + .45, 0, 1, x => x * x);
+        return <Img key={m.src} src={staticFile(`food/${m.src}.webp`)} style={{ position: 'absolute', left: m.x, top: m.y + Math.cos(t * 1.5 + i) * 14, width: m.w, opacity: Math.min(1, k * 2) * (1 - out),
+          transform: `translate(${(1 - k) * m.fx + out * (i === 1 ? -200 : 220)}px, ${(1 - k) * m.fy + out * (i === 1 ? 160 : -160)}px) scale(${.15 + .85 * k}) rotate(${m.r * k + out * 30}deg)`, filter: 'drop-shadow(0 30px 40px rgba(80,30,10,.35))' }} />;
+      })}
+      <div style={{ position: 'absolute', left: 540 - 260, top: 900 - 260, width: 520, height: 520, borderRadius: 260, border: `10px solid ${C.mustard}`, opacity: ring > 0 && ring < 1 ? 1 - ring : 0, transform: `scale(${.3 + ring * 3.1})` }} />
+      <div style={{ position: 'absolute', left: 540 - 380, top: 900 - 225, width: 760, opacity: Math.min(1, slam * 1.5) * (1 - gone), filter: `blur(${(1 - slam) * 22 + gone * 8}px)`,
+        transform: `translateY(${-610 * up - gone * 140}px) scale(${(2.8 - 1.8 * slam) * (1 - .54 * up)})` }}>
+        <Img src={staticFile('logo.webp')} style={{ width: 760, filter: 'drop-shadow(0 30px 50px rgba(120,40,10,.35))' }} />
+      </div>
+      <div style={{ position: 'absolute', top: 520, width: 1080, textAlign: 'center', opacity: 1 - gone, transform: `translateY(${-gone * 140}px)`, filter: `blur(${gone * 8}px)` }}>
+        <div style={{ font: `400 112px/1.3 ${F.fun}`, color: C.ink, opacity: h1, transform: `translateY(${(1 - h1) * 70}px)` }}>وجبتك المفضلة...</div>
+        <div style={{ display: 'inline-block', font: `400 170px/1.25 ${F.fun}`, color: C.red, opacity: Math.min(1, h2 * 2), transform: `scale(${.3 + .7 * h2}) rotate(${(1 - Math.min(h2, 1)) * -6}deg)`, textShadow: '0 14px 40px rgba(224,38,58,.25)' }}>صارت أقرب!</div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// the phone flies up (with the three ways to order around it), settles big, walks the order, pulls back when it's sent
 const PhoneRig: React.FC<{ t: number }> = ({ t }) => {
-  if (t < b(6)) return null;
-  const k = expoOut(ramp(t, b(6), b(8))), g = io(ramp(t, WIPE, WIPE + .65)), back = io(ramp(t, SENT + .2, SENT + .9));
-  const top = 560 + (1 - k) * 1300 + (345 - 560) * g + back * 110, sc = (.62 + .16 * k) + (.94 - .78) * g - back * .14;
-  const ry = (1 - k) * 360 + Math.sin(t * 1.4) * 2 * (1 - g * .6), rx = (1 - k) * 30 + 4 - g * 4 + back * 10;
-  const glow = ramp(t, SENT, SENT + .3) * (1 - ramp(t, SENT + .9, SENT + 1.3));
+  if (t < b(12)) return null;
+  const k = expoOut(ramp(t, b(12), b(12) + 1)), g = io(ramp(t, b(14) - .1, b(14) + .45)), back = io(ramp(t, SENT + .2, SENT + .9));
+  const lerp = (a: number, z: number, u: number) => a + (z - a) * u;
+  const top = lerp(lerp(1900, 790, k), 345, g) + back * 110, sc = lerp(lerp(.3, .58, k), .94, g) - back * .14;
+  const ry = lerp(lerp(30, -6, k) + Math.sin(t * 2) * 4, 0, g) + Math.sin(t * 1.4) * 1.5, rx = lerp(lerp(38, 8, k), 0, g) + back * 10, rz = lerp(lerp(-10, 3, k), 0, g);
+  const glow = ramp(t, SENT, SENT + .3) * (1 - ramp(t, SENT + .9, SENT + 1.3)), on = ramp(t, b(12) + .4, b(12) + .8);
   return (
     <div style={{ position: 'absolute', inset: 0, perspective: 2400 }}>
-      <div style={{ position: 'absolute', left: (1080 - PW) / 2, top, width: PW, height: PH, transformOrigin: '50% 30%', transform: `scale(${sc}) rotateY(${ry}deg) rotateX(${rx}deg) rotateZ(${(1 - k) * -20}deg)` }}>
-        <div style={{ position: 'absolute', left: 40, top: 60, width: PW - 80, height: PH - 40, borderRadius: 90, background: `rgba(${g > .5 ? '120,40,10,.35' : '60,0,0,.55'})`, filter: 'blur(40px)', transform: 'translate(30px, 50px)' }} />
-        <Phone glow={glow}><Screens t={t} /></Phone>
+      <div style={{ position: 'absolute', left: (1080 - PW) / 2, top, width: PW, height: PH, transformOrigin: '50% 30%', transform: `scale(${sc}) rotateY(${ry}deg) rotateX(${rx}deg) rotateZ(${rz}deg)` }}>
+        <div style={{ position: 'absolute', left: 40, top: 60, width: PW - 80, height: PH - 40, borderRadius: 90, background: 'rgba(120,40,10,.35)', filter: 'blur(40px)', transform: 'translate(30px, 50px)' }} />
+        <Phone glow={glow}><Screens t={t} /><div style={{ position: 'absolute', inset: 0, background: '#000', opacity: 1 - on, zIndex: 40 }} /></Phone>
       </div>
     </div>
   );
@@ -71,7 +106,7 @@ const PhoneRig: React.FC<{ t: number }> = ({ t }) => {
 
 const Screens: React.FC<{ t: number }> = ({ t }) => {
   const cur = SCREENS.reduce((a, s, i) => (t >= s.at ? i : a), 0);
-  const scrollP = ramp(t, b(8.4) + .05, b(9.8)), scrollY = io(scrollP) * SCROLL_END;
+  const scrollP = ramp(t, b(14.6) + .05, b(17)), scrollY = io(scrollP) * SCROLL_END;
   const sent = ramp(t, SENT, SENT + .35);
   return (
     <>
@@ -85,7 +120,7 @@ const Screens: React.FC<{ t: number }> = ({ t }) => {
           <div key={i} style={{ position: 'absolute', inset: 0, opacity: o, transform: `translateY(${y}%)`, zIndex: z, background: C.cream }}>
             {s.src === 'menu-scroll' ? (
               <>
-                <Img src={staticFile('ui/01-menu-full.png')} style={{ position: 'absolute', left: 0, top: -scrollY, width: SW, filter: `blur(${Math.sin(Math.PI * scrollP) * 5}px)` }} />
+                <Img src={staticFile('ui/01-menu-full.png')} style={{ position: 'absolute', left: 0, top: -scrollY, width: SW, filter: `blur(${Math.sin(Math.PI * scrollP) * 4}px)` }} />
                 {scrollY > SCROLL_END * .8 && <div style={{ position: 'absolute', left: 0, top: 0, width: SW, height: STICKY, overflow: 'hidden' }}><Img src={staticFile('ui/02-menu-item.png')} style={{ width: SW }} /></div>}
               </>
             ) : <Shot src={s.src} />}
@@ -94,11 +129,10 @@ const Screens: React.FC<{ t: number }> = ({ t }) => {
       })}
       {TAPS.map(([at, q], i) => <Tap key={i} t={t} at={at} x={q.x * SW} y={q.y * SH} />)}
       <WaCode t={t} />
-      {/* sent */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 27, display: 'grid', placeItems: 'center', background: `rgba(178,16,23,${.92 * sent})`, opacity: sent }}>
         <div style={{ textAlign: 'center', color: '#fff', transform: `scale(${.6 + .4 * expoOut(sent)})` }}>
           <div style={{ width: 170, height: 170, margin: '0 auto 30px', borderRadius: 85, background: '#fff', color: C.red, display: 'grid', placeItems: 'center' }}><Send size={84} /></div>
-          <div style={{ font: `900 64px ${F.head}` }}>انبعت الطلب</div>
+          <div style={{ font: `400 72px/1.3 ${F.fun}` }}>انبعت الطلب</div>
           <div style={{ font: `700 42px ${F.num}`, opacity: .85 }}>#77</div>
         </div>
       </div>
@@ -108,7 +142,7 @@ const Screens: React.FC<{ t: number }> = ({ t }) => {
 
 // the verification code arrives (the real message text)
 const WaCode: React.FC<{ t: number }> = ({ t }) => {
-  const k = backOut(ramp(t, J.wa, J.wa + .45), 1.6), out = easeOut(ramp(t, b(21.7), b(21.7) + .3));
+  const k = backOut(ramp(t, J.wa, J.wa + .45), 1.6), out = easeOut(ramp(t, b(34.2), b(34.2) + .3));
   if (k <= 0 || out >= 1) return null;
   return (
     <div style={{ position: 'absolute', left: 18, right: 18, top: 78, zIndex: 26, display: 'flex', gap: 16, alignItems: 'center', padding: '18px 20px', borderRadius: 30,
@@ -129,11 +163,11 @@ const Steps: React.FC<{ t: number }> = ({ t }) => <>{STEPS.map(([at, label], i) 
   const end = i < STEPS.length - 1 ? STEPS[i + 1][0] - .04 : SENT;
   if (t < at || t > end + .25) return null;
   const k = ramp(t, at, at + .32), s = backOut(k, 2.4), off = ramp(t, end - .02, end + .2), rot = i % 2 ? 2.5 : -2.5;
-  const done = i === STEPS.length - 1 && t > b(21.5);
+  const done = i === STEPS.length - 1 && t > b(34);
   return (
-    <div key={i} style={{ position: 'absolute', top: 236, left: 0, width: 1080, display: 'flex', justifyContent: 'center', zIndex: 6 }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 18, padding: '12px 30px 12px 22px', borderRadius: 34, background: '#fff', border: '7px solid #fff',
-        boxShadow: '0 20px 44px rgba(120,30,10,.28)', font: `900 52px/1.2 ${F.head}`, color: C.ink, whiteSpace: 'nowrap', opacity: Math.min(1, k * 4) * (1 - off),
+    <div key={i} style={{ position: 'absolute', top: 228, left: 0, width: 1080, display: 'flex', justifyContent: 'center', zIndex: 9 }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 18, padding: '6px 32px 10px 22px', borderRadius: 34, background: '#fff', border: '7px solid #fff',
+        boxShadow: '0 20px 44px rgba(120,30,10,.28)', font: `400 58px/1.35 ${F.fun}`, color: C.ink, whiteSpace: 'nowrap', opacity: Math.min(1, k * 4) * (1 - off),
         transform: `translate(${off * -480}px, ${off * -200}px) scale(${(1.7 - .7 * Math.min(s, 1.15)) * (1 - off * .3)}) rotate(${rot + (1 - k) * 12 - off * 30}deg)` }}>
         <span style={{ display: 'grid', placeItems: 'center', width: 70, height: 70, borderRadius: 35, background: done ? C.ok : C.red, color: '#fff', font: `900 42px/1 ${F.num}`, flex: 'none' }}>
           {done ? <Check size={44} strokeWidth={3.2} /> : i + 1}</span>
@@ -145,7 +179,7 @@ const Steps: React.FC<{ t: number }> = ({ t }) => <>{STEPS.map(([at, label], i) 
 
 // the split, called out big beside the phone: 12 pieces, 8 turn hot one by one
 const SplitCallout: React.FC<{ t: number }> = ({ t }) => {
-  const a = b(12) + .25, e = b(16) - .15;
+  const a = b(21) + .25, e = b(26) - .15;
   if (t < a || t > e + .3) return null;
   const k = backOut(ramp(t, a, a + .45), 2), out = ramp(t, e, e + .25), hot = Array.from({ length: 8 }, (_, i) => t >= J.flip0 + i * J.flipStep).filter(Boolean).length;
   return (
@@ -159,21 +193,21 @@ const SplitCallout: React.FC<{ t: number }> = ({ t }) => {
         })}
       </div>
       <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 18, transform: `scale(${punch(t, [J.counters], .16, 7)})` }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 20px', borderRadius: 30, background: C.red, color: '#fff', font: `900 44px ${F.head}` }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 20px 4px', borderRadius: 30, background: C.red, color: '#fff', font: `400 48px/1.35 ${F.fun}` }}>
           <span style={{ font: `900 48px/1 ${F.num}` }}>{hot}</span> حار</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 20px', borderRadius: 30, background: C.mustard, color: C.redDeep, font: `900 44px ${F.head}` }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 20px 4px', borderRadius: 30, background: C.mustard, color: C.redDeep, font: `400 48px/1.35 ${F.fun}` }}>
           <span style={{ font: `900 48px/1 ${F.num}` }}>{12 - hot}</span> عادي</span>
       </div>
     </div>
   );
 };
 
-// the real options of the checkout, popping around the phone
-const CHIPS = [['🛵', 'توصيل لباب البيت', { left: 24, top: 900 }, b(18.5)], ['🏪', 'أو استلام من الفرع', { right: 24, top: 1060 }, b(19)], ['💵', 'كاش أو كليك عند الاستلام', { left: 24, top: 1220 }, b(19.5)]] as const;
-const Chips: React.FC<{ t: number }> = ({ t }) => <>{CHIPS.map(([e, l, pos, at], i) => {
-  const k = backOut(ramp(t, at, at + .4), 2.2), out = ramp(t, b(20) - .1, b(20) + .15);
+// the three ways to order, around the phone as it flies up (all real options of the site)
+const CHIPS = [['🛵', 'توصيل لباب البيت', { left: 30, top: 1060 }], ['🏪', 'أو استلام من الفرع', { right: 30, top: 1230 }], ['💵', 'كاش أو كليك عند الاستلام', { left: 30, top: 1400 }]] as const;
+const Chips: React.FC<{ t: number }> = ({ t }) => <>{CHIPS.map(([e, l, pos], i) => {
+  const at = J.chips[i], k = backOut(ramp(t, at, at + .4), 2.2), out = ramp(t, b(14) - .2, b(14) + .05);
   if (k <= 0 || out >= 1) return null;
-  return <div key={i} style={{ position: 'absolute', ...pos, zIndex: 6, display: 'flex', alignItems: 'center', gap: 12, padding: '16px 28px', borderRadius: 50, background: 'rgba(255,255,255,.96)',
-    boxShadow: '0 18px 40px rgba(120,40,10,.25)', font: `800 40px ${F.head}`, color: C.ink, whiteSpace: 'nowrap', opacity: Math.min(1, k * 2) * (1 - out), transform: `scale(${(.3 + .7 * k) * (1 - out * .5)})` }}>
+  return <div key={i} style={{ position: 'absolute', ...pos, zIndex: 6, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 30px 14px', borderRadius: 50, background: 'rgba(255,255,255,.96)',
+    boxShadow: '0 18px 40px rgba(120,40,10,.25)', font: `400 44px/1.35 ${F.fun}`, color: C.ink, whiteSpace: 'nowrap', opacity: Math.min(1, k * 2) * (1 - out), transform: `scale(${(.3 + .7 * k) * (1 - out * .5)})` }}>
     <span style={{ fontSize: 44 }}>{e}</span>{l}</div>;
 })}</>;

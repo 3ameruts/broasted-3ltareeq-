@@ -24,3 +24,4 @@ potrace -s -t 40 -O 0.8 -o public/brand/logo-shape.svg /tmp/logo-alpha.pbm
 
 node assets/svg2json.mjs public/brand/logo-line.svg src/logo-line.json
 echo assets ok
+/root/.studio/bin/python assets/mascot.py public/logo.webp public/brand/mascot.png

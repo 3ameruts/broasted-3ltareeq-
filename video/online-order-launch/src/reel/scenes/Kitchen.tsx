@@ -11,7 +11,7 @@ const SHOTS: ShotDef[] = [
   { bg: 'food/k16.jpg', fg: 'food/cut16.webp', fgW: 1500, fgX: -260, fgY: 520, dir: 1, zoom: [1.15, 1.32] },
   { bg: 'food/k20.jpg', fg: 'food/cut20.webp', fgW: 1450, fgX: -300, fgY: 560, dir: -1, zoom: [1.1, 1.26] },
   { bg: 'food/k13.jpg', dir: 1, zoom: [1.35, 1.12] },
-  { bg: 'food/k18.jpg', dir: -1, zoom: [1.05, 1.38] },
+  { bg: 'food/k11.jpg', fg: 'food/cut11.webp', fgW: 1100, fgX: -10, fgY: 640, dir: -1, zoom: [1.05, 1.3] },
 ];
 // one shot every 2 beats of the launch music (0.5448 s)
 const LEN = 2 * 0.5448, WHIP = .14;
