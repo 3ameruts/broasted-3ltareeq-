@@ -117,6 +117,6 @@ mix = pyln.normalize.loudness(mix, meter.integrated_loudness(mix), -15.0)
 mix = mix / max(1.0, np.abs(mix).max() / .98)
 os.makedirs(os.path.join(HERE, 'out'), exist_ok=True); pre = os.path.join(HERE, 'out', 'premaster.wav'); sf.write(pre, mix, SR, subtype='FLOAT')
 out = os.path.join(HERE, '../public/audio.wav')
-subprocess.run(['ffmpeg', '-nostdin', '-loglevel', 'error', '-y', '-i', pre, '-af', 'loudnorm=I=-14:TP=-1.5:LRA=9,afade=t=out:st=%.2f:d=0.6' % (TOTAL - .6),
+subprocess.run(['ffmpeg', '-nostdin', '-loglevel', 'error', '-y', '-i', pre, '-af', 'loudnorm=I=-14:TP=-2.5:LRA=9,afade=t=out:st=%.2f:d=0.6' % (TOTAL - .6),
                 '-ar', str(SR), '-c:a', 'pcm_s24le', out], check=True)
 print('master ->', out)
