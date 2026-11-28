@@ -155,12 +155,12 @@ os.makedirs(os.path.join(HERE, 'out'), exist_ok=True); pre = os.path.join(HERE, 
 out = os.path.join(HERE, '../public/audio-asmr.wav')
 # master: -14 LUFS with a soft ceiling, checked on a 4x-oversampled signal (true peak <= -1.5 dBTP)
 from scipy.signal import resample_poly
-c = 10 ** (-1.8 / 20)
+c = 10 ** (-3.4 / 20)
 for _ in range(6):
     mix = pyln.normalize.loudness(mix, meter.integrated_loudness(mix), -14.0)
     mix = c * np.tanh(mix / c)
     tp = np.abs(resample_poly(mix, 4, 1, axis=0)).max()
-    if tp <= 10 ** (-1.5 / 20) and abs(meter.integrated_loudness(mix) + 14) < .3: break
+    if tp <= 10 ** (-3.0 / 20) and abs(meter.integrated_loudness(mix) + 14) < .3: break
 f = int(SR * .6); mix[-f:] *= np.linspace(1, 0, f)[:, None]
 sf.write(out, mix.astype(np.float32), SR, subtype='PCM_24')
 print('master ->', out, '| LUFS %.1f | true peak %.1f dBTP | bites in the bank: %d' % (meter.integrated_loudness(mix), 20 * np.log10(tp), len(bank)))
